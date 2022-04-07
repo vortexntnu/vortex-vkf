@@ -1,0 +1,1 @@
+Simple EKF based solution for filtering CV detections of objects like gate and pole. Includes a very general EKF class that admits different process and measurement models, which is the case here. As of this commit the EKF is technically implemented but it needs integration with ROS.
