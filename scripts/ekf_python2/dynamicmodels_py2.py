@@ -95,3 +95,44 @@ class landmark_gate(DynamicModel):
         Q = np.diag(self.sigma_arr)*Ts
 
         return Q
+
+
+class landmark_pose_world(DynamicModel):
+    """
+    Dynamic model for a landmark. Landmarks are assumed time invariant.
+    """
+
+    # noise standard deviation array
+    def __init__(self, sigmas):
+        self.sigma_arr = sigmas
+
+    def f(self, x, Ts):
+        """Calculate the zero noise Ts time units transition from x.
+        See DynamicModel for variable documentation
+        """
+        
+        n = len(x)
+        
+        #x_kp1 = np.eye(n) @ x
+        x_kp1 = np.matmul(np.eye(n), x)
+
+        return x_kp1
+
+    def F(self, x, Ts):
+        """Calculate the transition function jacobian for Ts time units at x.
+        See DynamicModel for variable documentation"""
+
+
+        n = len(x)
+        F = np.eye(n)
+
+        return F
+
+    def Q(self, x, Ts):
+        """Calculate the Ts time units transition Covariance.
+        See(4.64) in the book.
+        See DynamicModel for variable documentation"""
+
+        Q = np.diag(self.sigma_arr)*Ts
+
+        return Q

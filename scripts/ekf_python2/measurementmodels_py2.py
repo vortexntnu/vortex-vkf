@@ -122,3 +122,45 @@ class measurement_linear_landmark(MeasurementModel):
         R = (self.sigma_z**2) * np.eye(n)
 
         return R
+
+
+
+class LTV_full_measurement_model(MeasurementModel):
+
+    def __init__(self, 
+                sigma_sensor, 
+                pos, 
+                Rot
+                ):
+        self.sigma_z = sigma_sensor
+        self.p_wc = pos 
+        self.Rot_wc = Rot
+        # TODO Change this to be more general
+    
+    def h(self, x):
+        """Predict measurement through the non-linear vector field h given the
+        state x
+        x = [pw_wg, eulers_world] ^ T
+        z = [pb_bg, eulers_world]
+        """
+        
+        z = np.matmul(self.Rot_wc.T, (x[0:3] - self.p_wc[0:3]))
+        
+        return np.append(z, x[3:])
+
+    def H(self, x):
+        """Calculate the measurement Jacobian matrix at x in sensor_state.
+        
+        H_3x3 = Rot_3x3
+        
+        """
+        n = len(x)
+        H = np.eye(n)
+        H[:3,:3] = self.Rot_wc.T
+
+        return H
+
+    def R(self, x):
+        """Calculate the measurement covariance matrix at x in sensor_state."""
+
+        return np.diag(self.sigma_z**2)
