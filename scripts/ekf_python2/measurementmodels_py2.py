@@ -135,7 +135,6 @@ class LTV_full_measurement_model(MeasurementModel):
         self.sigma_z = sigma_sensor
         self.p_wc = pos 
         self.Rot_wc = Rot
-        # TODO Change this to be more general
     
     def h(self, x):
         """Predict measurement through the non-linear vector field h given the

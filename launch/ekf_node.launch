@@ -18,16 +18,10 @@
 
       <node pkg="tf2_ros" type="static_transform_publisher" name="odom_to_qualsys_odom" args="0 0 0 0 0 0 map mocap" output="screen" />
       <node pkg="tf2_ros" type="static_transform_publisher" name="qualsys_base_link_to_camera_center" args="0.3175 0 0.10 0 -0.296706 -0.0087266 Body_1 auv/camerafront_link" output="screen" />
-
+      <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_camera_center" args="0.3175 0 0.10 0 -0.296706 -0.0087266 base_link zed2i_camera_center" />
       <node name="rviz" pkg="rviz" type="rviz" required="true" args="-d $(find vision_kf)/scripts/visualizer.rviz" />
     </group>
-    
-    <group if="$(eval type == 'real')"> 
-      <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_camera_center" args="0.3175 0 0.10 0 -0.296706 -0.0087266 base_link zed2i_camera_center" />
-      
-    </group>
-    
-    
+
     <node pkg="vision_kf" type="vkf_node.py" name="vision_kf" output="screen"/>
 
   </launch>

@@ -44,7 +44,7 @@ class VKFNode:
         self.current_object = ""
 
         #Subscribe topic
-        object_topic_subscribe = "/pointcloud_processing/object_pose/spy"
+        object_topic_subscribe = "/pointcloud_processing/poseStamped/spy"
         mission_topic_subscribe = "/fsm/state"
 
 
@@ -58,12 +58,10 @@ class VKFNode:
 
         # Making gate model object
         self.landmark_model = landmark_pose_world(self.sigma_a)
-        #self.sensor_model = measurement_linear_landmark(self.sigma_z)
-        #self.my_ekf = EKF(self.landmark_model, self.sensor_model)
 
         #Gauss prev values
         self.x_hat0 = np.array([0, 0, 0, 0, 0, 0])
-        self.P_hat0 = np.diag(20*self.sigma_z)
+        self.P_hat0 = np.diag(100*self.sigma_z)
         self.prev_gauss = MultiVarGaussian(self.x_hat0, self.P_hat0)
 
         ################
@@ -78,11 +76,18 @@ class VKFNode:
         rospy.loginfo("Current time %i %i", now.secs, now.nsecs)
 
         # Subscribe to mission topic
-        self.mission_topic = self.current_object + "_execute"
+        self.mission_topic = self.current_object + "/execute"
+        self.mission_topic_old = self.mission_topic[:]
         self.mission_topic_sub = rospy.Subscriber(mission_topic_subscribe, String, self.update_mission)
+
+        # LMS decision logic
+        self.Fnorm_threshold    = 0.1
+        self.is_detected        = True
+        self.estimateConverged  = False
+        self.estimateFucked     = False
         
         # Subscriber to gate pose and orientation 
-        self.object_pose_sub = rospy.Subscriber(object_topic_subscribe, ObjectPosition, self.obj_pose_callback, queue_size=1)
+        self.object_pose_sub = rospy.Subscriber(object_topic_subscribe, PoseStamped, self.obj_pose_callback, queue_size=1)
       
         # Publisher to autonomous
         self.gate_pose_pub = rospy.Publisher('/fsm/object_positions_in', ObjectPosition, queue_size=1)
@@ -110,13 +115,39 @@ class VKFNode:
         ############
 
     def update_mission(self, mission):
+        """
+        Callback which updates the instance variable storing the fsm state information
+
+        Input:
+                mission:    ROS String message from fsm/state subscription
+
+        """
         self.mission_topic = mission.data
 
     def get_Ts(self):
+        """
+        Returns the time step since last Kalman update. The previous time is stored in the last_time instance
+
+        Output:
+                Ts:   The time step in seconds since last Kalman Update
+        """
         Ts = rospy.get_time() - self.last_time
         return Ts
     
     def ekf_function(self, z, ekf):
+        """
+        Performs a Kalman Update given the measurement and an ekf object
+
+        Input:
+                z:              A MultiVarGaussian object containing the result from the update step
+
+        Output:
+                gauss_x_pred:   A MultiVarGauss object resulting from the prediction of the state
+                                Can be used in NEES and NIS analyses
+                gauss_z_pred:   A MultiVarGauss object resulting from the prediction of the measurement
+                                Can be used in NIS analysis of the filter performance
+                gauss_est:      A MultiVarGauss object resulting from the update step
+        """
 
         Ts = self.get_Ts()
 
@@ -127,19 +158,27 @@ class VKFNode:
 
         return gauss_x_pred, gauss_z_pred, gauss_est
 
-    def est_to_pose(self, x_hat):
-        x = x_hat[0]
-        y = x_hat[1]
-        z = x_hat[2]
-        pos = [x, y, z]
+    def est_to_pose(self, gauss_est):
+        """
+        Extracts the mean of the estimate from a MultiVarGaussian object and splits it into position and orientation
 
+        Input:
+                gauss_est:      A MultiVarGaussian object containing the result from the update step
+
+        Output:
+                pos:            A list of length 3 with the position of the estimate
+                euler_angs:     A list of length 3 with the euler angles from the estimate
+        """
+        x_hat = gauss_est.mean
+        pos = [x_hat[0], x_hat[1], x_hat[2]]
         euler_angs = [x_hat[3], x_hat[4], x_hat[5]]
+
         return pos, euler_angs
 
     def process_measurement_message(self, msg):
         """
         Takes in the msg which is the output of PCP, extracts the needed components and does some calculations/mappings
-        to get what we need in the different frames for the GMF.
+        to get what we need in the different frames for the VKF.
         Input:
                 msg: Output from PCP, a PoseStamped msg
         
@@ -154,7 +193,7 @@ class VKFNode:
         # Run the measurement back through tf tree to get the object in odom
         msg_transformed_wg = self.pose_transformer.do_transform_pose(msg, self.tf_lookup_wc)
 
-        #Broadcast to tf to make sure we get the correct transform
+        #Broadcast to tf to make sure we get the correct transform. Uncomment for testing in rviz
         #self.transformbroadcast("odom", msg_transformed_wg)
         
         # Extract measurement of transformed and camera message
@@ -191,9 +230,6 @@ class VKFNode:
         # Rotation from world to camera, needed for the LTV model
         R_wc = tft.quaternion_matrix(cam_pose_quat_wc)
         R_wc = R_wc[:3, :3]
-
-        #rospy.loginfo(self.active_hypotheses_count)
-        #rospy.loginfo(R_wc)
         
 
         # Prepare measurement vector
@@ -204,9 +240,32 @@ class VKFNode:
 
         return z, R_wc, cam_pose_position_wc
 
+    def check_filter_convergence(self, gauss_estimate):
+        """
+        Sets the convergence boolean to True if Frobenius norm under a threshold
 
+        Input:
+                gauss_estimate:     A MultiVarGaussian containing the result from the Kalman Update
+        """
+        cov = gauss_estimate.cov
+        Fnorm_P = np.linalg.norm(cov, "fro")
+
+        if Fnorm_P < self.Fnorm_threshold:
+            self.estimateConverged = True
+        else:
+            pass
 
     def transformbroadcast(self, parent_frame, p):
+        """
+        Publishes a transform representing the result from the Kalman Update given the name of the parent
+        frame and the objectPose message published for the landmark server. Used mainly for the purposes of
+        visualization and debugging.
+
+        Input:
+                parent_frame:     A string which is the parent frame
+                p           :     An objectPose which is the message published to landmark server
+        """
+
         t = TransformStamped()
         t.header.stamp = rospy.Time.now()
         t.header.frame_id = parent_frame
@@ -225,7 +284,7 @@ class VKFNode:
         p = ObjectPosition()
         #p.pose.header[]
         p.objectID = objectID
-        p.objectPose.header = "object_" + str(objectID)
+        # p.objectPose.header = "object_" + str(objectID)
         p.objectPose.pose.position.x = ekf_position[0]
         p.objectPose.pose.position.y = ekf_position[1]
         p.objectPose.pose.position.z = ekf_position[2]
@@ -234,9 +293,9 @@ class VKFNode:
         p.objectPose.pose.orientation.z = ekf_pose_quaterion[2]
         p.objectPose.pose.orientation.w = ekf_pose_quaterion[3]
 
-        p.isDetected            = self.termination_bool
-        #p.estimateConverged     = self.estimateConverged
-        #p.estimateFucked        = self.estimateFucked
+        p.isDetected            = self.is_detected
+        p.estimateConverged     = self.estimateConverged
+        p.estimateFucked        = self.estimateFucked
         
         self.gate_pose_pub.publish(p)
         rospy.loginfo("Object published: %s", objectID)
@@ -244,55 +303,42 @@ class VKFNode:
 
     
     def obj_pose_callback(self, msg):
-
-        rospy.loginfo("Object data recieved for: %s", msg.objectID)
-        self.current_object = msg.objectID
+        
+        objID = self.mission_topic.split("/")[0]
+        rospy.loginfo("Object data recieved for: %s", objID)
+        self.current_object = objID
     
-        if self.mission_topic == self.current_object + "_execute":
-            rospy.loginfo("Mission status: %s", self.mission_topic)
+        if self.mission_topic == self.current_object + "/execute":
+            rospy.loginfo("Mission status: %s", objID)
             self.prev_gauss = MultiVarGaussian(self.x_hat0, self.P_hat0)
             self.last_time = rospy.get_time()
             return None
         
-
-        # Gate in world frame for cyb pool
-        #obj_pose_position_wg = np.array([msg.objectPose.pose.position.x, 
-        #                                 msg.objectPose.pose.position.y, 
-        #                                 msg.objectPose.pose.position.z])
-
-        #obj_pose_pose_wg = np.array([msg.objectPose.pose.orientation.x,
-        #                             msg.objectPose.pose.orientation.y,
-        #                             msg.objectPose.pose.orientation.z,
-        #                             msg.objectPose.pose.orientation.w])
-
-        ## Prepare measurement vector
-        #z_phi, z_theta, z_psi = tft.euler_from_quaternion(obj_pose_pose_wg, axes='sxyz')
-
-        #z = obj_pose_position_wg
-        #z = np.append(z, [z_phi, z_theta, z_psi])
-        
+        # Process msg of measurement
         z, R_wc, cam_pose_position_wc = self.process_measurement_message(msg)
 
-
+        # Initialization using the current measurement mapped to odom
         if sorted(self.prev_gauss.mean) == sorted(self.x_hat0):
-            # Initialize with current measurement mapped to odom
-            z = np.apend(self.detection_position_odom[:3], z[3:])
+            z = np.append(self.detection_position_odom[:3], z[3:])
             self.prev_gauss = MultiVarGaussian(z, self.P_hat0)
             self.last_time = rospy.get_time()
             return None
 
+        # Create sensor model and ekf objects
         full_measurement_model = LTV_full_measurement_model(self.sigma_z, cam_pose_position_wc, R_wc)
         full_ekf = EKF(self.landmark_model, full_measurement_model)
 
         # Call EKF step and format the data
         _, _, gauss_est = self.ekf_function(z, full_ekf)
-        x_hat = gauss_est.mean
 
-        ekf_position, ekf_pose = self.est_to_pose(x_hat)
+        # Format update Gaussian object
+        ekf_position, ekf_pose = self.est_to_pose(gauss_est)
         ekf_pose_quaterion = tft.quaternion_from_euler(ekf_pose[0], ekf_pose[1], ekf_pose[2])
 
-        # Publish data
-        self.publish_object(msg.objectID, ekf_position, ekf_pose_quaterion)
+        # Publish data, update mission topic
+        self.mission_topic_old = self.mission_topic
+        self.check_filter_convergence(gauss_est)
+        self.publish_object(objID, ekf_position, ekf_pose_quaterion)
 
 
 if __name__ == '__main__':
