@@ -307,13 +307,14 @@ class VKFNode:
         objID = self.mission_topic.split("/")[0]
         rospy.loginfo("Object data recieved for: %s", objID)
         self.current_object = objID
+
     
         if self.mission_topic == self.current_object + "/execute":
             rospy.loginfo("Mission status: %s", objID)
             self.prev_gauss = MultiVarGaussian(self.x_hat0, self.P_hat0)
             self.last_time = rospy.get_time()
             return None
-        
+
         # Process msg of measurement
         z, R_wc, cam_pose_position_wc = self.process_measurement_message(msg)
 
