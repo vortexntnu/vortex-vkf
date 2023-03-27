@@ -1,4 +1,3 @@
-
 """
 Dynamic models to be used with eg. EKF.
 
@@ -12,6 +11,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy import ndarray
 from scipy.linalg import expm
+
 
 @dataclass
 class DynamicModel:
@@ -68,16 +68,19 @@ class WhitenoiseAcceleration2D(DynamicModel):
     # noise standard deviation
     sigma_a: float
 
-    def f(self, x: ndarray, Ts: float,) -> ndarray:
+    def f(
+        self,
+        x: ndarray,
+        Ts: float,
+    ) -> ndarray:
         """Calculate the zero noise Ts time units transition from x.
         See DynamicModel for variable documentation
         """
-        
+
         first_row = [1, 0, Ts, 0]
         second_row = [0, 1, 0, Ts]
         third_row = [0, 0, 1, 0]
         fourth_row = [0, 0, 0, 1]
-
 
         F = np.array([first_row, second_row, third_row, fourth_row])
 
@@ -85,7 +88,11 @@ class WhitenoiseAcceleration2D(DynamicModel):
 
         return x_kp1
 
-    def F(self, x: ndarray, Ts: float,) -> ndarray:
+    def F(
+        self,
+        x: ndarray,
+        Ts: float,
+    ) -> ndarray:
         """Calculate the transition function jacobian for Ts time units at x.
         See DynamicModel for variable documentation"""
 
@@ -100,18 +107,23 @@ class WhitenoiseAcceleration2D(DynamicModel):
 
         return F
 
-    def Q(self, x: ndarray, Ts: float,) -> ndarray:
+    def Q(
+        self,
+        x: ndarray,
+        Ts: float,
+    ) -> ndarray:
         """Calculate the Ts time units transition Covariance.
         See(4.64) in the book.
         See DynamicModel for variable documentation"""
 
         # TODO replace this with your own code
-        first_row = [(Ts**3)/3, 0, (Ts**2)/2, 0]
-        second_row = [0, (Ts**3)/3, 0, (Ts**2)/2]
-        third_row = [(Ts**2)/2, 0, Ts, 0]
-        fourth_row = [0, (Ts**2)/2, 0, Ts]
+        first_row = [(Ts**3) / 3, 0, (Ts**2) / 2, 0]
+        second_row = [0, (Ts**3) / 3, 0, (Ts**2) / 2]
+        third_row = [(Ts**2) / 2, 0, Ts, 0]
+        fourth_row = [0, (Ts**2) / 2, 0, Ts]
 
-        Q = np.array([first_row, second_row, third_row, fourth_row])*self.sigma_a**2
+        Q = np.array([first_row, second_row, third_row, fourth_row
+                      ]) * self.sigma_a**2
 
         return Q
 
@@ -125,32 +137,43 @@ class landmark_gate(DynamicModel):
     # noise standard deviation array
     sigma_arr: ndarray
 
-    def f(self, x: ndarray, Ts: float,) -> ndarray:
+    def f(
+        self,
+        x: ndarray,
+        Ts: float,
+    ) -> ndarray:
         """Calculate the zero noise Ts time units transition from x.
         See DynamicModel for variable documentation
         """
-        
+
         n = len(x)
 
         x_kp1 = np.eye(n) @ x
 
         return x_kp1
 
-    def F(self, x: ndarray, Ts: float,) -> ndarray:
+    def F(
+        self,
+        x: ndarray,
+        Ts: float,
+    ) -> ndarray:
         """Calculate the transition function jacobian for Ts time units at x.
         See DynamicModel for variable documentation"""
-
 
         n = len(x)
         F = np.eye(n)
 
         return F
 
-    def Q(self, x: ndarray, Ts: float,) -> ndarray:
+    def Q(
+        self,
+        x: ndarray,
+        Ts: float,
+    ) -> ndarray:
         """Calculate the Ts time units transition Covariance.
         See(4.64) in the book.
         See DynamicModel for variable documentation"""
 
-        Q = np.diag(self.sigma_arr)*Ts
+        Q = np.diag(self.sigma_arr) * Ts
 
         return Q

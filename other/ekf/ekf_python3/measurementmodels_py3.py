@@ -11,6 +11,7 @@ from scipy.linalg import block_diag
 
 @dataclass
 class MeasurementModel:
+
     def h(self, x: ndarray, **kwargs) -> ndarray:
         """Calculate the noise free measurement location at x in sensor_state.
         Args:
@@ -77,7 +78,6 @@ class NED_range_bearing(MeasurementModel):
     pw_wc: ndarray
     Rot_wb: ndarray
 
-
     def h(self, x: ndarray) -> ndarray:
         """Predict measurement through the non-linear vector field h given the
         state x
@@ -85,7 +85,6 @@ class NED_range_bearing(MeasurementModel):
         z = [pb_bg, gamma_wg]
         """
 
-        
         z = np.array([self.Rot_wb.T @ (x[0] - self.pw_wc), x[1]])
 
         return z
@@ -109,4 +108,3 @@ class NED_range_bearing(MeasurementModel):
         R = (self.sigma_z**2) * np.eye(n)
 
         return R
-

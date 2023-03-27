@@ -21,7 +21,7 @@ def load_data(usePregen=True, data_path=data_path, seed=None):
 
         # inital state distribution
         x0 = np.array([0, 0, 1, 1, 0])
-        P0 = np.diag([50, 50, 10, 10, np.pi / 4]) ** 2
+        P0 = np.diag([50, 50, 10, 10, np.pi / 4])**2
 
         # model parameters
         sigma_a_true = 0.25
@@ -33,7 +33,8 @@ def load_data(usePregen=True, data_path=data_path, seed=None):
         Ts = 0.1
 
         # get data
-        x_gt_data, z_data = sample_CT_trajectory(
-            N_data, Ts, x0, P0, sigma_a_true, sigma_omega_true, sigma_z_true
-        )
+        x_gt_data, z_data = sample_CT_trajectory(N_data, Ts, x0, P0,
+                                                 sigma_a_true,
+                                                 sigma_omega_true,
+                                                 sigma_z_true)
     return x_gt_data, z_data, Ts, N_data

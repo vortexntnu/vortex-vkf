@@ -6,16 +6,13 @@ import numpy as np
 def rotmat2d(theta: float = 0, cos: float = None, sin: float = None):
     ct = cos or np.cos(theta)
     st = sin or np.sin(theta)
-    R = np.array(
-        [[ct, -st],
-         [st, ct]]
-    )
+    R = np.array([[ct, -st], [st, ct]])
     return R
 
 
 def f_m2_withT(
-        x: np.ndarray,
-        T: float,
+    x: np.ndarray,
+    T: float,
 ) -> np.ndarray:
     """ CT transition function"""
     if abs(x[4]) > 0.0001:
@@ -33,13 +30,13 @@ def f_m2_withT(
 
 
 def sample_CT_trajectory(
-        n: int,
-        Ts: float,
-        xbar0: ndarray,
-        P0: ndarray,
-        sigma_a: float,
-        sigma_omega: float,
-        sigma_z: float,
+    n: int,
+    Ts: float,
+    xbar0: ndarray,
+    P0: ndarray,
+    sigma_a: float,
+    sigma_omega: float,
+    sigma_z: float,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Sample a state trajectory X with measurements Z for n time steps of size Ts.
@@ -56,18 +53,15 @@ def sample_CT_trajectory(
 
     # some limits
     maxSpeed = 20
-    maxTurn = np.pi/4
+    maxTurn = np.pi / 4
 
     # sqrt(covs)
     cholR = sigma_z * np.eye(2)
 
     Q = np.zeros((5, 5))
-    Q[:4, :4] = sigma_a ** 2 * np.array(
-        [[Ts**3 / 3,    0,          Ts**2 / 2,	0],
-         [0,            Ts**3 / 3,  0,    	    Ts**2 / 2],
-         [Ts**2 / 2,    0,          Ts,   	    0],
-         [0,            Ts**2 / 2,  0,          Ts]]
-    )
+    Q[:4, :4] = sigma_a**2 * np.array(
+        [[Ts**3 / 3, 0, Ts**2 / 2, 0], [0, Ts**3 / 3, 0, Ts**2 / 2],
+         [Ts**2 / 2, 0, Ts, 0], [0, Ts**2 / 2, 0, Ts]])
     Q[4, 4] = sigma_omega**2 * Ts
     cholQ = np.linalg.cholesky(Q)
 
@@ -93,7 +87,7 @@ def sample_CT_trajectory(
         Z[k] = X[k, :2] + cholR @ np.random.normal(size=2)
 
         # predict
-        if k < n-1:
-            X[k+1] = f_m2_withT(X[k], Ts) + cholQ @ np.random.normal(size=5)
+        if k < n - 1:
+            X[k + 1] = f_m2_withT(X[k], Ts) + cholQ @ np.random.normal(size=5)
 
     return X, Z
