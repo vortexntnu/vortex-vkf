@@ -10,19 +10,21 @@ from random import randint
 from ekf_python2.gaussparams_py2 import MultiVarGaussian
 import matplotlib.pyplot as plt
 
-rad2deg = 180/np.pi
-deg2rad = np.pi/180
+rad2deg = 180 / np.pi
+deg2rad = np.pi / 180
 
 ## Sim Parameters ##
 
 N = 1000
 dt = 0.1
 
-def rot_mat (euler_angles):
+
+def rot_mat(euler_angles):
 
     phi, theta, psi = euler_angles[0], euler_angles[1], euler_angles[2]
-    
+
     rot_mat = np.array([[], [], []])
+
 
 def test(N, dt):
 
@@ -52,13 +54,13 @@ def test(N, dt):
 
     t = [0]
 
-    for i in range(len(z_set)-1):
+    for i in range(len(z_set) - 1):
         t.append(t[i] + Ts_set[i])
 
-        hat = my_filter.step(hats[i], z_set[i+1], Ts_set[i])
+        hat = my_filter.step(hats[i], z_set[i + 1], Ts_set[i])
         hats.append(hat)
 
-    return t, hats, z_set 
+    return t, hats, z_set
 
 
 def generate_measurement_data(x_gt_c, N, dt):
@@ -66,7 +68,7 @@ def generate_measurement_data(x_gt_c, N, dt):
     Ts = dt
 
     noise = np.array([0.05, 0.05, 0.05, 0.001])
-    noise_bad = np.array([1.5, 1.5, 1.5, np.pi/8])
+    noise_bad = np.array([1.5, 1.5, 1.5, np.pi / 8])
 
     z_set = []
     Ts_set = []
@@ -74,7 +76,7 @@ def generate_measurement_data(x_gt_c, N, dt):
     z_set.append(x_gt_c + np.random.normal(0, noise**2))
 
     for i in range(N):
-        check_detect = randint(0,100)
+        check_detect = randint(0, 100)
         check_bad_measurement = randint(0, 100)
         if check_detect > 20:
 
@@ -90,7 +92,8 @@ def generate_measurement_data(x_gt_c, N, dt):
         else:
             Ts += dt
 
-    return z_set , Ts_set
+    return z_set, Ts_set
+
 
 def plotting(t, hats, z_set):
 
@@ -110,18 +113,15 @@ def plotting(t, hats, z_set):
     plt.figure(2)
     plt.plot(t, x_pos)
     plt.show()
-    
+
     plt.figure(3)
     plt.plot(t, y_pos)
     plt.show()
-    
+
     #fig = plt.figure(figsize = (8,8))
     #fig = fig.scatter(xy_measurements)
 
 
-
-
 t, hats, z_data = test(N, dt)
-
 
 plotting(t, hats, z_data)
