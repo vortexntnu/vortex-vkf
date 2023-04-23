@@ -25,44 +25,41 @@ def plot_trajectory_with_measurements(x_gt_series, z_series):
     ax2.set_ylabel("turn rate")
 
 
-def plot_ekf_trajectory(x_gt_series, x_hat_series,
-                        RMSE_pred, RMSE_upd, sigma_a, sigma_z):
+def plot_ekf_trajectory(x_gt_series, x_hat_series, RMSE_pred, RMSE_upd,
+                        sigma_a, sigma_z):
     fig, ax = plt.subplots(num=3, clear=True)
     ax.plot(*x_hat_series.T[:2], c=c_estimate, label=r"$\hat x$")
     ax.plot(*x_gt_series.T[:2], c=c_gt, alpha=0.9, label=r"$x_{gt}$")
     RMSEs_str = ", ".join(f"{v:.2f}" for v in (*RMSE_pred, *RMSE_upd))
-    ax.set_title(
-        f"Output from EKF with "
-        rf"$\sigma_a = {sigma_a}$, $\sigma_z= {sigma_z}$"
-        "\n"
-        f"RMSE(p_p, p_v, u_p, u_v) = ({RMSEs_str})"
-    )
+    ax.set_title(f"Output from EKF with "
+                 rf"$\sigma_a = {sigma_a}$, $\sigma_z= {sigma_z}$"
+                 "\n"
+                 f"RMSE(p_p, p_v, u_p, u_v) = ({RMSEs_str})")
     ax.legend()
 
 
-def plot_NIS_NEES_data(sigma_a_low, sigma_a_high, sigma_a_list,
-                       sigma_z_low, sigma_z_high, sigma_z_list,
-                       ANIS_data, CINIS,
+def plot_NIS_NEES_data(sigma_a_low, sigma_a_high, sigma_a_list, sigma_z_low,
+                       sigma_z_high, sigma_z_list, ANIS_data, CINIS,
                        ANEES_pred_data, ANEES_upd_data, CINEES):
     # %% interpolate ANEES/NIS
     ANIS_spline = scipy.interpolate.RectBivariateSpline(
         sigma_a_list, sigma_z_list, ANIS_data)
     ANEES_pred_spline = scipy.interpolate.RectBivariateSpline(
-        sigma_a_list, sigma_z_list, ANEES_pred_data
-    )
+        sigma_a_list, sigma_z_list, ANEES_pred_data)
     ANEES_upd_spline = scipy.interpolate.RectBivariateSpline(
-        sigma_a_list, sigma_z_list, ANEES_upd_data
-    )
+        sigma_a_list, sigma_z_list, ANEES_upd_data)
 
     n_eval = 100
     mesh_a, mesh_z = np.meshgrid(
         np.linspace(sigma_a_low, sigma_a_high, n_eval),
         np.linspace(sigma_z_low, sigma_z_high, n_eval))
-    ANIS_eval = ANIS_spline(mesh_a.ravel(), mesh_z.ravel(), grid=False
-                            ).reshape(mesh_a.shape)
-    ANEES_pred_eval = ANEES_pred_spline(mesh_a.ravel(), mesh_z.ravel(),
+    ANIS_eval = ANIS_spline(mesh_a.ravel(), mesh_z.ravel(),
+                            grid=False).reshape(mesh_a.shape)
+    ANEES_pred_eval = ANEES_pred_spline(mesh_a.ravel(),
+                                        mesh_z.ravel(),
                                         grid=False).reshape(mesh_a.shape)
-    ANEES_upd_eval = ANEES_upd_spline(mesh_a.ravel(), mesh_z.ravel(),
+    ANEES_upd_eval = ANEES_upd_spline(mesh_a.ravel(),
+                                      mesh_z.ravel(),
                                       grid=False).reshape(mesh_a.shape)
 
     # %% find confidence regions for NIS and plot
@@ -73,9 +70,8 @@ def plot_NIS_NEES_data(sigma_a_low, sigma_a_high, sigma_a_list,
     ax4 = fig4.add_subplot(1, 1, 1, projection="3d")
     z_max = 10
     ax4.plot_surface(mesh_a, mesh_z, np.clip(ANIS_eval, 0, z_max), alpha=0.9)
-    ax4.contour(
-        mesh_a, mesh_z, ANIS_eval, [*CINIS], offset=0
-    )  # , extend3d=True, colors='yellow')
+    ax4.contour(mesh_a, mesh_z, ANIS_eval, [*CINIS],
+                offset=0)  # , extend3d=True, colors='yellow')
     ax4.set_xlabel(r"$\sigma_a$")
     ax4.set_ylabel(r"$\sigma_z$")
     ax4.set_zlabel("ANIS")
@@ -91,10 +87,16 @@ def plot_NIS_NEES_data(sigma_a_low, sigma_a_high, sigma_a_list,
         fig5.add_subplot(1, 2, 1, projection="3d"),
         fig5.add_subplot(1, 2, 2, projection="3d"),
     ]
-    ax5s[0].plot_surface(mesh_a, mesh_z, np.clip(ANEES_pred_eval, 0, z_max),
+    ax5s[0].plot_surface(mesh_a,
+                         mesh_z,
+                         np.clip(ANEES_pred_eval, 0, z_max),
                          alpha=0.9)
     ax5s[0].contour(
-        mesh_a, mesh_z, ANEES_pred_eval, [*CINEES], offset=0,
+        mesh_a,
+        mesh_z,
+        ANEES_pred_eval,
+        [*CINEES],
+        offset=0,
     )
     ax5s[0].set_xlabel(r"$\sigma_a$")
     ax5s[0].set_ylabel(r"$\sigma_z$")
@@ -103,10 +105,16 @@ def plot_NIS_NEES_data(sigma_a_low, sigma_a_high, sigma_a_list,
     ax5s[0].set_zlim(0, z_max)
     ax5s[0].view_init(40, 30)
 
-    ax5s[1].plot_surface(mesh_a, mesh_z, np.clip(ANEES_upd_eval, 0, z_max),
+    ax5s[1].plot_surface(mesh_a,
+                         mesh_z,
+                         np.clip(ANEES_upd_eval, 0, z_max),
                          alpha=0.9)
     ax5s[1].contour(
-        mesh_a, mesh_z, ANEES_upd_eval, [*CINEES], offset=0,
+        mesh_a,
+        mesh_z,
+        ANEES_upd_eval,
+        [*CINEES],
+        offset=0,
     )
     ax5s[1].set_xlabel(r"$\sigma_a$")
     ax5s[1].set_ylabel(r"$\sigma_z$")
@@ -116,12 +124,21 @@ def plot_NIS_NEES_data(sigma_a_low, sigma_a_high, sigma_a_list,
 
     # %% see the intersection of NIS and NEESes
     fig6, ax6 = plt.subplots(num=6, clear=True)
-    cont_upd = ax6.contour(mesh_a, mesh_z, ANEES_upd_eval,
-                           CINEES, colors=["C0", "C1"])
-    cont_pred = ax6.contour(mesh_a, mesh_z, ANEES_pred_eval,
-                            CINEES, colors=["C2", "C3"])
-    cont_nis = ax6.contour(mesh_a, mesh_z, ANIS_eval,
-                           CINIS, colors=["C4", "C5"])
+    cont_upd = ax6.contour(mesh_a,
+                           mesh_z,
+                           ANEES_upd_eval,
+                           CINEES,
+                           colors=["C0", "C1"])
+    cont_pred = ax6.contour(mesh_a,
+                            mesh_z,
+                            ANEES_pred_eval,
+                            CINEES,
+                            colors=["C2", "C3"])
+    cont_nis = ax6.contour(mesh_a,
+                           mesh_z,
+                           ANIS_eval,
+                           CINIS,
+                           colors=["C4", "C5"])
 
     for cs, l in zip([cont_upd, cont_pred, cont_nis],
                      ["NEESupd", "NEESpred", "NIS"]):

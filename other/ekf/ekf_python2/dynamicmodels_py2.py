@@ -11,6 +11,7 @@ import numpy as np
 from numpy import ndarray
 from scipy.linalg import expm
 
+
 class DynamicModel:
     """
     Parent class for dynamic models.
@@ -69,7 +70,7 @@ class DynamicModel:
 #        """Calculate the zero noise Ts time units transition from x.
 #        See DynamicModel for variable documentation
 #        """
-#        
+#
 #        first_row = [1, 0, Ts, 0]
 #        second_row = [0, 1, 0, Ts]
 #        third_row = [0, 0, 1, 0]
@@ -112,6 +113,7 @@ class DynamicModel:
 #
 #        return Q
 
+
 class landmark_gate(DynamicModel):
     """
     Dynamic model for a landmark. Landmarks are assumed time invariant.
@@ -125,9 +127,9 @@ class landmark_gate(DynamicModel):
         """Calculate the zero noise Ts time units transition from x.
         See DynamicModel for variable documentation
         """
-        
+
         n = len(x)
-        
+
         #x_kp1 = np.eye(n) @ x
         x_kp1 = np.matmul(np.eye(n), x)
 
@@ -136,7 +138,6 @@ class landmark_gate(DynamicModel):
     def F(self, x, Ts):
         """Calculate the transition function jacobian for Ts time units at x.
         See DynamicModel for variable documentation"""
-
 
         n = len(x)
         F = np.eye(n)
@@ -148,6 +149,6 @@ class landmark_gate(DynamicModel):
         See(4.64) in the book.
         See DynamicModel for variable documentation"""
 
-        Q = np.diag(self.sigma_arr)*Ts
+        Q = np.diag(self.sigma_arr) * Ts
 
         return Q

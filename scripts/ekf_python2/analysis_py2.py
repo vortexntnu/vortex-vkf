@@ -24,7 +24,7 @@ def get_NIS(z_pred_gauss, z):
 
     v = z - z_pred
 
-    NIS = np.matmul(v.T , np.matmul(np.linalg.inv(S), v))
+    NIS = np.matmul(v.T, np.matmul(np.linalg.inv(S), v))
 
     return NIS
 
@@ -42,18 +42,16 @@ def get_NEES(x_gauss, x_gt):
         NEES (float): normalized estimation error squared
     """
 
-
     x_hat, P_hat = x_gauss
 
     err = x_hat - x_gt
 
-    NEES = np.matmul(err.T , np.matmul(np.linalg.inv(P_hat) , err ))
+    NEES = np.matmul(err.T, np.matmul(np.linalg.inv(P_hat), err))
 
     return NEES
 
 
-def get_ANIS(z_pred_gauss_data,
-             z_data):
+def get_ANIS(z_pred_gauss_data, z_data):
     """Calculate the average normalized innovation squared (ANIS)
     Tip: use get_NIS
 
@@ -78,8 +76,7 @@ def get_ANIS(z_pred_gauss_data,
     return ANIS
 
 
-def get_ANEES(x_upd_gauss_data,
-              x_gt_data):
+def get_ANEES(x_upd_gauss_data, x_gt_data):
     """Calculate the average normalized estimation error squared (ANEES)
     Tip: use get_NEES
 
@@ -101,6 +98,7 @@ def get_ANEES(x_upd_gauss_data,
     ANEES = np.average(NEES_arr)
 
     return ANEES
+
 
 # def get_RMSE(x_upd_gauss_data: Sequence[MultiVarGaussian],
 #              x _gt_data: Sequence[ndarray]):

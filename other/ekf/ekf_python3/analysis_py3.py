@@ -25,7 +25,7 @@ def get_NIS(z_pred_gauss: MultiVarGaussian, z: ndarray):
 
     v = z - z_pred
 
-    NIS = v.T @ np.linalg.inv(S)@ v
+    NIS = v.T @ np.linalg.inv(S) @ v
 
     return NIS
 
@@ -42,7 +42,6 @@ def get_NEES(x_gauss: MultiVarGaussian, x_gt: ndarray):
     Returns:
         NEES (float): normalized estimation error squared
     """
-
 
     x_hat, P_hat = x_gauss
 
@@ -102,6 +101,7 @@ def get_ANEES(x_upd_gauss_data: Sequence[MultiVarGaussian],
     ANEES = np.average(NEES_arr)
 
     return ANEES
+
 
 # def get_RMSE(x_upd_gauss_data: Sequence[MultiVarGaussian],
 #              x _gt_data: Sequence[ndarray]):
