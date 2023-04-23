@@ -8,8 +8,8 @@ from scipy.linalg import block_diag
 # Measurement models interface declaration
 
 
-
 class MeasurementModel:
+
     def h(self, x, **kwargs):
         """Calculate the noise free measurement location at x in sensor_state.
         Args:
@@ -70,19 +70,13 @@ class MeasurementModel:
 #        return R
 
 
-
 class NED_range_bearing(MeasurementModel):
 
-    def __init__(self, 
-                sigma_sensor, 
-                pos, 
-                Rot
-                ):
+    def __init__(self, sigma_sensor, pos, Rot):
         self.sigma_z = sigma_sensor
         self.p_wb = pos
         self.Rot_wb = Rot
 
-    
     def h(self, x):
         """Predict measurement through the non-linear vector field h given the
         state x
@@ -91,7 +85,7 @@ class NED_range_bearing(MeasurementModel):
         """
 
         #z = self.Rot_wb.T @ (x[0:3] - self.p_wb[0:3])
-        
+
         z = np.matmul(self.Rot_wb, (x[0:3] - self.p_wb[0:3]))
         z = np.append(z, x[3])
 
@@ -116,4 +110,3 @@ class NED_range_bearing(MeasurementModel):
         R = (self.sigma_z**2) * np.eye(n)
 
         return R
-

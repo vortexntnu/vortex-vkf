@@ -1,7 +1,5 @@
-
 ## Addapted for use for Vortex NTNU from the course TTK4250. Credit for the underlying code goes to:
 ## @author: Lars-Christian Tokle, lars-christian.n.tokle@ntnu.no ##
-
 """
 Notation:
 ----------
@@ -14,12 +12,11 @@ S is the innovation covariance
 """
 
 ## EKF Algorith notation:
-    # x_prev = mean of previous state posterior pdf
-    # P_prev = covariance of previous state posterior pdf
+# x_prev = mean of previous state posterior pdf
+# P_prev = covariance of previous state posterior pdf
 
-    # x_pred = kinematic prediction through dynamic model. Also called x_bar in literature
-    # P_pred = predicted prior covariance. Also called P_bar in the literature
-
+# x_pred = kinematic prediction through dynamic model. Also called x_bar in literature
+# P_pred = predicted prior covariance. Also called P_bar in the literature
 
 from typing import Optional
 from dataclasses import dataclass, field
@@ -31,16 +28,18 @@ from dynamicmodels_py3 import DynamicModel
 from measurementmodels_py3 import MeasurementModel
 from gaussparams_py3 import MultiVarGaussian
 
+
 # The EKF
 @dataclass
 class EKF:
     dynamic_model: DynamicModel
     sensor_model: MeasurementModel
 
-    def predict(self,
-                state_upd_prev_gauss: MultiVarGaussian,
-                Ts: float,
-                ) -> MultiVarGaussian:
+    def predict(
+        self,
+        state_upd_prev_gauss: MultiVarGaussian,
+        Ts: float,
+    ) -> MultiVarGaussian:
         """Predict the EKF state Ts seconds ahead."""
         x_prev, P_prev = state_upd_prev_gauss
 
@@ -54,10 +53,11 @@ class EKF:
 
         return state_pred_gauss
 
-    def update(self,
-               z: np.ndarray,
-               state_pred_gauss: MultiVarGaussian,
-               ) -> MultiVarGaussian:
+    def update(
+        self,
+        z: np.ndarray,
+        state_pred_gauss: MultiVarGaussian,
+    ) -> MultiVarGaussian:
         """Given the prediction and measurement, find innovation then 
         find the updated state estimate."""
 
@@ -66,33 +66,31 @@ class EKF:
         n = len(x_pred)
 
         #if measurement_gauss is None:
-            #measurement_gauss = self.predict_measurement(state_pred_gauss)
+        #measurement_gauss = self.predict_measurement(state_pred_gauss)
 
         H = self.sensor_model.H(x_pred)
         R = self.sensor_model.R(x_pred)
 
         z_pred = self.sensor_model.h(x_pred)
-        S = H @ P @ H.T + R 
+        S = H @ P @ H.T + R
 
         inov = z - z_pred
         W = P @ H.T @ np.linalg.inv(S)
 
         x_upd = x_pred + W @ inov
-        P_upd = (np.eye(n) -W @ H)@ P
+        P_upd = (np.eye(n) - W @ H) @ P
 
         measure_pred_gauss = MultiVarGaussian(z_pred, S)
         state_upd_gauss = MultiVarGaussian(x_upd, P_upd)
 
-
         return state_upd_gauss, measure_pred_gauss
 
-    def step_with_info(self,
-                       state_upd_prev_gauss: MultiVarGaussian,
-                       z: np.ndarray,
-                       Ts: float,
-                       ) -> tuple([MultiVarGaussian,
-                                  MultiVarGaussian,
-                                  MultiVarGaussian]):
+    def step_with_info(
+        self,
+        state_upd_prev_gauss: MultiVarGaussian,
+        z: np.ndarray,
+        Ts: float,
+    ) -> tuple([MultiVarGaussian, MultiVarGaussian, MultiVarGaussian]):
         """
         Predict ekfstate Ts units ahead and then update this prediction with z.
 
@@ -109,12 +107,13 @@ class EKF:
 
         return state_pred_gauss, measure_pred_gauss, state_upd_gauss
 
-    def step(self,
-             state_upd_prev_gauss: MultiVarGaussian,
-             z: np.ndarray,
-             Ts: float,
-             ) -> MultiVarGaussian:
+    def step(
+        self,
+        state_upd_prev_gauss: MultiVarGaussian,
+        z: np.ndarray,
+        Ts: float,
+    ) -> MultiVarGaussian:
 
-        _, _, state_upd_gauss = self.step_with_info(state_upd_prev_gauss,
-                                                    z, Ts)
+        _, _, state_upd_gauss = self.step_with_info(state_upd_prev_gauss, z,
+                                                    Ts)
         return state_upd_gauss

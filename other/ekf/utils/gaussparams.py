@@ -59,5 +59,5 @@ class MultiVarGaussian:
         if not isinstance(o, MultiVarGaussian):
             return False
         else:
-            return (np.allclose(self.mean, o.mean) and
-                    np.allclose(self.cov, o.cov))
+            return (np.allclose(self.mean, o.mean)
+                    and np.allclose(self.cov, o.cov))

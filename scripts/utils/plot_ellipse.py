@@ -6,14 +6,14 @@ from matplotlib.transforms import Affine2D
 
 
 def plot_cov_ellipse2d(
-    ax: plt.Axes,
-    mean: np.ndarray = np.zeros(2),
-    cov: np.ndarray = np.eye(2),
-    n_sigma: float = 1,
-    *,
-    edgecolor: Union[tuple, str] = "C0",
-    facecolor: Union[tuple, str] = "none",
-    **kwargs,  # extra Ellipse keyword arguments
+        ax: plt.Axes,
+        mean: np.ndarray = np.zeros(2),
+        cov: np.ndarray = np.eye(2),
+        n_sigma: float = 1,
+        *,
+        edgecolor: Union[tuple, str] = "C0",
+        facecolor: Union[tuple, str] = "none",
+        **kwargs,  # extra Ellipse keyword arguments
 ) -> Ellipse:
     """Plot a n_sigma covariance ellipse centered in mean into ax."""
     ell_trans_mat = np.zeros((3, 3))
