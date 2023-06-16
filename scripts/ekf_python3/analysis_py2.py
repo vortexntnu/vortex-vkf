@@ -2,7 +2,7 @@
 import numpy as np
 from numpy import ndarray
 import scipy.linalg as la
-from gaussparams_py2 import MultiVarGaussian
+from ekf_python3.gaussparams_py2 import MultiVarGaussian
 from config import DEBUG
 
 

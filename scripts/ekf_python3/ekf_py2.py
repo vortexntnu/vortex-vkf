@@ -23,9 +23,9 @@ import numpy as np
 import scipy.linalg as la
 
 from config import DEBUG
-from dynamicmodels_py2 import DynamicModel
-from measurementmodels_py2 import MeasurementModel
-from gaussparams_py2 import MultiVarGaussian
+from ekf_python3.dynamicmodels_py2 import DynamicModel
+from ekf_python3.measurementmodels_py2 import MeasurementModel
+from ekf_python3.gaussparams_py2 import MultiVarGaussian
 
 # The EKF
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #import debugpy
 #print("Waiting for VSCode debugger...")
@@ -9,10 +9,10 @@
 #from logging import exception
 from re import X
 
-from ekf_python2.gaussparams_py2 import MultiVarGaussian
-from ekf_python2.dynamicmodels_py2 import landmark_gate, landmark_pose_world
-from ekf_python2.measurementmodels_py2 import measurement_linear_landmark, LTV_full_measurement_model
-from ekf_python2.ekf_py2 import EKF
+from ekf_python3.gaussparams_py2 import MultiVarGaussian
+from ekf_python3.dynamicmodels_py2 import landmark_gate, landmark_pose_world
+from ekf_python3.measurementmodels_py2 import measurement_linear_landmark, LTV_full_measurement_model
+from ekf_python3.ekf_py2 import EKF
 
 #Math imports
 import numpy as np
@@ -110,7 +110,7 @@ class VKFNode:
                                             self.child_frame,
                                             rospy.Time()) == 0:
             try:
-                rospy.loginfo("No transform between " +
+                rospy.loginfo("VKF_NODE: No transform between " +
                               str(self.parent_frame) + ' and ' +
                               str(self.child_frame))
                 rospy.sleep(2)
@@ -118,8 +118,8 @@ class VKFNode:
                 rospy.sleep(2)
                 continue
 
-        rospy.loginfo("Transform between " + str(self.parent_frame) + ' and ' +
-                      str(self.child_frame) + 'found.')
+        rospy.loginfo("VKF_NODE: Transform between " + str(self.parent_frame) +
+                      ' and ' + str(self.child_frame) + ' found.')
 
         ############
         ##Init end##
@@ -328,7 +328,7 @@ class VKFNode:
 
         #objID = self.mission_topic.split("/")[0]
         objID = msg.objectID
-        rospy.loginfo("Object data recieved for: %s", objID)
+        # rospy.loginfo("Object data recieved for: %s", objID)
         self.current_object = objID
 
         # Deprecated due to not using search/converge/execute this year #TODO: figure out a new way to do this logic

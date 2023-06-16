@@ -1,4 +1,4 @@
-from ekf_python2.ekf_py2 import EKF
+from ekf_python3.ekf_py2 import EKF
 import rospy
 import numpy as np
 from geometry_msgs.msg import PoseStamped, TransformStamped

@@ -4,7 +4,7 @@ from turtle import shape
 import numpy as np
 from numpy import linalg as nla, ndarray
 
-from debugtools_py2 import isPSD
+from ekf_python3.debugtools_py2 import isPSD
 from config import DEBUG
 
 

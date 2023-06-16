@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 from casadi import *
 import numpy as np
 
