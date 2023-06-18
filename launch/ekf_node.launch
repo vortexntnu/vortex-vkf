@@ -1,11 +1,3 @@
   <launch>
-    <!--
-        TODO: Inlude ZED2 transform from cam_center to left_cam
-    -->
-
-    <!--Input args-->
-    <!-- <param name ="/use_sim_time" value="true"/> -->
-
     <node pkg="vision_kf" type="vkf_node.py" name="vision_kf" output="screen"/>
-
   </launch>

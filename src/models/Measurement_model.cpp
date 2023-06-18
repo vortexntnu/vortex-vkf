@@ -1,0 +1,4 @@
+class Measurement_model
+{
+
+};
