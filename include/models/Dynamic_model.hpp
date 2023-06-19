@@ -104,7 +104,7 @@ public:
      * Calculate the transition covariance \p Q for time \p Ts 
      * @param x State
      * @param Ts Time-step
-     * @return Covariance matrix Q
+     * @return System noise covariance matrix Q
      */
     Mat Q(std::chrono::milliseconds Ts, Vec x) const
     {
