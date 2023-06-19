@@ -1,3 +1,7 @@
 #pragma once
-#include <Dynamic_model.hpp>
-#include <Measurement_model.hpp>
+#include <models/Dynamic_model.hpp>
+#include <models/Measurement_model.hpp>
+
+using State = Eigen::VectorXd;
+using Mat = Eigen::MatrixXd;
+using Timestep  = std::chrono::milliseconds;

@@ -1,13 +1,14 @@
 #pragma once
 #include <chrono>
 #include <eigen3/Eigen/Eigen>
+using State = Eigen::VectorXd;
+using Mat = Eigen::MatrixXd;
+using Timestep  = std::chrono::milliseconds;
 
 namespace Model {
 
-template <size_t n> class Measurement_model {
+class Measurement_model {
 public:
-	using Vec = Eigen::Matrix<double, n, 1>;
-	using Mat = Eigen::Matrix<double, n, n>;
 	/**
 	 * @brief Parent class for dynamic models
 	 */
@@ -20,7 +21,7 @@ public:
 	 * @param Ts Time-step
 	 * @return The next state x_(k+1) = F x_k
 	 */
-	virtual Vec f(std::chrono::milliseconds Ts, Vec x) const = 0;
+	virtual State f(std::chrono::milliseconds Ts, State x) const = 0;
 
 	/**
 	 * @brief Covariance matrix of model:
@@ -29,7 +30,7 @@ public:
 	 * @param Ts Time-step
 	 * @return Measuerement noise covariance matrix Q
 	 */
-	virtual Mat R(std::chrono::milliseconds Ts, Vec x) const = 0;
+	virtual Mat R(std::chrono::milliseconds Ts, State x) const = 0;
 };
 
 } // End namespace Model
