@@ -1,5 +1,5 @@
-#include <models/Dynamic_model.hpp>
 #include <iostream>
+#include <models/Dynamic_model.hpp>
 using namespace std::chrono_literals;
 
 

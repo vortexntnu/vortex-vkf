@@ -1,4 +1,1 @@
-class Measurement_model
-{
-    
-};
+class Measurement_model {};
