@@ -14,7 +14,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
-find_package(eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 
 # Add include
@@ -22,14 +22,21 @@ include_directories(include)
 
 
 
-add_executable(vkf_node src/nodes/vkf_node.cpp)
+add_executable(vkf_node 
+  src/nodes/vkf_node.cpp
+)
 ament_target_dependencies(vkf_node 
   rclcpp 
   std_msgs
-  eigen
+  Eigen3
 )
 
 # Let ros2 run find the executables
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
 install(TARGETS
   vkf_node
   DESTINATION lib/${PROJECT_NAME})
