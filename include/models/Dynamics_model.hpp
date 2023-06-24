@@ -39,6 +39,7 @@ public:
 	 * Instead of defining the system function \p f, define the Jacobian \p F
 	 */
 	EKF_Dynamics_model() : Dynamics_model{} {}
+	
 	/**
 	 * @brief Discrete prediction equation f:
 	 * Calculate the zero noise prediction at time \p Ts from \p x.

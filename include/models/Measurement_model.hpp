@@ -34,7 +34,13 @@ public:
 };
 
 class EKF_Measurement_model : Measurement_model {
+public:
 	EKF_Measurement_model() : Measurement_model() {}
+	virtual State h(std::chrono::milliseconds Ts, State x) const = 0;
+	
+	virtual Mat H(std::chrono::milliseconds Ts, State x) const = 0;
+
+	virtual Mat R(std::chrono::milliseconds Ts, State x) const = 0;
 	
 };
 
