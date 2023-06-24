@@ -1,68 +1,55 @@
 #pragma once
-#include <models.hpp>
+#include <kalman_filters/Kalman_filter_base.hpp>
+#include <models/EKF_model_base.hpp>
+using namespace Models;
 
-class EKF 
+class EKF : public Kalman_filter_base
 {
 public:
-    EKF(Model::EKF_Dynamics_model* ekf_dynamics_model, Model::EKF_Dynamics_model* ekf_measurement_model)
-    : dynamics_model{ekf_dynamics_model}, measurement_model{measurement_model} {}
+    EKF(Models::EKF_model_base* ekf_model, State x0, Mat P0)
+    : Kalman_filter_base(x0, P0)
+    {}
 
-    // x
-    State predicted_state_estimate(Timestep Ts, State x_prev) 
+    State next_state(Timestep Ts, Measurement y, Input u) override
     {
-        return dynamics_model->f(Ts,x_prev);
-    }
+        // Calculate Jacobians
+        Mat F = model->F(Ts,x);
+        Mat Q = model->Q(Ts,x);
+        // Predicted State Estimate x_k-
+        State x_pred = model->F(Ts,x);
+        // Predicted State Covariance P_xx
+        Mat P_xx_pred = F*P_xx*F.transpose() + Q;
+        // Predicted Output y_pred
+        Measurement y_pred = model->h(Ts,x_pred);
+        
+        // Calculate Jacobians
+        Mat H = model->H(Ts,x);
+        Mat R = model->R(Ts,x);
+        // Output Covariance P_yy
+        Mat P_yy = H*P_xx*H.transpose() + R;
+        // Cross Covariance P_xy
+        Mat P_xy = P_xx*H;
 
-    // P_xx
-    Mat predicted_covariance(Timestep Ts, State x, Mat P_prev) 
-    {
-        Mat F = dynamics_model->F(Ts,x);
-        Mat Q = dynamics_model->Q(Ts,x);
-        return F*P_prev*F.transpose() + Q;
-    }
-
-    // y_est
-    Measurement predicted_output(Timestep Ts, State x)
-    {
-        return measurement_model->h(Ts,x);
-    }
-
-    // P_yy
-    Mat output_covariance(Timestep Ts, State x, Mat P_xx)
-    {
-        Mat H = measurement_model->H(Ts,x);
-        Mat R = measurement_model->R(Ts,x);
-        return H*P_xx*H.transpose() + R;
-    }
-
-    // P_xy
-    Mat cross_covariance(Timestep Ts, State x, Mat P_xx)
-    {
-        return P_xx*measurement_model->H(Ts,x);
-    }
-
-    // K
-    Mat kalman_gain(Mat P_xy, Mat P_yy)
-    {
-        // Use Cholesky decomposition for inverting P_yy
+        // Kalman gain K
         size_t m = P_yy.rows();
-        Mat I = Eigen::MatrixXf::Identity(m,m);
-        Mat P_yy_inv = P_yy.llt().solve(I);
-        return P_xy*P_yy_inv;
+        Mat I_m = Eigen::MatrixXf::Identity(m,m);
+        Mat P_yy_inv = P_yy.llt().solve(I_m); // Use Cholesky decomposition for inverting P_yy
+        Mat K = P_xy*P_yy_inv;
+
+        //Corrected State Estimate x_next
+        State x_next = x_pred + K*(y-y_pred);
+        // Corrected State Covariance P_xx_next
+        size_t n = P_xx.rows();
+        Mat I_n = Eigen::MatrixXf::Identity(n,n);
+        Mat P_xx_next = (Eigen::MatrixXd::Identity()-K*H)*P_xx;
+        
+        // Update local state
+        x =  x_next;
+        P_xx = P_xx_next;
+
+        return x_next;
     }
 
-    //x_k+1
-    State corrected_state_estimate(State x_est, Measurement y_meas, Measurement y_est, Mat K)
-    {
-        return x_est + K*(y_meas-y_est);
-    }
-    // P_k+1
-    Mat corrected_covariance(Timestep Ts, State x, Mat P, Mat K)
-    {
-        State h = measurement_model->h(Ts,x);
-        return (Eigen::MatrixXd::Identity()-K*h)*P;
-    }
-private:
-    Model::EKF_Dynamics_model* dynamics_model;
-    Model::EKF_Measurement_model* measurement_model;
+protected:
+    Models::EKF_model_base* model;
 };
