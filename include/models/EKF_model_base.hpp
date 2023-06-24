@@ -1,16 +1,15 @@
 #pragma once
-#include <models/model_definitions.hpp>
 #include <models/Model_base.hpp>
+#include <models/model_definitions.hpp>
 
-namespace Models
-{
+namespace Models {
 class EKF_model_base : public Model_base {
 public:
 	/**
 	 * @brief Parent class for functions that need to be provided for the EKF filter.
 	 */
 	EKF_model_base() : Model_base{} {}
-	
+
 	/**
 	 * @brief Discrete prediction equation f:
 	 * Calculate the zero noise prediction at time \p Ts from \p x.
@@ -38,7 +37,7 @@ public:
 	 */
 	virtual Mat F(std::chrono::milliseconds Ts, State x) const = 0;
 
-    virtual Mat H(std::chrono::milliseconds Ts, State x) const = 0;
+	virtual Mat H(std::chrono::milliseconds Ts, State x) const = 0;
 
 	/**
 	 * @brief Covariance matrix of model:
@@ -49,7 +48,7 @@ public:
 	 */
 	virtual Mat Q(std::chrono::milliseconds Ts, State x) const = 0;
 
-    /**
+	/**
 	 * @brief Covariance matrix of model:
 	 * Calculate the transition covariance \p Q for time \p Ts
 	 * @param x State
@@ -58,4 +57,4 @@ public:
 	 */
 	virtual Mat R(std::chrono::milliseconds Ts, State x) const = 0;
 };
-}
+} // namespace Models

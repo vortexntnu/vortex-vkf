@@ -1,12 +1,11 @@
 #pragma once
-#include <eigen3/Eigen/Eigen>
 #include <chrono>
+#include <eigen3/Eigen/Eigen>
 
-namespace Models
-{
-using State = Eigen::VectorXd;
+namespace Models {
+using State       = Eigen::VectorXd;
 using Measurement = Eigen::VectorXd;
-using Input = Eigen::VectorXd;
-using Mat = Eigen::MatrixXd;
-using Timestep = std::chrono::milliseconds;
-}
+using Input       = Eigen::VectorXd;
+using Mat         = Eigen::MatrixXd;
+using Timestep    = std::chrono::milliseconds;
+} // namespace Models

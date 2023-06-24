@@ -49,4 +49,4 @@ public:
 	virtual Mat R(std::chrono::milliseconds Ts, State x) const = 0;
 };
 
-}
+} // namespace Models
