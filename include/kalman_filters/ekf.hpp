@@ -7,8 +7,9 @@ class EKF : public Kalman_filter_base {
 public:
 	EKF(Models::EKF_model_base *ekf_model, State x0, Mat P0) : Kalman_filter_base(x0, P0) {}
 
-	State next_state(Timestep Ts, Measurement y, Input u) override
+	virtual State next_state(Timestep Ts, Measurement y, Input u) override
 	{
+        (void)u;
 		// Calculate Jacobians
 		Mat F = model->F(Ts, x);
 		Mat Q = model->Q(Ts, x);
