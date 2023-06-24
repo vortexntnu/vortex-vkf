@@ -32,13 +32,13 @@ public:
 	virtual Mat Q(std::chrono::milliseconds Ts, State x) const = 0;
 };
 
-class LTV_model : public Dynamics_model {
+class EKF_Dynamics_model : public Dynamics_model {
 public:
 	/**
 	 * @brief Parent class for Linear time varying models
 	 * Instead of defining the system function \p f, define the Jacobian \p F
 	 */
-	LTV_model() : Dynamics_model{} {}
+	EKF_Dynamics_model() : Dynamics_model{} {}
 	/**
 	 * @brief Discrete prediction equation f:
 	 * Calculate the zero noise prediction at time \p Ts from \p x.
@@ -46,7 +46,7 @@ public:
 	 * @param Ts Time-step
 	 * @return The next state x_(k+1) = F x_k
 	 */
-	State f(std::chrono::milliseconds Ts, State x) const { return F(Ts, x) * x; }
+	virtual State f(std::chrono::milliseconds Ts, State x) const = 0;
 
 	/**
 	 * @brief Jacobian of f:
@@ -68,13 +68,20 @@ public:
 };
 
 constexpr size_t LM_size{7}; // Size of the landmark model (x, y, z and quaternion)
-class Landmark : public LTV_model {
+class Landmark : public EKF_Dynamics_model {
 public:
 	/**
 	 * @brief Model for stationary objects with x, y, z and quaternion as states
 	 * @param Q_weights The weights of the system noise covariance matrix
 	 */
-	Landmark(State Q_weights) : LTV_model{}, Q_matrix{Q_weights.asDiagonal()} {}
+	Landmark(State Q_weights) : EKF_Dynamics_model{}, Q_matrix{Q_weights.asDiagonal()} {}
+
+	State f(std::chrono::milliseconds Ts, State x) const override
+	{
+		(void)Ts;
+		return x;
+	}
+
 
 	/**
 	 * @brief Jacobian of f:
@@ -83,7 +90,7 @@ public:
 	 * @param Ts Time-step
 	 * @return Jacobian F
 	 */
-	Mat F(std::chrono::milliseconds Ts, State x) const
+	Mat F(std::chrono::milliseconds Ts, State x) const override
 	{
 		(void)Ts; // Suppress compiler warning of unused variables
 		size_t n = x.rows();
@@ -97,7 +104,7 @@ public:
 	 * @param Ts Time-step
 	 * @return System noise covariance matrix Q
 	 */
-	Mat Q(std::chrono::milliseconds Ts, State x) const
+	Mat Q(std::chrono::milliseconds Ts, State x) const override
 	{
 		(void)x;
 		(void)Ts;

@@ -10,7 +10,7 @@ namespace Model {
 class Measurement_model {
 public:
 	/**
-	 * @brief Parent class for dynamic models
+	 * @brief Parent class for measuerement models
 	 */
 	Measurement_model() {}
 
@@ -21,16 +21,21 @@ public:
 	 * @param Ts Time-step
 	 * @return The next state x_(k+1) = F x_k
 	 */
-	virtual State f(std::chrono::milliseconds Ts, State x) const = 0;
+	virtual State h(std::chrono::milliseconds Ts, State x) const = 0;
 
 	/**
 	 * @brief Covariance matrix of model:
 	 * Calculate the transition covariance \p Q for time \p Ts
 	 * @param x State
 	 * @param Ts Time-step
-	 * @return Measuerement noise covariance matrix Q
+	 * @return Measuerement noise covariance matrix R
 	 */
 	virtual Mat R(std::chrono::milliseconds Ts, State x) const = 0;
+};
+
+class EKF_Measurement_model : Measurement_model {
+	EKF_Measurement_model() : Measurement_model() {}
+	
 };
 
 } // End namespace Model

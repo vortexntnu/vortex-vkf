@@ -8,11 +8,20 @@
 class EKF 
 {
 public:
-    EKF(model::LTV_Model dynamics_model, model::LTV_model measurement_model)
+    EKF(Model::EKF_Dynamics_model* dynamics_model, Model::EKF_Dynamics_model* Measurement_model)
     : dynamics_model{dynamics_model}, measurement_model{measurement_model} {}
 
-    void predicted_state_estimate(Timestep Ts, State x) {return dynamics_model.f(Ts,x)}
-    void predicted_covariance() {}
+    State predicted_state_estimate(Timestep Ts, State x) 
+    {
+        return dynamics_model->f(Ts,x);
+    }
+
+    Mat predicted_covariance(Timestep Ts, State x, Mat P) 
+    {
+        Mat F = dynamics_model->F(Ts,x);
+        Mat Q = dynamics_model->Q(Ts,x);
+        return F*P*F.transpose() + Q;
+    }
     void predicted_output();
     void output_covariance();
     void cross_covariance();
@@ -20,6 +29,6 @@ public:
     void corrected_state_estimate();
     void corrected_covariance();
 private:
-    model::LTV_model dynamics_model;
-    model::LTV_model measurement_model;
+    Model::EKF_Dynamics_model* dynamics_model;
+    Model::EKF_Dynamics_model* measurement_model;
 };
