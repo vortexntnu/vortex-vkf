@@ -25,12 +25,27 @@ public:
 		(void)v;
 		return A;
 	}
+	virtual Mat F_v(Timestep Ts, State x, Input u, Disturbance v) override final
+	{
+		(void)Ts;
+		(void)x;
+		(void)u;
+		(void)v;
+		return G;
+	}
 	virtual Mat H_x(Timestep Ts, State x, Noise w) override final
 	{
 		(void)Ts;
 		(void)x;
 		(void)w;
 		return C;
+	}
+	virtual Mat H_w(Timestep Ts, State x, Noise w) override final
+	{
+		(void)Ts;
+		(void)w;
+		Mat I = Eigen::MatrixXd::Identity(x.rows(),x.rows());
+		return I;
 	}
 	virtual Mat Q(Timestep Ts, State x) override final
 	{

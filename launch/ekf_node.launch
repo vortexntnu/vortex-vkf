@@ -1,3 +1,0 @@
-  <launch>
-    <node pkg="vision_kf" type="vkf_node.py" name="vision_kf" output="screen"/>
-  </launch>

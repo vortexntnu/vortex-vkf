@@ -1,35 +1,33 @@
 #pragma once
+#include <models/LTI_model.hpp>
 #include <kalman_filters/Kalman_filter_base.hpp>
-#include <models/EKF_model_base.hpp>
 
 namespace Filters {
 using namespace Models;
 
-class EKF : public Kalman_filter_base {
+class KF : public Kalman_filter_base {
 public:
-	EKF(Models::EKF_model_base *ekf_model, State x0, Mat P0) : Kalman_filter_base(x0, P0) {}
-
+	KF(LTI_model *lti_model, State x0, Mat P0) : Kalman_filter_base(x0, P0), model{lti_model} {}
 	virtual State next_state(Timestep Ts, Measurement y, Input u, Disturbance v, Noise w) override final
 	{
-		// Calculate Jacobians
-		Mat F_x = model->F_x(Ts, x, u, v);
-		Mat F_v = model->F_v(Ts, x, u, v);
-		Mat Q = model->Q(Ts, x);
-		// Predicted State Estimate x_k-
-		State x_pred = model->f(Ts, x, u, v);
-		// Predicted State Covariance P_xx
-		Mat P_xx_pred = F_x * P_xx * F_x.transpose() + F_v * Q * F_v.transpose();
-		// Predicted Output y_pred
-		Measurement y_pred = model->h(Ts, x_pred, w);
+        Mat A = model->A;
+        Mat B = model->B;
+        Mat C = model->C;
+        Mat G = model->G;
+        Mat Q = model->Q;
+        Mat R = model->R;
 
-		// Calculate Jacobians
-		Mat H_x = model->H_x(Ts, x, w);
-		Mat H_w = model->H_w(Ts, x, w);
-		Mat R = model->R(Ts, x);
+		// Predicted State Estimate x_k-
+		State x_pred = A*x + B*u + G*v;
+		// Predicted State Covariance P_xx
+		Mat P_xx_pred = A * P_xx * A.transpose() + C * Q * C.transpose();
+		// Predicted Output y_pred
+		Measurement y_pred = C*x + w;
+
 		// Output Covariance P_yy
-		Mat P_yy = H_x * P_xx * H_x.transpose() + H_w * R * H_w.transpose();
+		Mat P_yy = C * P_xx * C.transpose() + R;
 		// Cross Covariance P_xy
-		Mat P_xy = P_xx * H_x;
+		Mat P_xy = P_xx * C;
 
 		// Kalman gain K
 		size_t m     = P_yy.rows();
@@ -42,17 +40,15 @@ public:
 		// Corrected State Covariance P_xx_next
 		size_t n      = P_xx.rows();
 		Mat I_n       = Eigen::MatrixXf::Identity(n, n);
-		Mat P_xx_next = (Eigen::MatrixXd::Identity() - K * H_x) * P_xx;
+		Mat P_xx_next = (Eigen::MatrixXd::Identity() - K * C) * P_xx;
 
 		// Update local state
 		x    = x_next;
 		P_xx = P_xx_next;
 
 		return x_next;
-	}
-
+    }
 protected:
-	Models::EKF_model_base *model;
+    LTI_model* model;
 };
-
 }
