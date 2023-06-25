@@ -22,10 +22,10 @@ include_directories(include)
 
 
 
-add_executable(vkf_node 
+add_executable(${PROJECT_NAME}_node 
   src/nodes/vkf_node.cpp
 )
-ament_target_dependencies(vkf_node 
+ament_target_dependencies(${PROJECT_NAME}_node 
   rclcpp 
   std_msgs
   Eigen3
@@ -38,17 +38,32 @@ install(
 )
 
 install(TARGETS
-  vkf_node
+  ${PROJECT_NAME}_node
   DESTINATION lib/${PROJECT_NAME})
 
 
 
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
+  # find_package(ament_lint_auto REQUIRED)
   # the following line skips cpplint (only works in a git repo)
   # uncomment the line when this package is not in a git repo
-  #set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
+  # set(ament_cmake_cpplint_FOUND TRUE)
+  # ament_lint_auto_find_test_dependencies()
+
+
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(${PROJECT_NAME}_models_test 
+    test/main.cpp
+    test/models_test.cpp
+  )
+  target_include_directories(${PROJECT_NAME}_models_test PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  ament_target_dependencies(${PROJECT_NAME}_models_test
+    std_msgs
+  )
+
 endif()
 
 ament_package()
