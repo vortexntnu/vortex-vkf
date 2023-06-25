@@ -18,7 +18,7 @@ int main()
 	Mat D = Eigen::Matrix3d::Zero();
 	Mat Q = Eigen::Matrix3d::Identity();
 	Mat R = Eigen::Matrix<double,1,1>::Identity();
-	R * Q;
+
 	LTI_model target{A,B,C,D,Q,R};
 	State x1 = target.f(1ms, x0, u0, v0);
 	std::cout << x0 << "\n\n";
