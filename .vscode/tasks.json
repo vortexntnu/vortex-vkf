@@ -1,0 +1,23 @@
+{
+    "tasks": [
+        {
+            "type": "colcon",
+            "args": [
+                "build",
+                "--symlink-install",
+                "--event-handlers",
+                "console_cohesion+",
+                "--base-paths",
+                "/home/eirik/ros2-humble_ws",
+                "--cmake-args",
+                "-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+            ],
+            "problemMatcher": [
+                "$catkin-gcc"
+            ],
+            "group": "build",
+            "label": "colcon: build"
+        },
+    ],
+    "version": "2.0.0"
+}
