@@ -1,1 +1,0 @@
-class Measurement_model {};
