@@ -52,15 +52,15 @@ if(BUILD_TESTING)
 
 
   find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(${PROJECT_NAME}_models_test 
+  ament_add_gtest(${PROJECT_NAME}_test 
     test/main.cpp
     test/models_test.cpp
   )
-  target_include_directories(${PROJECT_NAME}_models_test PUBLIC
+  target_include_directories(${PROJECT_NAME}_test PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
   )
-  ament_target_dependencies(${PROJECT_NAME}_models_test
+  ament_target_dependencies(${PROJECT_NAME}_test
     std_msgs
   )
 
