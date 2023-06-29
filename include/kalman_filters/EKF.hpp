@@ -5,6 +5,7 @@
 namespace Filters {
 using namespace Models;
 
+template<int n_x, int n_y, int n_u, int n_v, int n_w>
 class EKF : public Kalman_filter_base {
 public:
 	EKF(Models::EKF_model_base *ekf_model, State x0, Mat P0) : Kalman_filter_base(x0, P0) {}

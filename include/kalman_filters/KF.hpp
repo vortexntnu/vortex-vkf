@@ -5,6 +5,7 @@
 namespace Filters {
 using namespace Models;
 
+template<int n_x, int n_y, int n_u, int n_v, int n_w>
 class KF : public Kalman_filter_base {
 public:
 	KF(LTI_model *lti_model, State x0, Mat P0) : Kalman_filter_base(x0, P0), model{lti_model} {}
@@ -14,8 +15,8 @@ public:
         Mat B = model->B;
         Mat C = model->C;
         Mat G = model->G;
-        Mat Q = model->Q;
-        Mat R = model->R;
+        Mat Q = model->Q_mat;
+        Mat R = model->R_mat;
 
 		// Predicted State Estimate x_k-
 		State x_pred = A*x + B*u + G*v;
