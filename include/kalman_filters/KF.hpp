@@ -6,50 +6,49 @@ namespace Filters {
 using namespace Models;
 
 template<int n_x, int n_y, int n_u, int n_v=n_x, int n_w=n_y>
-class KF : public Kalman_filter_base {
+class KF : public Kalman_filter_base<n_x,n_y,n_u,n_v,n_w> {
 public:
-	KF(LTI_model *lti_model, State x0, Mat P0) : Kalman_filter_base(x0, P0), model{lti_model} {}
+	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
+	KF(LTI_model<n_x,n_y,n_u,n_v,n_w> *lti_model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{lti_model} {}
 	State next_state(Timestep Ts, Measurement y, Input u, Disturbance v, Noise w) override final
 	{
-        Mat A = model->A;
-        Mat B = model->B;
-        Mat C = model->C;
-        Mat G = model->G;
-        Mat Q = model->Q_mat;
-        Mat R = model->R_mat;
+        Mat_xx A = model->_A;
+        Mat_xu B = model->_B;
+        Mat_yx C = model->_C;
+        Mat_yu D = model->_D;
+        Mat_vv Q = model->_Q;
+        Mat_yy R = model->_R;
+        Mat_xv G = model->_G;
+        Mat_yw H = model->_H;
 
 		// Predicted State Estimate x_k-
-		State x_pred = A*x + B*u + G*v;
+		State x_pred = A*this->_x + B*u + G*v;
 		// Predicted State Covariance P_xx
-		Mat P_xx_pred = A * P_xx * A.transpose() + C * Q * C.transpose();
+		Mat_xx P_xx_pred = A*this->_P_xx*A.transpose() + G*Q*G.transpose();
 		// Predicted Output y_pred
-		Measurement y_pred = C*x + w;
+		Measurement y_pred = C*x_pred + D*u + H*w;
 
 		// Output Covariance P_yy
-		Mat P_yy = C * P_xx * C.transpose() + R;
+		Mat_yy P_yy = C*P_xx_pred*C.transpose() + H*R*H.transpose();
 		// Cross Covariance P_xy
-		Mat P_xy = P_xx * C;
+		Mat_xy P_xy = P_xx_pred * C;
 
 		// Kalman gain K
-		size_t m     = P_yy.rows();
-		Mat I_m      = Eigen::MatrixXf::Identity(m, m);
-		Mat P_yy_inv = P_yy.llt().solve(I_m); // Use Cholesky decomposition for inverting P_yy
-		Mat K        = P_xy * P_yy_inv;
+		Mat_yy P_yy_inv = P_yy.llt().solve(Mat_yy::Identity()); // Use Cholesky decomposition for inverting P_yy
+		Mat_xy K        = P_xy * P_yy_inv;
 
 		// Corrected State Estimate x_next
 		State x_next = x_pred + K * (y - y_pred);
 		// Corrected State Covariance P_xx_next
-		size_t n      = P_xx.rows();
-		Mat I_n       = Eigen::MatrixXf::Identity(n, n);
-		Mat P_xx_next = (Eigen::MatrixXd::Identity() - K * C) * P_xx;
+		Mat_xx P_xx_next = (Mat_xx::Identity() - K * C) * P_xx_pred;
 
 		// Update local state
-		x    = x_next;
-		P_xx = P_xx_next;
+		this->_x    = x_next;
+		this->_P_xx = P_xx_next;
 
 		return x_next;
     }
 protected:
-    LTI_model* model;
+    LTI_model<n_x,n_y,n_u,n_v,n_w>* model;
 };
 }

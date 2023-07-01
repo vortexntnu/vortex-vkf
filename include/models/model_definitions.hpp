@@ -25,4 +25,3 @@ using Timestep = std::chrono::milliseconds;
 	using Mat_yu 	  = Matrix<double,n_y,n_u>;  \
 	using Mat_yw 	  = Matrix<double,n_y,n_w>;      
 } // namespace Models
-
