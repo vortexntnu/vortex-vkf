@@ -11,7 +11,7 @@ using State = Eigen::Vector<double,n_x>;
 template<int n_x, int n_y, int n_u, int n_v, int n_w>
 class Model_base {
 public:
-	MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
+	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
 	/**
 	 * @brief Parent class for modelling dynamics
 	 */
@@ -22,7 +22,7 @@ public:
 	 * Calculate the zero noise prediction at time \p Ts from \p x.
 	 * @param Ts Time-step
 	 * @param x State
-	 * @return The next state x_(k+1) = F x_k
+	 * @return The next state _x(k+1) = F x_k
 	 */
 	virtual State f(Timestep Ts, State x, Input u, Disturbance v) = 0;
 	/**
@@ -30,7 +30,7 @@ public:
 	 * Calculate the zero noise prediction at time \p Ts from \p x.
 	 * @param Ts Time-step
 	 * @param x State
-	 * @return The next state x_(k+1) = F x_k
+	 * @return The next state _x(k+1) = F x_k
 	 */
 
 	virtual Measurement h(Timestep Ts, State x, Input u, Noise w) = 0;
