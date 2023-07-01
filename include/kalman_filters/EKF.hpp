@@ -5,7 +5,7 @@
 namespace Filters {
 using namespace Models;
 
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
+template<int n_x, int n_y, int n_u, int n_v=n_x, int n_w=n_y>
 class EKF : public Kalman_filter_base<n_x,n_y,n_u,n_v,n_w> {
 public:
 	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)

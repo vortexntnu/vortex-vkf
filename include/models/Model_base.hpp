@@ -8,7 +8,7 @@ template<int n_x>
 using State = Eigen::Vector<double,n_x>;
 
 
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
+template<int n_x, int n_y, int n_u, int n_v=n_x, int n_w=n_y>
 class Model_base {
 public:
 	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)

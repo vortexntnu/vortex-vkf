@@ -4,13 +4,14 @@
 
 namespace Models {
 
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
+template<int n_x, int n_y, int n_u, int n_v=n_x, int n_w=n_y>
 class EKF_model_base : public Model_base<n_x,n_y,n_u,n_v,n_w> {
 public:
 	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
 
 	/**
 	 * @brief Parent class for functions that need to be provided for the EKF filter.
+	 * Children of this class will work in the EKF filter.
 	 */
 	EKF_model_base() : Model_base<n_x,n_y,n_u,n_v,n_w>() {}
 
@@ -28,7 +29,7 @@ public:
 		(void)x;
 		(void)u;
 		(void)v;
-		return Mat_xv::Identity();
+		return Mat_vv::Identity();
 	}
 
 	virtual Mat_yx H_x(Timestep Ts, State x, Input u, Noise w) = 0;
@@ -38,7 +39,7 @@ public:
 		(void)x;
 		(void)u;
 		(void)w;
-		return Mat_yw::Identity();
+		return Mat_ww::Identity();
 	}
 };
 } // namespace Models

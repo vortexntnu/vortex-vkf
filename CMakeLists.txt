@@ -23,7 +23,7 @@ include_directories(include)
 
 
 add_executable(${PROJECT_NAME}_node 
-  src/nodes/vkf_node.cpp
+  src/nodes/kf_node.cpp
 )
 ament_target_dependencies(${PROJECT_NAME}_node 
   rclcpp 

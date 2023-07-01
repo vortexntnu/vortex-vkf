@@ -4,7 +4,7 @@
 
 namespace Models {
 
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
+template<int n_x, int n_y, int n_u, int n_v=n_x, int n_w=n_y>
 class LTI_model : public EKF_model_base<n_x, n_y, n_u, n_v, n_w> {
 public:
 	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
@@ -77,6 +77,4 @@ public:
 	Mat_xv _G;
 	Mat_yw _H;
 };
-template<int n_x, int n_y, int n_u>
-using LTI_model2 = LTI_model<n_x, n_y, n_u, n_x, n_y>;
 }

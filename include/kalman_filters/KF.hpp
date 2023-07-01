@@ -5,11 +5,11 @@
 namespace Filters {
 using namespace Models;
 
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
+template<int n_x, int n_y, int n_u, int n_v=n_x, int n_w=n_y>
 class KF : public Kalman_filter_base {
 public:
 	KF(LTI_model *lti_model, State x0, Mat P0) : Kalman_filter_base(x0, P0), model{lti_model} {}
-	virtual State next_state(Timestep Ts, Measurement y, Input u, Disturbance v, Noise w) override final
+	State next_state(Timestep Ts, Measurement y, Input u, Disturbance v, Noise w) override final
 	{
         Mat A = model->A;
         Mat B = model->B;
