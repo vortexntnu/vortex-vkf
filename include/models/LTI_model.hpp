@@ -7,20 +7,7 @@ namespace Models {
 template<int n_x, int n_y, int n_u, int n_v, int n_w>
 class LTI_model : public EKF_model_base<n_x, n_y, n_u, n_v, n_w> {
 public:
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::State;
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Measurement;
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Input;
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Disturbance;
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Noise;
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_xx; 
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yy; 
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_vv; 
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_ww; 
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_xv;
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_xu;
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yx;
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yu;
-	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yw;
+	MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
 
     LTI_model(Mat_xx A, Mat_xu B, Mat_yx C, Mat_yu D, Mat_vv Q, Mat_ww R, Mat_xv G, Mat_yw H) : EKF_model_base<n_x,n_y,n_u,n_v,n_w>(), A_{A}, B_{B}, C_{C}, D_{D}, Q_{Q}, R_{R}, G_{G}, H_{H} {}
     LTI_model(Mat_xx A, Mat_xu B, Mat_yx C, Mat_vv Q, Mat_ww R) : LTI_model(A, B, C, Mat_yu::Zero(), Q, R, Mat_xv::Identity(), Mat_yw::Identity()) {}
