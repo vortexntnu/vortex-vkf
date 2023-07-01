@@ -4,36 +4,38 @@
 
 namespace Models {
 
-template<int n_x, int n_y, int n_u, int n_v>
-class LTI_model : public EKF_model_base<n_x, n_y, n_u, n_v> {
+template<int n_x, int n_y, int n_u, int n_v, int n_w>
+class LTI_model : public EKF_model_base<n_x, n_y, n_u, n_v, n_w> {
 public:
-	using typename Model_base<n_x,n_y,n_u,n_v>::State;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Measurement;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Input;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Disturbance;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Noise;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_vv; 
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_yy; 
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_vv; 
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_ww; 
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_xv;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_xu;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_yx;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_yw;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::State;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Measurement;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Input;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Disturbance;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Noise;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_xx; 
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yy; 
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_vv; 
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_ww; 
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_xv;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_xu;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yx;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yu;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yw;
 
-    LTI_model(Mat_vv A, Mat_xu B, Mat_yx C, Mat_xv G, Mat_vv Q, Mat_yy R) : EKF_model_base<n_x, n_y, n_u, n_v>(), A{A}, B{B}, C{C}, G{G}, Q_mat{Q}, R_mat{R} {}
+    LTI_model(Mat_xx A, Mat_xu B, Mat_yx C, Mat_yu D, Mat_vv Q, Mat_ww R, Mat_xv G, Mat_yw H) : EKF_model_base<n_x,n_y,n_u,n_v,n_w>(), A{A}, B{B}, C{C}, D{D}, Q_mat{Q}, R_mat{R}, G{G}, H{H} {}
+    LTI_model(Mat_xx A, Mat_xu B, Mat_yx C, Mat_vv Q, Mat_ww R) : LTI_model(A, B, C, Mat_yu::Zero(), Q, R, Mat_xv::Identity(), Mat_yw::Identity()) {}
 
 	virtual State f(Timestep Ts, State x, Input u, Disturbance v) override final
 	{
 		(void)Ts;
 		return A*x + B*u + G*v;
 	}
-	virtual Measurement h(Timestep Ts, State x, Noise w) override final
+	virtual Measurement h(Timestep Ts, State x, Input u, Noise w) override final
 	{
 		(void)Ts;
-		return C*x + w;
+		return C*x + D*u + H*w;
 	}
-	virtual Mat_vv F_x(Timestep Ts, State x, Input u, Disturbance v) override final
+	virtual Mat_xx F_x(Timestep Ts, State x, Input u, Disturbance v) override final
 	{
 		(void)Ts;
 		(void)x;
@@ -49,19 +51,21 @@ public:
 		(void)v;
 		return G;
 	}
-	virtual Mat_yx H_x(Timestep Ts, State x, Noise w) override final
+	virtual Mat_yx H_x(Timestep Ts, State x, Input u, Noise w) override final
 	{
 		(void)Ts;
 		(void)x;
+		(void)u;
 		(void)w;
 		return C;
 	}
-	virtual Mat_yw H_w(Timestep Ts, State x, Noise w) override final
+	virtual Mat_yw H_w(Timestep Ts, State x, Input u, Noise w) override final
 	{
 		(void)x;
+		(void)u;
 		(void)Ts;
 		(void)w;
-		return Mat_yy::Identity();
+		return H;
 	}
 	virtual Mat_vv Q(Timestep Ts, State x) override final
 	{
@@ -69,18 +73,22 @@ public:
 		(void)x;
 		return Q_mat;
 	}
-	virtual Mat_yy R(Timestep Ts, State x) override final
+	virtual Mat_ww R(Timestep Ts, State x) override final
 	{
 		(void)Ts;
 		(void)x;
 		return R_mat;
 	}
 
-	const Mat_vv A;
+	const Mat_xx A;
 	const Mat_xu B;
 	const Mat_yx C;
-	const Mat_xv G;
+	const Mat_yu D;
 	const Mat_vv Q_mat;
 	const Mat_yy R_mat;
+	const Mat_xv G;
+	const Mat_yw H;
 };
+template<int n_x, int n_y, int n_u>
+using LTI_model2 = LTI_model<n_x, n_y, n_u, n_x, n_y>;
 }

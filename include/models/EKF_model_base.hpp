@@ -4,27 +4,28 @@
 
 namespace Models {
 
-template<int n_x, int n_y, int n_u, int n_v>
-class EKF_model_base : public Model_base<n_x, n_y, n_u, n_v> {
+template<int n_x, int n_y, int n_u, int n_v, int n_w>
+class EKF_model_base : public Model_base<n_x,n_y,n_u,n_v,n_w> {
 public:
-	using typename Model_base<n_x,n_y,n_u,n_v>::State;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Measurement;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Input;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Disturbance;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Noise;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_vv; 
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_yy; 
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_vv; 
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_ww; 
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_xv;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_xu;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_yx;
-	using typename Model_base<n_x,n_y,n_u,n_v>::Mat_yw;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::State;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Measurement;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Input;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Disturbance;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Noise;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_xx; 
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yy; 
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_vv; 
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_ww; 
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_xv;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_xu;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yx;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yu;
+	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yw;
 
 	/**
 	 * @brief Parent class for functions that need to be provided for the EKF filter.
 	 */
-	EKF_model_base() : Model_base<n_x, n_y, n_u, n_v>{} {}
+	EKF_model_base() : Model_base<n_x,n_y,n_u,n_v,n_w>{} {}
 
 	/**
 	 * @brief Jacobian of f:
@@ -33,23 +34,24 @@ public:
 	 * @param Ts Time-step
 	 * @return Jacobian F
 	 */
-	virtual Mat_vv F_x(Timestep Ts, State x, Input u, Disturbance v) = 0;
+	virtual Mat_xx F_x(Timestep Ts, State x, Input u, Disturbance v) = 0;
 	virtual Mat_xv F_v(Timestep Ts, State x, Input u, Disturbance v) 
 	{
 		(void)Ts;
 		(void)x;
 		(void)u;
 		(void)v;
-		return Mat_vv::Identity();
+		return Mat_xv::Identity();
 	}
 
-	virtual Mat_yx H_x(Timestep Ts, State x, Noise w) = 0;
-	virtual Mat_yw H_w(Timestep Ts, State x, Noise w)
+	virtual Mat_yx H_x(Timestep Ts, State x, Input u, Noise w) = 0;
+	virtual Mat_yw H_w(Timestep Ts, State x, Input u, Noise w)
 	{
 		(void)Ts;
 		(void)x;
+		(void)u;
 		(void)w;
-		return Mat_yy::Identity();
+		return Mat_yw::Identity();
 	}
 };
 } // namespace Models
