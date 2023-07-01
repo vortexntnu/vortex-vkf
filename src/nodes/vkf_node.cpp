@@ -7,34 +7,34 @@ int main()
 {
 	const int n_x{3}, n_y{1}, n_u{2};
 
-	Eigen::Vector3d x0;
+    Eigen::Vector<double,n_x> x0;
+    Eigen::Vector<double,n_u> u0;
+    Eigen::Vector<double,n_x> v0;
+
 	x0 << 1, 2, 2;
 
-	Eigen::Vector2d u0;
 	u0 << 1, 1;
 	
-	Eigen::Vector3d v0;
 	v0 << 2, 2, 1;
 
 	Eigen::Matrix<double,n_x,n_x> A;
-	A = A.Identity();
 	Eigen::Matrix<double,n_x,n_u> B;
+	Eigen::Matrix<double,n_y,n_x> C;
+	Eigen::Matrix<double,n_x,n_x> Q;
+	Eigen::Matrix<double,n_y,n_y> R;
+
+	A = A.Identity();
+
 	B << 1, 0, 
 		 0, 0, 
 		 0, 0;
-	Eigen::Matrix<double,n_y,n_x> C;
+
 	C << 1, 0, 0;	
-	Eigen::Matrix<double,n_y,n_u> D;
-	D = D.Zero();
-	Eigen::Matrix<double,n_x,n_x> G;
-	G = G.Identity();
-	Eigen::Matrix<double,n_y,n_x> H;
-	H << 0,1,0;
-	Eigen::Matrix<double,n_x,n_x> Q;
+
 	Q << 1, 0, 0,
 		 0, 2, 0,
 		 0, 0, 3;
-	Eigen::Matrix<double,n_y,n_y> R;
+
 	R << 1;
 
 

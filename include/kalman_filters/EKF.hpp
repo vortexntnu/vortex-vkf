@@ -53,7 +53,7 @@ public:
 	}
 
 protected:
-	Models::EKF_model_base *model;
+	Models::EKF_model_base<n_x,n_y,n_u,n_v,n_w> *model;
 };
 
 }

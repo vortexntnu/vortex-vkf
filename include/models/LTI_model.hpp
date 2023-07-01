@@ -22,72 +22,73 @@ public:
 	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yu;
 	using typename Model_base<n_x,n_y,n_u,n_v,n_w>::Mat_yw;
 
-    LTI_model(Mat_xx A, Mat_xu B, Mat_yx C, Mat_yu D, Mat_vv Q, Mat_ww R, Mat_xv G, Mat_yw H) : EKF_model_base<n_x,n_y,n_u,n_v,n_w>(), A{A}, B{B}, C{C}, D{D}, Q_mat{Q}, R_mat{R}, G{G}, H{H} {}
+    LTI_model(Mat_xx A, Mat_xu B, Mat_yx C, Mat_yu D, Mat_vv Q, Mat_ww R, Mat_xv G, Mat_yw H) : EKF_model_base<n_x,n_y,n_u,n_v,n_w>(), A_{A}, B_{B}, C_{C}, D_{D}, Q_{Q}, R_{R}, G_{G}, H_{H} {}
     LTI_model(Mat_xx A, Mat_xu B, Mat_yx C, Mat_vv Q, Mat_ww R) : LTI_model(A, B, C, Mat_yu::Zero(), Q, R, Mat_xv::Identity(), Mat_yw::Identity()) {}
+	LTI_model() : EKF_model_base<n_x,n_y,n_u,n_v,n_w>() {};
 
-	virtual State f(Timestep Ts, State x, Input u, Disturbance v) override final
+	virtual State f(Timestep Ts, State x, Input u = Input::Zero(), Disturbance v = Disturbance::Zero()) override final
 	{
 		(void)Ts;
-		return A*x + B*u + G*v;
+		return A_*x + B_*u + G_*v;
 	}
-	virtual Measurement h(Timestep Ts, State x, Input u, Noise w) override final
+	virtual Measurement h(Timestep Ts, State x, Input u = Input::Zero(), Noise w = Noise::Zero()) override final
 	{
 		(void)Ts;
-		return C*x + D*u + H*w;
+		return C_*x + D_*u + H_*w;
 	}
-	virtual Mat_xx F_x(Timestep Ts, State x, Input u, Disturbance v) override final
+	virtual Mat_xx F_x(Timestep Ts, State x, Input u, Disturbance v = Disturbance::Zero()) override final
 	{
 		(void)Ts;
 		(void)x;
 		(void)u;
 		(void)v;
-		return A;
+		return A_;
 	}
-	virtual Mat_xv F_v(Timestep Ts, State x, Input u, Disturbance v) override final
+	virtual Mat_xv F_v(Timestep Ts, State x, Input u, Disturbance v = Disturbance::Zero()) override final
 	{
 		(void)Ts;
 		(void)x;
 		(void)u;
 		(void)v;
-		return G;
+		return G_;
 	}
-	virtual Mat_yx H_x(Timestep Ts, State x, Input u, Noise w) override final
+	virtual Mat_yx H_x(Timestep Ts, State x, Input u = Input::Zero(), Noise w = Noise::Zero()) override final
 	{
 		(void)Ts;
 		(void)x;
 		(void)u;
 		(void)w;
-		return C;
+		return C_;
 	}
-	virtual Mat_yw H_w(Timestep Ts, State x, Input u, Noise w) override final
+	virtual Mat_yw H_w(Timestep Ts, State x, Input u = Input::Zero(), Noise w = Noise::Zero()) override final
 	{
 		(void)x;
 		(void)u;
 		(void)Ts;
 		(void)w;
-		return H;
+		return H_;
 	}
 	virtual Mat_vv Q(Timestep Ts, State x) override final
 	{
 		(void)Ts;
 		(void)x;
-		return Q_mat;
+		return Q_;
 	}
 	virtual Mat_ww R(Timestep Ts, State x) override final
 	{
 		(void)Ts;
 		(void)x;
-		return R_mat;
+		return R_;
 	}
 
-	const Mat_xx A;
-	const Mat_xu B;
-	const Mat_yx C;
-	const Mat_yu D;
-	const Mat_vv Q_mat;
-	const Mat_yy R_mat;
-	const Mat_xv G;
-	const Mat_yw H;
+	Mat_xx A_;
+	Mat_xu B_;
+	Mat_yx C_;
+	Mat_yu D_;
+	Mat_vv Q_;
+	Mat_yy R_;
+	Mat_xv G_;
+	Mat_yw H_;
 };
 template<int n_x, int n_y, int n_u>
 using LTI_model2 = LTI_model<n_x, n_y, n_u, n_x, n_y>;
