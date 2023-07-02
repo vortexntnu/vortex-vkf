@@ -48,7 +48,7 @@ public:
 
 		return x_next;
     }
-protected:
+private:
     LTI_model<n_x,n_y,n_u,n_v,n_w>* model;
 };
 }

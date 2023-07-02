@@ -50,7 +50,7 @@ public:
 		return x_next;
 	}
 
-protected:
+private:
 	Models::EKF_model_base<n_x,n_y,n_u,n_v,n_w> *model;
 };
 
