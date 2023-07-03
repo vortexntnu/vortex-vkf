@@ -22,8 +22,8 @@ public:
 	 * @param Ts Time-step
 	 * @return Jacobian F
 	 */
-	virtual Mat_xx F_x(Timestep Ts, State x, Input u, Disturbance v) = 0;
-	virtual Mat_xv F_v(Timestep Ts, State x, Input u, Disturbance v) 
+	virtual Mat_xx F_x(Timestep Ts, State x, Input u = Input::Zero(), Disturbance v = Disturbance::Zero()) = 0;
+	virtual Mat_xv F_v(Timestep Ts, State x, Input u = Input::Zero(), Disturbance v = Disturbance::Zero()) 
 	{
 		(void)Ts;
 		(void)x;
@@ -32,8 +32,8 @@ public:
 		return Mat_vv::Identity();
 	}
 
-	virtual Mat_yx H_x(Timestep Ts, State x, Input u, Noise w) = 0;
-	virtual Mat_yw H_w(Timestep Ts, State x, Input u, Noise w)
+	virtual Mat_yx H_x(Timestep Ts, State x, Input u = Input::Zero(), Noise w = Noise::Zero()) = 0;
+	virtual Mat_yw H_w(Timestep Ts, State x, Input u = Input::Zero(), Noise w = Noise::Zero())
 	{
 		(void)Ts;
 		(void)x;

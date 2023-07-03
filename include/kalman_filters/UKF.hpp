@@ -1,7 +1,7 @@
 #pragma once
 #include <kalman_filters/Kalman_filter_base.hpp>
 #include <models/Model_base.hpp>
-#include <math.hpp>
+#include <math.h>
 
 namespace Filters {
 using namespace Models;
@@ -14,25 +14,25 @@ public:
 	using Mat_aa  = Matrix<double,n_a,n_a>;
 	using State_a = Vector<double,n_a>;
 
-	UKF(Models::Model_base<n_x,n_y,n_u,n_v,n_w> *model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0) 
+	UKF(Models::Model_base<n_x,n_y,n_u,n_v,n_w> *model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{model} 
 	{
-		// Parameters used for scaling factor and weights W_x0, W_c0 and W_xi
-		int alpha{1};
-		int beta{0};
-		int gamma{0};
-		int kappa{3-n_x};
-		int lambda{};
-		// lambda selected according to the scaled unscented transform. (van der Merwe (2004)) 
-		lambda = alpha^2*
-		scaling_factor = math::sqrt(n_xx+lambda)
 	}
 
 private:
+	// Parameters used for calculating scaling factor _GAMMA and weights W_x0, W_c0 and W_xi
+	// lambda selected according to the scaled unscented transform. (van der Merwe (2004)) 
+	static constexpr double _ALPHA_SQUARED = 1;
+	static constexpr double _BETA   	   = 2;
+	static constexpr double _KAPPA 		   = 0;
+	static constexpr double _LAMBDA 	   = _ALPHA_SQUARED*(n_x+_KAPPA)-n_x;
+	static constexpr double _GAMMA         = sqrt(n_x+_LAMBDA);
+
+	static constexpr double _W_x0 = _LAMBDA/(n_x+_LAMBDA);
+	static constexpr double _W_c0 = _LAMBDA/(n_x+_LAMBDA)+(1-_ALPHA_SQUARED+_BETA);
+	static constexpr double _W_xi = 1/(2*(n_x+_LAMBDA));
+	static constexpr double _W_ci = 1/(2*(n_x+_LAMBDA));
+
     Model_base<n_x,n_y,n_u,n_v,n_w>* model;
-	double scaling_factor;
-	double W_x0;
-	double W_c0;
-	double W_xi;
 
 	Matrix<double,n_a,2*n_a+1> get_sigma_points(State x, Mat_xx P, Mat_vv Q, Mat_ww R)
 	{	
@@ -55,26 +55,90 @@ private:
 		sigma_points.row(0) = x_a;
 		for (size_t i{1}; i<=n_a; i++)
 		{
-			sigma_points.row(i)     = x_a + sqrt_P_a.row(i-1);
-			sigma_points.row(i+n_a) = x_a - sqrt_P_a.row(i-1);
+			sigma_points.row(i)     = x_a + _GAMMA*sqrt_P_a.row(i-1);
+			sigma_points.row(i+n_a) = x_a - _GAMMA*sqrt_P_a.row(i-1);
 		}
 		return sigma_points;
 	}
 
-	Matrix<double,n_x,2*n_a+1> propagate_sigma_points(Matrix<double,n_a,2*n_a+1> sigma_points, Timestep Ts, Input u)
-	{
-		Matrix<double,n_x,2*n_a+1> propagated_sigma_points;
-		for (size_t i{0}; i<2*n_a+1; i++)
-		{
-			propagated_sigma_points.row(i) = model->f(Ts, sigma_points.block(0,i,n_x,i), u, sigma_points.block(n_x,i,n_x+n_v,i));
-		}
-		return propagated_sigma_points;
-	}
 
-	State next_state(Timestep Ts, Measurement y, Input u = Input::Zero(), Disturbance v = Disturbance::Zero(), Noise w = Noise::Zero()) override final
+	State next_state(Timestep Ts, Measurement y, Input u = Input::Zero()) override final
 	{
-		Matrix<double,n_a,2*n_a+1> sigma_points = get_sigma_points(this->_x, this->_P_xx, model->Q(Ts, this->_x), model->R(Ts, this->_x));
-		Matrix<double,n_x,2*n_a+1> propagated_sigma_points = propagate_sigma_points(sigma_points, Ts, u);
+		Mat_vv Q = model->Q(Ts,this->_x); 
+		Mat_ww R = model->R(Ts,this->_x); 
+		Matrix<double,n_a,2*n_a+1> sigma_points = get_sigma_points(this->_x, this->_P_xx, Q, R);
+
+		// // Propagate sigma points through f
+		// Matrix<double,n_x,2*n_a+1> sigma_x_pred;
+		// for (size_t i{0}; i<2*n_a+1; i++)
+		// {
+		// 	sigma_x_pred.row(i) = model->f(Ts, sigma_points.block(0,i,n_x,i), u, sigma_points.block(n_x,i,n_x+n_v-1,i));
+		// }
+
+		// // Predicted State Estimate x_k-
+		// State x_pred;
+		// x_pred = _W_x0*sigma_x_pred.col(0);
+		// for (size_t i{1}; i<=2*n_x; i++)
+		// {
+		// 	x_pred += _W_xi*sigma_x_pred.col(i);
+		// }
+
+		// // Predicted State Covariance P_xx-
+		// Mat_xx P_xx_pred;
+		// P_xx_pred = _W_c0*(sigma_x_pred.col(0)-x_pred)*(sigma_x_pred.col(0)-x_pred).transpose();
+		// for (size_t i{1}; i<=n_x; i++)
+		// {
+		// 	_W_ci*(sigma_x_pred.col(i)-x_pred)*(sigma_x_pred.col(i)-x_pred).transpose();
+		// }
+
+		// // Propagate sigma points through h
+		// Matrix<double,n_y,2*n_a+1> sigma_y_pred;
+		// for (size_t i{0}; i<2*n_a+1; i++)
+		// {
+		// 	sigma_y_pred.row(i) = model->h(Ts, sigma_points.block(0,i,n_x,i), u, sigma_points.block(n_x+n_v,i,n_x+n_v+n_w-1,i));
+		// }
+
+		// // Predicted Output y_pred
+		// Measurement y_pred;
+		// y_pred = _W_x0*sigma_y_pred.col(0);
+		// for (size_t i{1}; i<=2*n_x; i++)
+		// {
+		// 	y_pred += _W_xi*sigma_y_pred.col(i);
+		// }		
+
+		// // Output Covariance P_yy
+		// Mat_yy P_yy;
+		// P_yy = _W_c0*(sigma_y_pred.col(0)-y_pred)*(sigma_y_pred.col(0)-y_pred).transpose();
+		// for (size_t i{1}; i<=n_x; i++)
+		// {
+		// 	P_yy += _W_ci*(sigma_y_pred.col(i)-y_pred)*(sigma_y_pred.col(i)-y_pred).transpose();
+		// }
+
+		// // Cross Covariance P_xy
+		// Mat_xy P_xy;
+		// P_xy = _W_c0*(sigma_x_pred.col(0)-x_pred)*(sigma_y_pred.col(0)-y_pred).transpose();
+		// for (size_t i{1}; i<=n_x; i++)
+		// {
+		// 	P_xy += _W_ci*(sigma_x_pred.col(i)-x_pred)*(sigma_y_pred.col(i)-y_pred).transpose();
+		// }
+
+
+		// // Kalman gain K
+		// Mat_yy P_yy_inv = P_yy.llt().solve(Mat_yy::Identity()); // Use Cholesky decomposition for inverting P_yy
+		// Mat_xy K        = P_xy * P_yy_inv;
+
+		// // Corrected State Estimate x_next
+		// State x_next = x_pred + K * (y - y_pred);
+		// // Corrected State Covariance P_xx_next
+		// Mat_xx P_xx_next = P_xx_pred - K * P_yy * K.transpose();
+
+		// // Update local state
+		// this->_x    = x_next;
+		// this->_P_xx = P_xx_next;
+		State x_next;
+		(void)y;
+		(void)u;
+		return x_next;
 	}
 
 };

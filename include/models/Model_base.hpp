@@ -24,7 +24,7 @@ public:
 	 * @param x State
 	 * @return The next state _x(k+1) = F x_k
 	 */
-	virtual State f(Timestep Ts, State x, Input u, Disturbance v) = 0;
+	virtual State f(Timestep Ts, State x, Input u = Input::Zero(), Disturbance v = Disturbance::Zero()) = 0;
 	/**
 	 * @brief Discrete prediction equation f:
 	 * Calculate the zero noise prediction at time \p Ts from \p x.
@@ -33,7 +33,7 @@ public:
 	 * @return The next state _x(k+1) = F x_k
 	 */
 
-	virtual Measurement h(Timestep Ts, State x, Input u, Noise w) = 0;
+	virtual Measurement h(Timestep Ts, State x, Input u = Input::Zero(), Noise w = Noise::Zero()) = 0;
 	/**
 	 * @brief Covariance matrix of model:
 	 * Calculate the transition covariance \p Q for time \p Ts

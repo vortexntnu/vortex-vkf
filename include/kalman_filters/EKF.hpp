@@ -10,24 +10,24 @@ class EKF : public Kalman_filter_base<n_x,n_y,n_u,n_v,n_w> {
 public:
 	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
 
-	EKF(Models::EKF_model_base<n_x,n_y,n_u,n_v,n_w> *ekf_model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0) {}
+	EKF(Models::EKF_model_base<n_x,n_y,n_u,n_v,n_w> *ekf_model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{ekf_model} {}
 
-	State next_state(Timestep Ts, Measurement y, Input u, Disturbance v, Noise w) override final
+	State next_state(Timestep Ts, Measurement y, Input u) override final
 	{
 		// Calculate Jacobians F_x, F_v
-		Mat_xx F_x = model->F_x(Ts, this->_x, u, v);
-		Mat_xv F_v = model->F_v(Ts, this->_x, u, v);
+		Mat_xx F_x = model->F_x(Ts, this->_x, u);
+		Mat_xv F_v = model->F_v(Ts, this->_x, u);
 		Mat_vv Q   = model->Q(Ts, this->_x);
 		// Predicted State Estimate x_k-
-		State x_pred = model->f(Ts, this->_x, u, v);
+		State x_pred = model->f(Ts, this->_x, u);
 		// Predicted State Covariance P_xx-
 		Mat_xx P_xx_pred = F_x * this->_P_xx * F_x.transpose() + F_v * Q * F_v.transpose();
 		// Predicted Output y_pred
-		Measurement y_pred = model->h(Ts, x_pred, w);
+		Measurement y_pred = model->h(Ts, x_pred);
 
 		// Calculate Jacobians H_x, H_w
-		Mat_yx H_x = model->H_x(Ts, x_pred, u, w);
-		Mat_yw H_w = model->H_w(Ts, x_pred, u, w);
+		Mat_yx H_x = model->H_x(Ts, x_pred, u);
+		Mat_yw H_w = model->H_w(Ts, x_pred, u);
 		Mat_ww R   = model->R(Ts, x_pred);
 		// Output Covariance P_yy
 		Mat_yy P_yy = H_x * P_xx_pred * H_x.transpose() + H_w * R * H_w.transpose();

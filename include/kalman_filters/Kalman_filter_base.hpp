@@ -11,7 +11,7 @@ public:
 
 	Kalman_filter_base(State x0, Mat_xx P0) : _x0{x0}, _P0_xx{P0}, _x{x0}, _P_xx{P0} {}
 
-	virtual State next_state(Timestep Ts, Measurement y, Input u = Input::Zero(), Disturbance v = Disturbance::Zero(), Noise w = Noise::Zero()) = 0;
+	virtual State next_state(Timestep Ts, Measurement y, Input u = Input::Zero()) = 0;
 	void setState(State x_n) { _x = x_n; }
 	void setCovariance(Mat_xx P_n) { _P_xx = P_n; }
 	void reset() 
@@ -20,9 +20,9 @@ public:
 		setCovariance(_P0_xx);
 	}
 protected:
-	State _x;
-	Mat_xx _P_xx;
 	const State _x0;
 	const Mat_xx _P0_xx;
+	State _x;
+	Mat_xx _P_xx;
 };
 }
