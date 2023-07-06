@@ -10,7 +10,7 @@ class KF : public Kalman_filter_base<n_x,n_y,n_u,n_v,n_w> {
 public:
 	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
 	KF(LTI_model<n_x,n_y,n_u,n_v,n_w> *lti_model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{lti_model} {}
-	State next_state(Timestep Ts, Measurement y, Input u, Disturbance v, Noise w) override final
+	State next_state(Timestep Ts, const Measurement& y, const Input& u = Input::Zero()) override final
 	{
         Mat_xx A = model->_A;
         Mat_xu B = model->_B;
@@ -22,11 +22,11 @@ public:
         Mat_yw H = model->_H;
 
 		// Predicted State Estimate x_k-
-		State x_pred = A*this->_x + B*u + G*v;
+		State x_pred = A*this->_x + B*u;
 		// Predicted State Covariance P_xx
 		Mat_xx P_xx_pred = A*this->_P_xx*A.transpose() + G*Q*G.transpose();
 		// Predicted Output y_pred
-		Measurement y_pred = C*x_pred + D*u + H*w;
+		Measurement y_pred = C*x_pred + D*u;
 
 		// Output Covariance P_yy
 		Mat_yy P_yy = C*P_xx_pred*C.transpose() + H*R*H.transpose();

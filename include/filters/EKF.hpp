@@ -12,7 +12,7 @@ public:
 
 	EKF(Models::EKF_model_base<n_x,n_y,n_u,n_v,n_w> *ekf_model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{ekf_model} {}
 
-	State next_state(Timestep Ts, Measurement y, Input u) override final
+	State next_state(Timestep Ts, const Measurement& y, const Input& u = Input::Zero()) override final
 	{
 		// Calculate Jacobians F_x, F_v
 		Mat_xx F_x = model->F_x(Ts, this->_x, u);

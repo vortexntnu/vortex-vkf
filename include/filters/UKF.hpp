@@ -34,7 +34,7 @@ private:
 
     Model_base<n_x,n_y,n_u,n_v,n_w>* model;
 
-	Matrix<double,n_a,2*n_a+1> get_sigma_points(State x, Mat_xx P, Mat_vv Q, Mat_ww R)
+	Matrix<double,n_a,2*n_a+1> get_sigma_points(const State& x, const Mat_xx& P, const Mat_vv &Q, const Mat_ww& R)
 	{	
 		// // Make augmented covariance matrix
 		Mat_aa P_a;
@@ -62,7 +62,7 @@ private:
 	}
 
 
-	State next_state(Timestep Ts, Measurement y, Input u = Input::Zero()) override final
+	State next_state(Timestep Ts, const Measurement& y, const Input& u = Input::Zero()) override final
 	{
 		Mat_vv Q = model->Q(Ts,this->_x); 
 		Mat_ww R = model->R(Ts,this->_x); 
