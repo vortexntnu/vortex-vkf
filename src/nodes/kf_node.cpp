@@ -1,8 +1,8 @@
 #include <nodes/kf_node.hpp>
 
 
-#include <kalman_filters/KF.hpp>
-#include <kalman_filters/UKF.hpp>
+#include <filters/KF.hpp>
+#include <filters/UKF.hpp>
 #include <models/LTI_model.hpp>
 #include <iostream>
 int main()

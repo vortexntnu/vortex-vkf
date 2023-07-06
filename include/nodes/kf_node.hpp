@@ -3,9 +3,9 @@
 #include <chrono>
 #include <memory>
 
-#include <kalman_filters/Kalman_filter_base.hpp>
+#include <filters/Kalman_filter_base.hpp>
 #include <models/model_definitions.hpp>
-#include <kalman_filters/UKF.hpp>
+#include <filters/UKF.hpp>
 
 namespace Nodes {
 using namespace Models;

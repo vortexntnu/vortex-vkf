@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <models/LTI_model.hpp>
-#include <kalman_filters/EKF.hpp>
+#include <filters/EKF.hpp>
 
 #include <random>
 #include <vector>

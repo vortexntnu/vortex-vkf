@@ -1,6 +1,6 @@
 #pragma once
 #include <models/LTI_model.hpp>
-#include <kalman_filters/Kalman_filter_base.hpp>
+#include <filters/Kalman_filter_base.hpp>
 
 namespace Filters {
 using namespace Models;
