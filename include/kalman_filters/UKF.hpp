@@ -36,7 +36,7 @@ private:
 
 	Matrix<double,n_a,2*n_a+1> get_sigma_points(State x, Mat_xx P, Mat_vv Q, Mat_ww R)
 	{	
-		// Make augmented covariance matrix
+		// // Make augmented covariance matrix
 		Mat_aa P_a;
 		P_a << 	P			  , Mat_xv::Zero(), Mat_xw::Zero(),
 			  	Mat_vx::Zero(), Q			  , Mat_vw::Zero(),
@@ -44,19 +44,19 @@ private:
 		
 		Mat_aa sqrt_P_a = P_a.llt();
 
-		// Make augmented state vector
+		// // Make augmented state vector
 		State_a x_a;
 		x_a << x, Disturbance::Zero(), Noise::Zero();
 
-		// Calculate sigma points
+		// // Calculate sigma points
 		Matrix<double,n_a,2*n_a+1> sigma_points;
 
-		// Use the symmetric sigma point set
-		sigma_points.row(0) = x_a;
+		// // Use the symmetric sigma point set
+		sigma_points.col(0) = x_a;
 		for (size_t i{1}; i<=n_a; i++)
 		{
-			sigma_points.row(i)     = x_a + _GAMMA*sqrt_P_a.row(i-1);
-			sigma_points.row(i+n_a) = x_a - _GAMMA*sqrt_P_a.row(i-1);
+			sigma_points.col(i)     = x_a + _GAMMA*sqrt_P_a.col(i-1);
+			sigma_points.col(i+n_a) = x_a - _GAMMA*sqrt_P_a.col(i-1);
 		}
 		return sigma_points;
 	}
@@ -68,76 +68,74 @@ private:
 		Mat_ww R = model->R(Ts,this->_x); 
 		Matrix<double,n_a,2*n_a+1> sigma_points = get_sigma_points(this->_x, this->_P_xx, Q, R);
 
-		// // Propagate sigma points through f
-		// Matrix<double,n_x,2*n_a+1> sigma_x_pred;
-		// for (size_t i{0}; i<2*n_a+1; i++)
-		// {
-		// 	sigma_x_pred.row(i) = model->f(Ts, sigma_points.block(0,i,n_x,i), u, sigma_points.block(n_x,i,n_x+n_v-1,i));
-		// }
+		// Propagate sigma points through f
+		Matrix<double,n_x,2*n_a+1> sigma_x_pred;
+		for (size_t i{0}; i<2*n_a+1; i++)
+		{
+			sigma_x_pred.col(i) = model->f(Ts, sigma_points.block(0,i,n_x,i), u, sigma_points.block(n_x,i,n_x+n_v-1,i));
+		}
 
-		// // Predicted State Estimate x_k-
-		// State x_pred;
-		// x_pred = _W_x0*sigma_x_pred.col(0);
-		// for (size_t i{1}; i<=2*n_x; i++)
-		// {
-		// 	x_pred += _W_xi*sigma_x_pred.col(i);
-		// }
+		// Predicted State Estimate x_k-
+		State x_pred;
+		x_pred = _W_x0*sigma_x_pred.col(0);
+		for (size_t i{1}; i<=2*n_x; i++)
+		{
+			x_pred += _W_xi*sigma_x_pred.col(i);
+		}
 
-		// // Predicted State Covariance P_xx-
-		// Mat_xx P_xx_pred;
-		// P_xx_pred = _W_c0*(sigma_x_pred.col(0)-x_pred)*(sigma_x_pred.col(0)-x_pred).transpose();
-		// for (size_t i{1}; i<=n_x; i++)
-		// {
-		// 	_W_ci*(sigma_x_pred.col(i)-x_pred)*(sigma_x_pred.col(i)-x_pred).transpose();
-		// }
+		// Predicted State Covariance P_xx-
+		Mat_xx P_xx_pred;
+		P_xx_pred = _W_c0*(sigma_x_pred.col(0)-x_pred)*(sigma_x_pred.col(0)-x_pred).transpose();
+		for (size_t i{1}; i<=n_x; i++)
+		{
+			_W_ci*(sigma_x_pred.col(i)-x_pred)*(sigma_x_pred.col(i)-x_pred).transpose();
+		}
 
-		// // Propagate sigma points through h
-		// Matrix<double,n_y,2*n_a+1> sigma_y_pred;
-		// for (size_t i{0}; i<2*n_a+1; i++)
-		// {
-		// 	sigma_y_pred.row(i) = model->h(Ts, sigma_points.block(0,i,n_x,i), u, sigma_points.block(n_x+n_v,i,n_x+n_v+n_w-1,i));
-		// }
+		// Propagate sigma points through h
+		Matrix<double,n_y,2*n_a+1> sigma_y_pred;
+		for (size_t i{0}; i<2*n_a+1; i++)
+		{
+			sigma_y_pred.col(i) = model->h(Ts, sigma_points.block(0,i,n_x,i), u, sigma_points.block(n_x+n_v,i,n_x+n_v+n_w-1,i));
+		}
 
 		// // Predicted Output y_pred
-		// Measurement y_pred;
-		// y_pred = _W_x0*sigma_y_pred.col(0);
-		// for (size_t i{1}; i<=2*n_x; i++)
-		// {
-		// 	y_pred += _W_xi*sigma_y_pred.col(i);
-		// }		
+		Measurement y_pred;
+		y_pred = _W_x0*sigma_y_pred.col(0);
+		for (size_t i{1}; i<=2*n_x; i++)
+		{
+			y_pred += _W_xi*sigma_y_pred.col(i);
+		}		
 
-		// // Output Covariance P_yy
-		// Mat_yy P_yy;
-		// P_yy = _W_c0*(sigma_y_pred.col(0)-y_pred)*(sigma_y_pred.col(0)-y_pred).transpose();
-		// for (size_t i{1}; i<=n_x; i++)
-		// {
-		// 	P_yy += _W_ci*(sigma_y_pred.col(i)-y_pred)*(sigma_y_pred.col(i)-y_pred).transpose();
-		// }
+		// Output Covariance P_yy
+		Mat_yy P_yy;
+		P_yy = _W_c0*(sigma_y_pred.col(0)-y_pred)*(sigma_y_pred.col(0)-y_pred).transpose();
+		for (size_t i{1}; i<=n_x; i++)
+		{
+			P_yy += _W_ci*(sigma_y_pred.col(i)-y_pred)*(sigma_y_pred.col(i)-y_pred).transpose();
+		}
 
-		// // Cross Covariance P_xy
-		// Mat_xy P_xy;
-		// P_xy = _W_c0*(sigma_x_pred.col(0)-x_pred)*(sigma_y_pred.col(0)-y_pred).transpose();
-		// for (size_t i{1}; i<=n_x; i++)
-		// {
-		// 	P_xy += _W_ci*(sigma_x_pred.col(i)-x_pred)*(sigma_y_pred.col(i)-y_pred).transpose();
-		// }
+		// Cross Covariance P_xy
+		Mat_xy P_xy;
+		P_xy = _W_c0*(sigma_x_pred.col(0)-x_pred)*(sigma_y_pred.col(0)-y_pred).transpose();
+		for (size_t i{1}; i<=n_x; i++)
+		{
+			P_xy += _W_ci*(sigma_x_pred.col(i)-x_pred)*(sigma_y_pred.col(i)-y_pred).transpose();
+		}
 
 
-		// // Kalman gain K
-		// Mat_yy P_yy_inv = P_yy.llt().solve(Mat_yy::Identity()); // Use Cholesky decomposition for inverting P_yy
-		// Mat_xy K        = P_xy * P_yy_inv;
+		// Kalman gain K
+		Mat_yy P_yy_inv = P_yy.llt().solve(Mat_yy::Identity()); // Use Cholesky decomposition for inverting P_yy
+		Mat_xy K        = P_xy * P_yy_inv;
 
-		// // Corrected State Estimate x_next
-		// State x_next = x_pred + K * (y - y_pred);
-		// // Corrected State Covariance P_xx_next
-		// Mat_xx P_xx_next = P_xx_pred - K * P_yy * K.transpose();
+		// Corrected State Estimate x_next
+		State x_next = x_pred + K * (y - y_pred);
+		// Corrected State Covariance P_xx_next
+		Mat_xx P_xx_next = P_xx_pred - K * P_yy * K.transpose();
 
-		// // Update local state
-		// this->_x    = x_next;
-		// this->_P_xx = P_xx_next;
-		State x_next;
-		(void)y;
-		(void)u;
+		// Update local state
+		this->_x    = x_next;
+		this->_P_xx = P_xx_next;
+
 		return x_next;
 	}
 
