@@ -11,14 +11,16 @@ public:
 
 	Kalman_filter_base(State x0, Mat_xx P0) : _x0{x0}, _P0_xx{P0}, _x{x0}, _P_xx{P0} {}
 
-	virtual State next_state(Timestep Ts, const Measurement& y, const Input& u = Input::Zero()) = 0;
-	void setState(State x_n) { _x = x_n; }
-	void setCovariance(Mat_xx P_n) { _P_xx = P_n; }
-	void reset() 
+	virtual State iterate(Timestep Ts, const Measurement& y, const Input& u = Input::Zero()) = 0;
+	void set_state(State x_n) { _x = x_n; }
+	void set_covariance(Mat_xx P_n) { _P_xx = P_n; }
+	virtual void reset() 
 	{
-		setState(_x0);
-		setCovariance(_P0_xx);
+		set_state(_x0);
+		set_covariance(_P0_xx);
 	}
+	State get_state() const { return _x; }
+	Mat_xx get_covariance() const { return _P_xx; }
 protected:
 	const State _x0;
 	const Mat_xx _P0_xx;

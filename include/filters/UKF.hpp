@@ -62,7 +62,7 @@ private:
 	}
 
 
-	State next_state(Timestep Ts, const Measurement& y, const Input& u = Input::Zero()) override final
+	State iterate(Timestep Ts, const Measurement& y, const Input& u = Input::Zero()) override final
 	{
 		Mat_vv Q = model->Q(Ts,this->_x); 
 		Mat_ww R = model->R(Ts,this->_x); 
@@ -96,9 +96,10 @@ private:
 		for (size_t i{0}; i<2*n_a+1; i++)
 		{
 			sigma_y_pred.col(i) = model->h(Ts, sigma_points.block(0,i,n_x,i), u, sigma_points.block(n_x+n_v,i,n_x+n_v+n_w-1,i));
+			
 		}
 
-		// // Predicted Output y_pred
+		// Predicted Output y_pred
 		Measurement y_pred;
 		y_pred = _W_x0*sigma_y_pred.col(0);
 		for (size_t i{1}; i<=2*n_x; i++)

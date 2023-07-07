@@ -41,7 +41,7 @@ private:
             return;
         }
         // Calculate next iterate
-        State x_next = _filter->next_state(Ts, _last_measurement);
+        State x_next = _filter->iterate(Ts, _last_measurement);
         // Publish 
         RCLCPP_INFO_STREAM(this->get_logger(), x_next);
     }
