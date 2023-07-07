@@ -34,17 +34,17 @@ protected:
              0, 0, 
              0, 0;
         C << 1, 0, 0;	
-        Q << 1e-4, 0, 0,
-             0, 1e-4, 0,
-             0, 0, 1e-4;
+        Q << 1e-4, 0   , 0   ,
+             0   , 1e-4, 0   ,
+             0   , 0   , 1e-4;
         R << 1;
         x0 << 1,
               0,
               0;
         P0 = Mat_xx::Identity();
               
-        model = new Models::LTI_model<n_x,n_y,n_u,n_v,n_w>{A,B,C,Q,R};
-        filter = new Filters::EKF<n_x,n_y,n_u,n_v,n_w>{model, x0, P0};
+        model = new LTI_model<n_x,n_y,n_u,n_v,n_w>{A,B,C,Q,R};
+        filter = new EKF<n_x,n_y,n_u,n_v,n_w>{model, x0, P0};
 
         // Generate random measurements
         std::random_device rd;
