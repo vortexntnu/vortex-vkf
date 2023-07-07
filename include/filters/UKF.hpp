@@ -15,8 +15,8 @@ public:
 	using State_a = Vector<double,n_a>;
 
 	UKF(Models::Model_base<n_x,n_y,n_u,n_v,n_w> *model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{model} 
-	{
-	}
+	{}
+	~UKF() {}
 
 private:
 	// Parameters used for calculating scaling factor _GAMMA and weights W_x0, W_c0 and W_xi

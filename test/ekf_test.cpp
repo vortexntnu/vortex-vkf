@@ -12,7 +12,7 @@ protected:
     static constexpr int n_x{3}, n_y{1}, n_u{2}, n_v{n_x}, n_w{n_y};
     static constexpr size_t num_iterations{1000};
     static constexpr double COV{1};
-    
+
     DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
     LTI_model<n_x,n_y,n_u>* model;
     EKF<n_x,n_y,n_u,n_v,n_w>* filter;
@@ -37,7 +37,7 @@ protected:
         Q << 1e-4, 0, 0,
              0, 1e-4, 0,
              0, 0, 1e-4;
-        R << COV;
+        R << 1;
         x0 << 1,
               0,
               0;

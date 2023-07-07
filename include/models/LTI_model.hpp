@@ -12,6 +12,7 @@ public:
     LTI_model(Mat_xx A, Mat_xu B, Mat_yx C, Mat_yu D, Mat_vv Q, Mat_ww R, Mat_xv G, Mat_yw H) : EKF_model_base<n_x,n_y,n_u,n_v,n_w>(), _A{A}, _B{B}, _C{C}, _D{D}, _Q{Q}, _R{R}, _G{G}, _H{H} {}
     LTI_model(Mat_xx A, Mat_xu B, Mat_yx C, Mat_vv Q, Mat_ww R) : LTI_model(A, B, C, Mat_yu::Zero(), Q, R, Mat_xv::Identity(), Mat_yw::Identity()) {}
 	LTI_model() : EKF_model_base<n_x,n_y,n_u,n_v,n_w>() {};
+	~LTI_model() {}
 
 	virtual State f(Timestep Ts, State x, Input u = Input::Zero(), Disturbance v = Disturbance::Zero()) override final
 	{

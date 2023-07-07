@@ -14,6 +14,7 @@ public:
 	 * Children of this class will work in the EKF filter.
 	 */
 	EKF_model_base() : Model_base<n_x,n_y,n_u,n_v,n_w>() {}
+	virtual ~EKF_model_base() {}
 
 	/**
 	 * @brief Jacobian of f:
