@@ -37,7 +37,7 @@ public:
      * @param v Disturbance
      * @return State update
      */
-    State f(Timestep Ts, State x, Input u = Input::Zero(), Disturbance v = Disturbance::Zero()) override final
+    State f(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const override final
     {
         (void)Ts;
         (void)x;
@@ -55,7 +55,7 @@ public:
      * @param w Noise
      * @return Measurement
      */
-    Measurement h(Timestep Ts, State x, Input u = Input::Zero(), Noise w = Noise::Zero()) override final
+    Measurement h(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
     {
         (void)Ts;
         (void)x;
@@ -69,7 +69,7 @@ public:
      * @param x State
      * @return Map to spatial states
      */
-    Eigen::Map<SpatialVector> spatial(State x, int index)
+    Eigen::Map<SpatialVector> spatial(State& x, int index) const
     {
         return Eigen::Map<SpatialVector>(x.data() + SPATIAL_START + index*3, 3);
     }
@@ -79,7 +79,7 @@ public:
      * @param x State
      * @return Map to quaternion states
      */
-    Eigen::Map<Quaternion> quaternion(State x, int index)
+    Eigen::Map<Quaternion> quaternion(State& x, int index) const
     {
         return Eigen::Map<Quaternion>(x.data() + QUAT_START + index*4);
     }
@@ -91,7 +91,7 @@ public:
      * @param w Angular velocity
      * @return Quaternion derivative    
      */
-    Quaternion diff_quaternion(Quaternion q, RotationVector w)
+    Quaternion diff_quaternion(const Quaternion& q, const RotationVector& w) const
     {
         Quaternion q_dot;
         q_dot.w() = -0.5 * w.dot(q.vec());
@@ -105,7 +105,7 @@ public:
      * @param q Quaternion
      * @return Rotation matrix
      */
-    Eigen::Matrix3d quaternion_to_rotation_matrix(Quaternion q)
+    Eigen::Matrix3d quaternion_to_rotation_matrix(const Quaternion& q) const
     {
         Eigen::Matrix3d R;
         R = q.toRotationMatrix();
@@ -118,7 +118,7 @@ public:
      * @param R Rotation matrix
      * @return Quaternion
      */
-    Quaternion rotation_matrix_to_quaternion(Eigen::Matrix3d R)
+    Quaternion rotation_matrix_to_quaternion(const Eigen::Matrix3d& R) const
     {
         Quaternion q;
         q = R;
@@ -126,12 +126,12 @@ public:
     }
 
     /**
-        * @brief Rotation vector to quaternion
-        * 
-        * @param angle Rotation vector
-        * @return Quaternion
+    * @brief Rotation vector to quaternion
+    * 
+    * @param angle Rotation vector
+    * @return Quaternion
     */
-    Quaternion rotation_vector_to_quaternion(RotationVector rot_vec)
+    Quaternion rotation_vector_to_quaternion(const RotationVector& rot_vec) const
     {
         double theta = rot_vec.norm();
         // if angle is zero, return identity quaternion

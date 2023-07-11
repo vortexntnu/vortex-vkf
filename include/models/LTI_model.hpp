@@ -14,17 +14,17 @@ public:
 	LTI_model() : EKF_model_base<n_x,n_y,n_u,n_v,n_w>() {};
 	~LTI_model() {}
 
-	virtual State f(Timestep Ts, State x, Input u = Input::Zero(), Disturbance v = Disturbance::Zero()) override final
+	State f(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const override final
 	{
 		(void)Ts;
 		return _A*x + _B*u + _G*v;
 	}
-	virtual Measurement h(Timestep Ts, State x, Input u = Input::Zero(), Noise w = Noise::Zero()) override final
+	Measurement h(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
 	{
 		(void)Ts;
 		return _C*x + _D*u + _H*w;
 	}
-	virtual Mat_xx F_x(Timestep Ts, State x, Input u, Disturbance v = Disturbance::Zero()) override final
+	Mat_xx F_x(Timestep Ts, const State& x, const Input& u, const Disturbance& v = Disturbance::Zero()) const override final
 	{
 		(void)Ts;
 		(void)x;
@@ -32,7 +32,7 @@ public:
 		(void)v;
 		return _A;
 	}
-	virtual Mat_xv F_v(Timestep Ts, State x, Input u, Disturbance v = Disturbance::Zero()) override final
+	Mat_xv F_v(Timestep Ts, const State& x, const Input& u, const Disturbance& v = Disturbance::Zero()) const override final
 	{
 		(void)Ts;
 		(void)x;
@@ -40,7 +40,7 @@ public:
 		(void)v;
 		return _G;
 	}
-	virtual Mat_yx H_x(Timestep Ts, State x, Input u = Input::Zero(), Noise w = Noise::Zero()) override final
+	Mat_yx H_x(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
 	{
 		(void)Ts;
 		(void)x;
@@ -48,7 +48,7 @@ public:
 		(void)w;
 		return _C;
 	}
-	virtual Mat_yw H_w(Timestep Ts, State x, Input u = Input::Zero(), Noise w = Noise::Zero()) override final
+	Mat_yw H_w(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
 	{
 		(void)x;
 		(void)u;
@@ -56,13 +56,13 @@ public:
 		(void)w;
 		return _H;
 	}
-	virtual Mat_vv Q(Timestep Ts, State x) override final
+	Mat_vv Q(Timestep Ts, const State& x) override final
 	{
 		(void)Ts;
 		(void)x;
 		return _Q;
 	}
-	virtual Mat_ww R(Timestep Ts, State x) override final
+	Mat_ww R(Timestep Ts, const State& x) override final
 	{
 		(void)Ts;
 		(void)x;
