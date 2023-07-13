@@ -6,7 +6,21 @@ namespace Models {
 using Eigen::Vector;
 using Eigen::Matrix;
 using namespace std::chrono_literals;
-using Timestep = std::chrono::milliseconds;
+using namespace std::chrono;
+
+class Timestep : duration<double, seconds> {
+public:
+	/**
+	 * @brief The timestep in seconds
+	 * @return double Timestep in seconds
+	 */
+	double s() {return duration_cast<duration<double, seconds>>(*this).count();}
+	/**
+	 * @brief The timestep in milliseconds
+	 * @return double Timestep in milliseconds
+	 */	
+	double ms() {return duration_cast<duration<double, milliseconds>>(*this).count();}
+};
 
 #define DEFINE_MODEL_TYPES(n_x, n_y, n_u, n_v, n_w) \
     using State 	  = Eigen::Vector<double,n_x>;	\
@@ -37,7 +51,7 @@ using Timestep = std::chrono::milliseconds;
 	using Mat_wy = Eigen::Matrix<double,n_w,n_y>; 	\
 	using Mat_wu = Eigen::Matrix<double,n_w,n_u>; 	\
 	using Mat_wv = Eigen::Matrix<double,n_w,n_v>; 	\
-	using Mat_ww = Eigen::Matrix<double,n_w,n_w>; 	\
+	using Mat_ww = Eigen::Matrix<double,n_w,n_w>; 	
 
 
 } // namespace Models

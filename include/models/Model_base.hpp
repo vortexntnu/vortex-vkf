@@ -41,7 +41,7 @@ public:
 	 * @param x State
 	 * @return System noise covariance matrix Q
 	 */
-	virtual Mat_vv Q(Timestep Ts, State x) = 0;
+	virtual Mat_vv Q(Timestep Ts, const State& x) = 0;
 
 	/**
 	 * @brief Covariance matrix of model:
@@ -50,7 +50,7 @@ public:
 	 * @param x State
 	 * @return Measuerement noise covariance matrix R
 	 */
-	virtual Mat_ww R(Timestep Ts, State x) = 0;
+	virtual Mat_ww R(Timestep Ts, const State& x) = 0;
 };
 
 } // namespace Models

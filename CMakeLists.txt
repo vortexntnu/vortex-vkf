@@ -57,6 +57,7 @@ if(BUILD_TESTING)
     test/matrix_size_test.cpp
     test/lti_model_test.cpp
     test/ekf_test.cpp
+    test/six_dof_model_test.cpp
   )
   target_include_directories(${PROJECT_NAME}_test PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

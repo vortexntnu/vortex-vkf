@@ -10,7 +10,7 @@ class EKF : public Kalman_filter_base<n_x,n_y,n_u,n_v,n_w> {
 public:
 	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
 
-	EKF(Models::EKF_model_base<n_x,n_y,n_u,n_v,n_w> *ekf_model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{ekf_model} {}
+	EKF(Models::EKF_model_base<n_x,n_y,n_u,n_v,n_w> *ekf_model, State& x0, Mat_xx& P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{ekf_model} {}
 	~EKF() {}
 	
 	State iterate(Timestep Ts, const Measurement& y, const Input& u = Input::Zero()) override final
