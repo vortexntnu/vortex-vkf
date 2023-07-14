@@ -56,13 +56,13 @@ public:
 		(void)w;
 		return _H;
 	}
-	Mat_vv Q(Timestep Ts, const State& x) override final
+	const Mat_vv& Q(Timestep Ts, const State& x) const override final
 	{
 		(void)Ts;
 		(void)x;
 		return _Q;
 	}
-	Mat_ww R(Timestep Ts, const State& x) override final
+	const Mat_ww& R(Timestep Ts, const State& x) const override final
 	{
 		(void)Ts;
 		(void)x;

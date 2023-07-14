@@ -7,20 +7,8 @@ using Eigen::Vector;
 using Eigen::Matrix;
 using namespace std::chrono_literals;
 using namespace std::chrono;
+using Timestep = duration<double>;
 
-class Timestep : duration<double, seconds> {
-public:
-	/**
-	 * @brief The timestep in seconds
-	 * @return double Timestep in seconds
-	 */
-	double s() {return duration_cast<duration<double, seconds>>(*this).count();}
-	/**
-	 * @brief The timestep in milliseconds
-	 * @return double Timestep in milliseconds
-	 */	
-	double ms() {return duration_cast<duration<double, milliseconds>>(*this).count();}
-};
 
 #define DEFINE_MODEL_TYPES(n_x, n_y, n_u, n_v, n_w) \
     using State 	  = Eigen::Vector<double,n_x>;	\

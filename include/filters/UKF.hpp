@@ -2,6 +2,7 @@
 #include <filters/Kalman_filter_base.hpp>
 #include <models/Model_base.hpp>
 #include <math.h>
+#include <memory>
 
 namespace Filters {
 using namespace Models;
@@ -14,7 +15,7 @@ public:
 	using Mat_aa  = Matrix<double,n_a,n_a>;
 	using State_a = Vector<double,n_a>;
 
-	UKF(Models::Model_base<n_x,n_y,n_u,n_v,n_w> *model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{model} 
+	UKF(std::shared_ptr<Model_base<n_x,n_y,n_u,n_v,n_w>> model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{model} 
 	{}
 	~UKF() {}
 
@@ -32,7 +33,7 @@ private:
 	static constexpr double _W_xi = 1/(2*(n_x+_LAMBDA));
 	static constexpr double _W_ci = 1/(2*(n_x+_LAMBDA));
 
-    Model_base<n_x,n_y,n_u,n_v,n_w>* model;
+    std::shared_ptr<Model_base<n_x,n_y,n_u,n_v,n_w>> model;
 
 	Matrix<double,n_a,2*n_a+1> get_sigma_points(const State& x, const Mat_xx& P, const Mat_vv &Q, const Mat_ww& R)
 	{	

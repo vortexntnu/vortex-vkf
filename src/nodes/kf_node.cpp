@@ -1,15 +1,15 @@
 #include <nodes/kf_node.hpp>
-
-
 #include <filters/KF.hpp>
 #include <filters/UKF.hpp>
 #include <models/LTI_model.hpp>
+
 #include <iostream>
+#include <memory>
 int main()
 {
      const int n_x{3}, n_y{1}, n_u{1}, n_v{n_x}, n_w{n_y};
      DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
 
-     Models::LTI_model<n_x,n_y,n_u> model;
-     Filters::UKF<n_x,n_y,n_u> ukf(&model, State::Zero(), Mat_vv::Zero());
+     auto model = std::make_shared<Models::LTI_model<n_x,n_y,n_u>>();
+     Filters::UKF<n_x,n_y,n_u> ukf{model, State::Zero(), Mat_vv::Zero()};
 }

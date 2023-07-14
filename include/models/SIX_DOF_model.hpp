@@ -6,11 +6,11 @@ namespace Models {
 template<int N_3D_VECS, int N_QUATS, int N_INPUTS, int N_MEAS>
 class SIX_DOF_model : public Model_base<3*N_3D_VECS+4*N_QUATS, N_MEAS, N_INPUTS, 3*N_3D_VECS+3*N_QUATS, N_INPUTS> {
 public:
-    static constexpr n_x = 3*N_3D_VECS+4*N_QUATS;
-    static constexpr n_y = N_MEAS;
-    static constexpr n_u = N_INPUTS;
-    static constexpr n_v = 3*N_3D_VECS+3*N_QUATS;
-    static constexpr n_w = N_INPUTS;
+    static constexpr int n_x = 3*N_3D_VECS+4*N_QUATS;
+    static constexpr int n_y = N_MEAS;
+    static constexpr int n_u = N_INPUTS;
+    static constexpr int n_v = 3*N_3D_VECS+3*N_QUATS;
+    static constexpr int n_w = N_INPUTS;
 private:
     DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
     using Quaternion = Eigen::Quaternion<double>;
@@ -18,8 +18,8 @@ private:
     using SpatialVector = Eigen::Vector3d;
     using RotationVector = Eigen::Vector3d;
 
-    using SPATIAL_START = 0;
-    using QUAT_START = 3*N_3D_VECS;
+    static constexpr int SPATIAL_START = 0;
+    static constexpr int QUAT_START = 3*N_3D_VECS;
 
 public:
     /**

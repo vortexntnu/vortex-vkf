@@ -4,8 +4,6 @@
 #include <models/model_definitions.hpp>
 
 namespace Models {
-template<int n_x>
-using State = Eigen::Vector<double,n_x>;
 
 
 template<int n_x, int n_y, int n_u, int n_v=n_x, int n_w=n_y>
@@ -15,7 +13,7 @@ public:
 	/**
 	 * @brief Parent class for modelling dynamics
 	 */
-	Model_base() {}
+	Model_base(Mat_vv Q = Mat_vv::Identity(), Mat_ww R = Mat_ww::Identity()) :  _Q{Q}, _R{R} {}
 
 	/**
 	 * @brief Discrete prediction equation f:
@@ -41,7 +39,12 @@ public:
 	 * @param x State
 	 * @return System noise covariance matrix Q
 	 */
-	virtual Mat_vv Q(Timestep Ts, const State& x) = 0;
+	virtual const Mat_vv& Q(Timestep Ts, const State& x) const
+	{
+		(void)Ts;
+		(void)x;
+		return _Q;
+	}
 
 	/**
 	 * @brief Covariance matrix of model:
@@ -50,7 +53,15 @@ public:
 	 * @param x State
 	 * @return Measuerement noise covariance matrix R
 	 */
-	virtual Mat_ww R(Timestep Ts, const State& x) = 0;
+	virtual const Mat_ww& R(Timestep Ts, const State& x) const
+	{
+		(void)Ts;
+		(void)x;
+		return _R;
+	}
+
+	Mat_vv _Q;
+	Mat_ww _R;
 };
 
 } // namespace Models
