@@ -83,5 +83,5 @@ TEST_F(EKFTest, filterConverges)
     {
         x.push_back(filter->iterate(1ms, y[i], u[i]));
     }
-    ASSERT_LE((filter->get_state()).norm(), 1e-3) << "State estimate did not converge to zero.";
+    EXPECT_NEAR(0.0, (filter->get_state()).norm(), 1e-3) << "State estimate did not converge to zero.";
 }

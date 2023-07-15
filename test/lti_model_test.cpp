@@ -34,7 +34,7 @@ protected:
     Models::LTI_model<n_x,n_y,n_u,n_v,n_w> model;
 };
 
-TEST_F(LTImodelTest, fIterate)
+TEST_F(LTImodelTest, f)
 {
     Vector<double,n_x> x0;
     Vector<double,n_x> x1;
@@ -51,7 +51,7 @@ TEST_F(LTImodelTest, fIterate)
     ASSERT_EQ(x1, model.f(1ms,x0,u0));
 }
 
-TEST_F(LTImodelTest, hIterate)
+TEST_F(LTImodelTest, h)
 {
     Vector<double,n_x> x0;
     Vector<double,n_y> y0;
