@@ -38,7 +38,7 @@ public:
      * @param v Disturbance
      * @return State update
      */
-    State f(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const override final
+    State f(Time T, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const override final
     {
         (void)Ts;
         (void)x;
@@ -47,7 +47,7 @@ public:
         State x_dot;
         return x_dot;
     }
-    virtual State f(Timestep Ts, const State& x, const Input& u = Input::Zero()) const = 0;
+    virtual State f(Time T, const State& x, const Input& u = Input::Zero()) const = 0;
 
     
     /**
@@ -58,7 +58,7 @@ public:
      * @param w Noise
      * @return Measurement
      */
-    Measurement h(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
+    Measurement h(Time T, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
     {
         (void)Ts;
         (void)x;

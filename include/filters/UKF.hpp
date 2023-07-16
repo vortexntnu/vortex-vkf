@@ -1,7 +1,7 @@
 #pragma once
 #include <filters/Kalman_filter_base.hpp>
 #include <models/Model_base.hpp>
-#include <math.h>
+#include <cmath>
 #include <memory>
 
 namespace Filters {
@@ -26,7 +26,7 @@ private:
 	static constexpr double _BETA   	   = 2;
 	static constexpr double _KAPPA 		   = 0;
 	static constexpr double _LAMBDA 	   = _ALPHA_SQUARED*(n_a+_KAPPA)-n_a;
-	static constexpr double _GAMMA         = sqrt(n_a+_LAMBDA);
+	static constexpr double _GAMMA         = std::sqrt(n_a+_LAMBDA);
 
 	static constexpr double _W_x0 = _LAMBDA/(n_a+_LAMBDA);
 	static constexpr double _W_c0 = _LAMBDA/(n_a+_LAMBDA)+(1-_ALPHA_SQUARED+_BETA);
@@ -63,10 +63,10 @@ private:
 	}
 
 public:
-	State iterate(Timestep Ts, const Measurement& y, const Input& u = Input::Zero()) override final
+	State iterate(Time t, const Measurement& y, const Input& u = Input::Zero()) override final
 	{
-		Mat_vv Q = model->Q(Ts,this->_x); 
-		Mat_ww R = model->R(Ts,this->_x); 
+		Mat_vv Q = model->Q(t,this->_x); 
+		Mat_ww R = model->R(t,this->_x); 
 		Matrix<double,n_a,2*n_a+1> sigma_points = get_sigma_points(this->_x, this->_P_xx, Q, R);
 
 		// Propagate sigma points through f
@@ -75,7 +75,7 @@ public:
 		{
 			auto x_i = sigma_points.template block<n_x,1>(0,i);
 			auto v_i = sigma_points.template block<n_v,1>(n_x,i);
-			sigma_x_pred.col(i) = model->f(Ts, x_i, u, v_i);
+			sigma_x_pred.col(i) = model->f(t, x_i, u, v_i);
 		}
 
 		// Predicted State Estimate x_k-
@@ -100,7 +100,7 @@ public:
 		{
 			auto x_i = sigma_points.template block<n_x,1>(0,i);
 			auto w_i = sigma_points.template block<n_w,1>(n_x+n_v,i);
-			sigma_y_pred.col(i) = model->h(Ts, x_i, u, w_i);
+			sigma_y_pred.col(i) = model->h(t, x_i, u, w_i);
 		}
 
 		// Predicted Output y_pred

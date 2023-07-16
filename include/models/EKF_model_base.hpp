@@ -18,25 +18,25 @@ public:
 
 	/**
 	 * @brief Jacobian of f:
-	 * Calculate the transition function jacobian for time \p Ts at \p x
+	 * Calculate the transition function jacobian for time \p t at \p x
 	 * @param x State
-	 * @param Ts Time-step
+	 * @param t Time-step
 	 * @return Jacobian F
 	 */
-	virtual Mat_xx F_x(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const = 0;
-	virtual Mat_xv F_v(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const 
+	virtual Mat_xx F_x(Time t, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const = 0;
+	virtual Mat_xv F_v(Time t, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const 
 	{
-		(void)Ts;
+		(void)t;
 		(void)x;
 		(void)u;
 		(void)v;
 		return Mat_vv::Identity();
 	}
 
-	virtual Mat_yx H_x(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const = 0;
-	virtual Mat_yw H_w(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const 
+	virtual Mat_yx H_x(Time t, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const = 0;
+	virtual Mat_yw H_w(Time t, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const 
 	{
-		(void)Ts;
+		(void)t;
 		(void)x;
 		(void)u;
 		(void)w;

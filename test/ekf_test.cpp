@@ -1,9 +1,10 @@
 #include <gtest/gtest.h>
+#include <random>
+#include <vector>
+
 #include <models/LTI_model.hpp>
 #include <filters/EKF.hpp>
 #include <models/model_definitions.hpp>
-#include <random>
-#include <vector>
 
 using namespace Models;
 using namespace Filters;

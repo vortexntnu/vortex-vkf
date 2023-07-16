@@ -1,7 +1,7 @@
 
 #include <gtest/gtest.h>
 #include <memory>
-#include <math.h>
+#include <cmath>
 #include <random>
 #include <iostream>
 
@@ -18,18 +18,18 @@ class unlinear_model : public Model_base<n_x, n_y, n_u> {
 public:
     unlinear_model(Mat_vv Q, Mat_ww R) : Model_base<n_x, n_y, n_u>(Q, R) {};
 
-    State f(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const override final
+    State f(Time t, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const override final
     {
         (void)u;
         State x_next;
         // x_next << x(0) + .7*x(1) + v(0), v(1);
-        x_next << 0.7*x(0) + 4*sin(Ts/1s) + v(0);
+        x_next << 0.7*x(0) + 4*sin(t/1s) + v(0);
         return x_next;
     }
 
-    Measurement h(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
+    Measurement h(Time t, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
     {
-        (void)Ts;
+        (void)t;
         (void)u;
         Measurement y;
         y << x(0) + w(0);
@@ -37,10 +37,11 @@ public:
     }
 };
 
-class UKF_test : public ::testing::Test {
+class UKFtest : public ::testing::Test {
 protected:
     void SetUp() override
     {
+        t0 = 0ms;
         Ts = 10ms;
         x0 = State::Zero();
         P0 = Mat_xx::Identity()*1e-10; // Trust the initial state
@@ -54,7 +55,8 @@ protected:
     {
     }
 
-    Timestep Ts;
+    Time Ts;
+    Time t0;
     State x0;
     Mat_xx P0;
     Mat_vv Q;
@@ -64,7 +66,7 @@ protected:
     std::shared_ptr<UKF<n_x,n_y,n_u>> ukf;
 };
 
-TEST_F(UKF_test, test_iterate)
+TEST_F(UKFtest, testConvergence)
 {
     // Genereate random noise vector
 
@@ -74,6 +76,7 @@ TEST_F(UKF_test, test_iterate)
     std::normal_distribution<> d_noise{0,1e-5};         // instance of class std::normal_distribution with specific mean and stddev
     
     // Simulate model with noise
+    Time t = t0;
     State x = x0;
     Disturbance v;
     Noise w;
@@ -81,12 +84,13 @@ TEST_F(UKF_test, test_iterate)
     {
         v << d_disturbance(gen); // get random number with normal distribution using gen as random source
         // Simulate model
-        x = model->f(Ts, x, Input::Zero(), v);
+        x = model->f(t, x, Input::Zero(), v);
         // Get measurement
         w << d_noise(gen);
-        Measurement y = model->h(Ts, x, Input::Zero(), w);
+        Measurement y = model->h(t, x, Input::Zero(), w);
         // Iterate UKF
-        ukf->iterate(Ts, y);
+        ukf->iterate(t, y);
+        t += Ts;
     }  
     // Check if the state is close to the real state
     std::cout << "error: " << x(0) - ukf->get_state()(0) << std::endl;

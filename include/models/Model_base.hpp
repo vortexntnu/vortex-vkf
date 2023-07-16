@@ -17,45 +17,46 @@ public:
 
 	/**
 	 * @brief Discrete prediction equation f:
-	 * Calculate the zero noise prediction at time \p Ts from \p x.
-	 * @param Ts Time-step
+	 * Calculate the zero noise prediction at time \p t from \p x.
+	 * @param t Time-step
 	 * @param x State
 	 * @return The next state _x(k+1) = F x_k
 	 */
-	virtual State f(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const = 0;
+	virtual State f(Time t, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const = 0;
+
 	/**
 	 * @brief Discrete prediction equation f:
-	 * Calculate the zero noise prediction at time \p Ts from \p x.
-	 * @param Ts Time-step
+	 * Calculate the zero noise prediction at time \p t from \p x.
+	 * @param t Time-step
 	 * @param x State
 	 * @return The next state _x(k+1) = F x_k
 	 */
+	virtual Measurement h(Time t, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const = 0;
 
-	virtual Measurement h(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const = 0;
 	/**
 	 * @brief Covariance matrix of model:
-	 * Calculate the transition covariance \p Q for time \p Ts
-	 * @param Ts Time-step
+	 * Calculate the transition covariance \p Q for time \p t
+	 * @param t Time-step
 	 * @param x State
 	 * @return System noise covariance matrix Q
 	 */
-	virtual const Mat_vv& Q(Timestep Ts, const State& x) const
+	virtual const Mat_vv& Q(Time t, const State& x) const
 	{
-		(void)Ts;
+		(void)t;
 		(void)x;
 		return _Q;
 	}
 
 	/**
 	 * @brief Covariance matrix of model:
-	 * Calculate the transition covariance \p Q for time \p Ts
-	 * @param Ts Time-step
+	 * Calculate the transition covariance \p Q for time \p t
+	 * @param t Time-step
 	 * @param x State
 	 * @return Measuerement noise covariance matrix R
 	 */
-	virtual const Mat_ww& R(Timestep Ts, const State& x) const
+	virtual const Mat_ww& R(Time t, const State& x) const
 	{
-		(void)Ts;
+		(void)t;
 		(void)x;
 		return _R;
 	}

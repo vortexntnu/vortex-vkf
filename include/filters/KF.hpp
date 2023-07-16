@@ -10,7 +10,7 @@ class KF : public Kalman_filter_base<n_x,n_y,n_u,n_v,n_w> {
 public:
 	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
 	KF(LTI_model<n_x,n_y,n_u,n_v,n_w> *lti_model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{lti_model} {}
-	State iterate(Timestep Ts, const Measurement& y, const Input& u = Input::Zero()) override final
+	State iterate(Time Ts, const Measurement& y, const Input& u = Input::Zero()) override final
 	{
         Mat_xx A = model->_A;
         Mat_xu B = model->_B;

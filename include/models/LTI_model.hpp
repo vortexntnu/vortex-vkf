@@ -14,57 +14,57 @@ public:
 	LTI_model() : EKF_model_base<n_x,n_y,n_u,n_v,n_w>() {};
 	~LTI_model() {}
 
-	State f(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const override final
+	State f(Time t, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const override final
 	{
-		(void)Ts;
+		(void)t;
 		return _A*x + _B*u + _G*v;
 	}
-	Measurement h(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
+	Measurement h(Time t, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
 	{
-		(void)Ts;
+		(void)t;
 		return _C*x + _D*u + _H*w;
 	}
-	Mat_xx F_x(Timestep Ts, const State& x, const Input& u, const Disturbance& v = Disturbance::Zero()) const override final
+	Mat_xx F_x(Time t, const State& x, const Input& u, const Disturbance& v = Disturbance::Zero()) const override final
 	{
-		(void)Ts;
+		(void)t;
 		(void)x;
 		(void)u;
 		(void)v;
 		return _A;
 	}
-	Mat_xv F_v(Timestep Ts, const State& x, const Input& u, const Disturbance& v = Disturbance::Zero()) const override final
+	Mat_xv F_v(Time t, const State& x, const Input& u, const Disturbance& v = Disturbance::Zero()) const override final
 	{
-		(void)Ts;
+		(void)t;
 		(void)x;
 		(void)u;
 		(void)v;
 		return _G;
 	}
-	Mat_yx H_x(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
+	Mat_yx H_x(Time t, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
 	{
-		(void)Ts;
+		(void)t;
 		(void)x;
 		(void)u;
 		(void)w;
 		return _C;
 	}
-	Mat_yw H_w(Timestep Ts, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
+	Mat_yw H_w(Time t, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
 	{
 		(void)x;
 		(void)u;
-		(void)Ts;
+		(void)t;
 		(void)w;
 		return _H;
 	}
-	const Mat_vv& Q(Timestep Ts, const State& x) const override final
+	const Mat_vv& Q(Time t, const State& x) const override final
 	{
-		(void)Ts;
+		(void)t;
 		(void)x;
 		return _Q;
 	}
-	const Mat_ww& R(Timestep Ts, const State& x) const override final
+	const Mat_ww& R(Time t, const State& x) const override final
 	{
-		(void)Ts;
+		(void)t;
 		(void)x;
 		return _R;
 	}

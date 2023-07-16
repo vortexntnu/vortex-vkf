@@ -59,6 +59,7 @@ if(BUILD_TESTING)
     # test/six_dof_model_test.cpp
     test/ekf_test.cpp
     test/ukf_test.cpp
+    test/erk_test.cpp
   )
   target_include_directories(${PROJECT_NAME}_test PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

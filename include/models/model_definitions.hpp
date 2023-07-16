@@ -7,6 +7,7 @@ using Eigen::Vector;
 using Eigen::Matrix;
 using namespace std::chrono_literals;
 using namespace std::chrono;
+using Time = duration<double>;
 using Timestep = duration<double>;
 
 

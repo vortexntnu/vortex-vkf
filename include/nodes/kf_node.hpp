@@ -31,10 +31,10 @@ private:
     {
         // Get time since last call
         rclcpp::Time now = this->now();
-        Timestep Ts = (now - _last_timestamp).nanoseconds()/1000; // Time in milliseconds
+        Time Ts = (now - _last_timestamp).nanoseconds()/1000; // Time in milliseconds
         _last_timestamp = now;
         // Reset filter if time goes backwards (e.g. when playing a rosbag on loop)
-        if (Ts < (Timestep)0)
+        if (Ts < (Time)0)
         {
             _filter->reset();
             RCLCPP_INFO_STREAM(this->get_logger(), "Reset filter, period is " << Ts.count() << "ms");
