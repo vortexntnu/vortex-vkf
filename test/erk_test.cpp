@@ -78,8 +78,6 @@ protected:
     std::vector<Time> t;
     std::vector<State> x;
 
-
-
     void init(Time t_0, State x_0) 
     {   
         t.clear();
@@ -118,7 +116,6 @@ TEST_F(ERKTest, EulerSinFunc)
     x0 << 1, 0;
     init(0s, x0);
     auto euler = std::make_shared<Forward_Euler<n_x,n_u,n_x>>();
-
     size_t n{5000};
 
     // Expected error is O(dt)
@@ -132,7 +129,6 @@ TEST_F(ERKTest, HeunSinFunc)
     x0 << 1, 0;
     init(0s, x0);
     auto heun = std::make_shared<Heun<n_x,n_u,n_x>>();
-
     size_t n{5000};
 
     // Expected error is O(dt^2)
@@ -145,7 +141,6 @@ TEST_F(ERKTest, MidpointSinFunc)
     x0 << 1, 0;
     init(0s, x0);
     auto midpoint = std::make_shared<Midpoint<n_x,n_u,n_x>>();
-
     size_t n{5000};
 
     // Expected error is O(dt^2)
@@ -171,7 +166,6 @@ TEST_F(ERKTest, ButcherMidpointSinFunc)
     c << 0, 1/2.0;
 
     auto midpoint = std::make_shared<Butcher<n_x,n_u,n_x,n_stages>>(A, b, c);
-
     size_t n{5000};
 
     // Expected error is O(dt^2)
@@ -201,10 +195,33 @@ TEST_F(ERKTest, ButcherRKDPsinFunc)
     c << 0           ,  1/5.0       , 3/10.0      ,  4/5.0    ,  8/9.0       , 1      , 1;
 
     auto rkdp = std::make_shared<Butcher<n_x,n_u,n_x,n_stages>>(A, b, c);
-
     size_t n{5000};
 
     // Expected error is O(dt^5)
     runIterations(rkdp, sin_func, sin_func_exact(x0(0), dt*n), n, 1e-8);  
 }
 
+TEST_F(ERKTest, ODE45sinFuncRealTime)
+{
+    State x0;
+    x0 << 1, 0;
+    init(0s, x0);
+    auto rk45 = std::make_shared<ODE45<n_x,n_u,n_x>>();
+    size_t n{5000};
+
+    // Expected error is O(dt^5)
+    runIterations(rk45, sin_func, sin_func_exact(x0(0), dt*n), n, 1e-8);  
+}
+
+TEST_F(ERKTest, ODE45sinFuncLongStep)
+{
+    State x0;
+    x0 << 1, 0;
+    init(0s, x0);
+    auto rk45 = std::make_shared<ODE45<n_x,n_u,n_x>>(1e-5, 1000, 1ns, 1s);
+    dt = 5s;
+    size_t n{1};
+
+    // Expected error is O(dt^5)
+    runIterations(rk45, sin_func, sin_func_exact(x0(0), dt*n), n, 1e-5);
+}
