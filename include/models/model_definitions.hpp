@@ -40,7 +40,9 @@ using Timestep = duration<double>;
 	using Mat_wy = Eigen::Matrix<double,n_w,n_y>; 	\
 	using Mat_wu = Eigen::Matrix<double,n_w,n_u>; 	\
 	using Mat_wv = Eigen::Matrix<double,n_w,n_v>; 	\
-	using Mat_ww = Eigen::Matrix<double,n_w,n_w>; 	
+	using Mat_ww = Eigen::Matrix<double,n_w,n_w>; 	\
+													\
+	using State_dot = std::function<State(Time, const State&, const Input&, const Disturbance&)>;
 
 
 } // namespace Models
