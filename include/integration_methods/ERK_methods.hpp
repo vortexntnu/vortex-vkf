@@ -145,7 +145,7 @@ public:
 	 * @param max_iterations Maximum number of iterations before giving up
 	 * @param min_step_size Minimum valid value for the step size
 	 */
-	ODE45(double tolerance=1e-6, size_t max_iterations=1000, Timestep min_step_size=1ns, Timestep max_step_size=1ms) : _atol(tolerance), _max_iter(max_iterations), _min_step_size(min_step_size), _max_step_size(max_step_size)
+	ODE45(double tolerance=1e-6, size_t max_iterations=1000, Timestep min_step_size=1ns) : _Atol(State::Ones()*tolerance), _max_iter(max_iterations), _min_step_size(min_step_size)
 	{
 		// Use the Dormand Prince (RKDP) method
 		_A << 0           ,  0           , 0           ,  0        ,  0             , 0         , 0,
@@ -160,6 +160,8 @@ public:
 			  5179/57600.0,  0           , 7571/16695.0,  393/640.0, -92097/339200.0, 187/2100.0, 1/40.0; // Error of order O(dt^4)
 
 		_c << 0           ,  1/5.0       , 3/10.0      ,  4/5.0    ,  8/9.0         , 1         , 1;
+
+		_Rtol = State::Ones()*1e-6;
 	}
 
 
@@ -179,10 +181,10 @@ public:
 	State integrate(State_dot f, Timestep dt, Time t_k, const State& x_k, const Input& u_k, const Disturbance& v_k) override
 	{
 		// Copy t and x
-		Time t_i = t_k;
-		Time t_kp1 = t_k + dt; // Final time t_k+1
-		State x_i = x_k;
-		Timestep h = dt; // Variable step size
+		Time t_i = t_k; 		// Intermediate times
+		Time t_kp1 = t_k + dt;	// Final time t_k+1
+		State x_i = x_k; 		// Intermediate states
+		Timestep h = dt; 		// Variable step size
 
 		Eigen::Matrix<double,n_x,n_stages> k;
 
@@ -195,38 +197,38 @@ public:
 				k.col(i) = f(t_i + _c(i)*h, x_i + h/1s*k*_A.row(i).transpose(), u_k, v_k);
 			}
 			
+			State x_ip1_hat = x_i + h/1s*k*_b.col(0); // Higher order solution
+			State x_ip1 	= x_i + h/1s*k*_b.col(1); // Lower order solution
+
 			// From https://scicomp.stackexchange.com/questions/32563/dormand-prince-54-how-to-update-the-stepsize-and-make-accept-reject-decision
-			// Scaling factor sc
-			// double sc = _atol + std::max();
 
-			double error = (k*(_b.col(0) - _b.col(1))).template lpNorm<Eigen::Infinity>();
-			double delta = 0.9 * std::pow(_atol/error, 1.0/5.0);
-			if (error < _atol) 
-			{
-				// Accept step
+			// Compute max(|x_i|, |x_i+1|)
+			State abs_x_i   = x_i.cwiseAbs();
+			State abs_x_ip1 = x_ip1.cwiseAbs(); // Using lower order solution
+			State max_x     = abs_x_i.cwiseMax(abs_x_ip1);
+
+			// Scaling factor
+			State sc = _Atol + max_x.cwiseProduct(_Rtol);
+
+			// Compute error
+			State temp_error = (x_ip1 - x_ip1_hat).cwiseQuotient(sc);
+			double error = std::sqrt(temp_error.dot(temp_error)/n_x);
+
+			// Compute new step size
+			static constexpr double f_ac = std::pow(0.25,1.0/(q+1)); 	// safety factor
+			h = f_ac*h*std::pow(1/error, 1.0/(q+1)); 					// optimal step size
+			h = std::min(h/1s, (t_kp1 - t_i)/1s)*1s; // Limit step size to not overshoot t_kp1
+
+			// Accecpt step if error is within tolerance
+			if (error < 1) {
 				t_i += h;
-				x_i += h/1s*k*_b.col(0);
+				x_i = x_ip1_hat;
 			}
-
-
-			// Safety factors
-			
-			// Lock delta between 0.1 and 4.0
-			delta = std::max(delta, 0.1);
-			delta = std::min(delta, 4.0);
-
-			h *= delta;
-
-			// Don't let h exceed simulation time or max step size
-			h = std::min(h, t_kp1 - t_i);
-			h = std::min(h, _max_step_size);
 
 			if (t_i >= t_kp1) 
 			{
-				// Simulation completed successfully
-				return x_i; 
+				return x_i; // Simulation completed successfully
 			} 
-
 
 			if (h < _min_step_size) {
 				throw std::runtime_error("Could not reach tolerance within minimum step size");
@@ -237,14 +239,16 @@ public:
 	}
 private:
 	static constexpr int n_stages = 7;
+	static constexpr size_t q = 5; // Order of the method
+
 	Eigen::Matrix<double,n_stages,n_stages> _A;
 	Eigen::Matrix<double,n_stages,2> _b;
 	Eigen::Vector<double,n_stages> _c;
 
-	double _atol;
+	State _Atol;
+	State _Rtol;
 	size_t _max_iter;
 	Timestep _min_step_size;
-	Timestep _max_step_size;
 };
 
 }

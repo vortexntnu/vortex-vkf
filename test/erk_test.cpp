@@ -182,7 +182,7 @@ TEST_F(ERKTest, ODE45sinFuncRealTime)
     State x0;
     x0 << 1;
     init(0s, x0);
-    auto rk45 = std::make_shared<ODE45<n_x,n_u,n_x>>(1e-4, 1000000, 1ns, 1s);
+    auto rk45 = std::make_shared<ODE45<n_x,n_u,n_x>>(1e-5, 1000000, 1ns);
 
     size_t n = 5000;
 
@@ -195,7 +195,7 @@ TEST_F(ERKTest, ODE45sinFuncLongStep)
     State x0;
     x0 << 1;
     init(0s, x0);
-    auto rk45 = std::make_shared<ODE45<n_x,n_u,n_x>>(1e-4, 10000000, 1ns, 1s);
+    auto rk45 = std::make_shared<ODE45<n_x,n_u,n_x>>(1e-6, 1000000, 1ns);
     dt = 5s;
     size_t n = 1;
 
