@@ -69,6 +69,8 @@ protected:
             x.push_back(rk_method->integrate(f, dt, t.back(), x.back(), u, v));
             t.push_back(t.back() + dt);
         }
+        std::cout << "True: " << exact << std::endl;
+        std::cout << "Approx: " << x.back()(0) << std::endl;
         std::cout << "Error: " << x.back()(0) - exact << std::endl;
         EXPECT_NEAR(x.back()(0), exact, tolerance);
     }
@@ -182,12 +184,11 @@ TEST_F(ERKTest, ODE45sinFuncRealTime)
     State x0;
     x0 << 1;
     init(0s, x0);
-    auto rk45 = std::make_shared<ODE45<n_x,n_u,n_x>>(1e-5, 1000000, 1ns);
-
+    auto rk45 = std::make_shared<ODE45<n_x,n_u,n_x>>(1e-20, 1e-20);
     size_t n = 5000;
 
     // Expected error is O(dt^5)
-    runIterations(rk45, sin_func, sin_func_exact(x0(0), dt*n), n, 1e-4);  
+    runIterations(rk45, sin_func, sin_func_exact(x0(0), dt*n), n, 1e-8);  
 }
 
 TEST_F(ERKTest, ODE45sinFuncLongStep)
@@ -195,12 +196,12 @@ TEST_F(ERKTest, ODE45sinFuncLongStep)
     State x0;
     x0 << 1;
     init(0s, x0);
-    auto rk45 = std::make_shared<ODE45<n_x,n_u,n_x>>(1e-6, 1000000, 1ns);
+    auto rk45 = std::make_shared<ODE45<n_x,n_u,n_x>>(1e-20, 1e-20, 100000);
     dt = 5s;
     size_t n = 1;
 
     // Expected error is O(dt^5)
-    runIterations(rk45, sin_func, sin_func_exact(x0(0), dt*n), n, 1e-4);
+    runIterations(rk45, sin_func, sin_func_exact(x0(0), dt*n), n, 1e-6);
 }
 
 

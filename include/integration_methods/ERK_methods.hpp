@@ -103,7 +103,7 @@ public:
 	 * @param b 
 	 * @param c 
 	 */
-	Butcher(Eigen::Matrix<double,n_stages,n_stages> A, Eigen::Vector<double,n_stages> b, Eigen::Vector<double,n_stages> c) : _A(A), _b(b), _c(c) 
+	Butcher(Eigen::Matrix<double,n_stages,n_stages> A, Eigen::Vector<double,n_stages> b, Eigen::Vector<double,n_stages> c) : _A{A}, _b{b}, _c{c}
 	{
 		// Check if Butcher table is valid
 		if (A.isLowerTriangular() == false) { throw std::invalid_argument("Butcher table: A is not lower triangular"); }
@@ -122,7 +122,7 @@ public:
 	State integrate(State_dot f, Timestep dt, Time t_k, const State& x_k, const Input& u_k, const Disturbance& v_k) override
 	{
 		Eigen::Matrix<double,n_x,n_stages> k = Eigen::Matrix<double,n_x,n_stages>::Zero();
-		for (int i = 0; i < n_stages; i++) 
+		for (size_t i = 0; i < n_stages; i++) 
 		{
 			k.col(i) = f(t_k + _c(i)*dt, x_k + dt/1s*k*_A.row(i).transpose(), u_k, v_k);
 		}
@@ -141,11 +141,22 @@ public:
 	/**
 	 * @brief Variable step size Runge-Kutta method
 	 * 
-	 * @param tolerance Tolerance for the error over one step dt
+	 * @param abs_error absolute error. Specify a value for all state variables
+	 * @param rel_error relative error. Specify a value for all state variables
 	 * @param max_iterations Maximum number of iterations before giving up
-	 * @param min_step_size Minimum valid value for the step size
+	 * @param min_step_size Minimum valid value for the step size in the integration
 	 */
-	ODE45(double tolerance=1e-6, size_t max_iterations=1000, Timestep min_step_size=1ns) : _Atol(State::Ones()*tolerance), _max_iter(max_iterations), _min_step_size(min_step_size)
+	ODE45(double abs_error=1e-6, double rel_error=1e-6, size_t max_iterations=1000, Timestep min_step_size=1ns) : ODE45(State::Ones()*abs_error, State::Ones()*rel_error, max_iterations, min_step_size) {}
+
+	/**
+	 * @brief Variable step size Runge-Kutta method
+	 * 
+	 * @param abs_error_vec absolute error vector. Specify a value for each state variable
+	 * @param rel_error_vec relative error vector. Specify a value for each state variable
+	 * @param max_iterations Maximum number of iterations before giving up
+	 * @param min_step_size Minimum valid value for the step size in the integration
+	 */
+	ODE45(State abs_error_vec=State::Ones()*1e-6, State rel_error_vec=State::Ones()*1e-6, size_t max_iterations=1000, Timestep min_step_size=1ns) : _Atol{abs_error_vec}, _Rtol{rel_error_vec}, _max_iter{max_iterations}, _min_step_size{min_step_size}
 	{
 		// Use the Dormand Prince (RKDP) method
 		_A << 0           ,  0           , 0           ,  0        ,  0             , 0         , 0,
@@ -156,12 +167,13 @@ public:
 			  9017/3168.0 , -355/33.0    , 46732/5247.0,  49/176.0 , -5103/18656.0  , 0         , 0,
 			  35/384.0    ,  0           , 500/1113.0  ,  125/192.0, -2187/6784.0   , 11/84.0   , 0;
 
-		_b << 35/384.0    ,  0           , 500/1113.0  ,  125/192.0, -2187/6784.0   , 11/84.0   , 0,      // Error of order O(dt^5)
+		Eigen::Matrix<double,2,n_stages> b_T;
+		b_T <<35/384.0    ,  0           , 500/1113.0  ,  125/192.0, -2187/6784.0   , 11/84.0   , 0,      // Error of order O(dt^5)
 			  5179/57600.0,  0           , 7571/16695.0,  393/640.0, -92097/339200.0, 187/2100.0, 1/40.0; // Error of order O(dt^4)
+		_b = b_T.transpose();
 
 		_c << 0           ,  1/5.0       , 3/10.0      ,  4/5.0    ,  8/9.0         , 1         , 1;
 
-		_Rtol = State::Ones()*1e-6;
 	}
 
 
@@ -181,18 +193,17 @@ public:
 	State integrate(State_dot f, Timestep dt, Time t_k, const State& x_k, const Input& u_k, const Disturbance& v_k) override
 	{
 		// Copy t and x
-		Time t_i = t_k; 		// Intermediate times
-		Time t_kp1 = t_k + dt;	// Final time t_k+1
-		State x_i = x_k; 		// Intermediate states
-		Timestep h = dt; 		// Variable step size
+		const Time t_kp1 = t_k + dt;	// Final time t_k+1
+		Time t_i = t_k; 				// Intermediate times
+		State x_i = x_k; 				// Intermediate states
+		Timestep h = dt; 				// Variable step size
 
-		Eigen::Matrix<double,n_x,n_stages> k;
 
 		for (size_t iter=0; iter<_max_iter; iter++)
 		{
 			// Compute k_i
-			k = Eigen::Matrix<double,n_x,n_stages>::Zero();
-			for (int i = 0; i < n_stages; i++) 
+			Eigen::Matrix<double,n_x,n_stages> k = Eigen::Matrix<double,n_x,n_stages>::Zero();
+			for (size_t i = 0; i < n_stages; i++) 
 			{
 				k.col(i) = f(t_i + _c(i)*h, x_i + h/1s*k*_A.row(i).transpose(), u_k, v_k);
 			}
@@ -210,31 +221,37 @@ public:
 			// Scaling factor
 			State sc = _Atol + max_x.cwiseProduct(_Rtol);
 
-			// Compute error
+			// Estimate error
 			State temp_error = (x_ip1 - x_ip1_hat).cwiseQuotient(sc);
 			double error = std::sqrt(temp_error.dot(temp_error)/n_x);
 
-			// Compute new step size
-			static constexpr double f_ac = std::pow(0.25,1.0/(q+1)); 	// safety factor
-			h = f_ac*h*std::pow(1/error, 1.0/(q+1)); 					// optimal step size
-			h = std::min(h/1s, (t_kp1 - t_i)/1s)*1s; // Limit step size to not overshoot t_kp1
-
 			// Accecpt step if error is within tolerance
-			if (error < 1) {
+			if (error < 1) 
+			{
 				t_i += h;
 				x_i = x_ip1_hat;
+
+				if (t_i >= t_kp1) 
+				{
+					return x_i; // Simulation completed successfully
+				} 
 			}
 
-			if (t_i >= t_kp1) 
-			{
-				return x_i; // Simulation completed successfully
-			} 
+			// Compute new step size
+			Timestep h_new;
+			static constexpr double f_ac = std::pow(0.25,1.0/(q+1)); 		// safety factor
+			h_new = f_ac*h*std::pow(1/error, 1.0/(q+1)); 					// optimal step size
+			h_new = std::max(h_new/1s, 0.2*h/1s)*1s; 						// limit step size decrease
+			h_new = std::min(h_new/1s, 5.0*h/1s)*1s; 						// limit step size increase
+			h_new = std::min(h_new/1s, (t_kp1 - t_i)/1s)*1s; 				// limit step size to not overshoot t_kp1
+			h = h_new;
+
 
 			if (h < _min_step_size) {
-				throw std::runtime_error("Could not reach tolerance within minimum step size");
+				throw std::runtime_error("Could not reach tolerance within minimum step size" + std::to_string(_min_step_size/1s));
 			}
 		}
-		throw std::runtime_error("Could not reach tolerance within maximum number of iterations");
+		throw std::runtime_error("Could not reach tolerance within maximum number of iterations " + std::to_string(_max_iter));
 
 	}
 private:
