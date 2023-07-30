@@ -1,5 +1,10 @@
 #pragma once
 #include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/string.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+using std::placeholders::_1;
+
+
 #include <chrono>
 #include <memory>
 
@@ -19,7 +24,12 @@ public:
     {
 	    _timer = this->create_wall_timer(P, std::bind(&KF_node<n_x,n_y,n_u,n_v,n_w>::timer_callback, this));
         _last_timestamp = this->now();
+        _has_new_measurement = false;
+
+        subscription_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
+        "measurement", 10, std::bind(&KF_node<n_x,n_y,n_u,n_v,n_w>::meas_callback, this, _1));
     }
+
 
 private:
     rclcpp::TimerBase::SharedPtr _timer;
@@ -27,6 +37,8 @@ private:
     const Period _P;
     rclcpp::Time _last_timestamp;
     Measurement  _last_measurement;
+    bool         _has_new_measurement;
+    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr subscription_;
 
     void timer_callback()
     {
@@ -38,7 +50,7 @@ private:
         if (Ts < (Time)0)
         {
             _filter->reset();
-            RCLCPP_INFO_STREAM(this->get_logger(), "Reset filter, period is " << Ts/1ms << "ms");
+            RCLCPP_INFO_STREAM(this->get_logger(), "Reset filter due to negative time step");
             return;
         }
         // Calculate next iterate
@@ -46,6 +58,15 @@ private:
         // Publish 
         RCLCPP_INFO_STREAM(this->get_logger(), '\n' << x_next);
     }
+
+    void meas_callback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
+    {
+        RCLCPP_INFO_STREAM(this->get_logger(), "Measurement: " << msg->pose.position.x << ", " << msg->pose.position.y << ", " << msg->pose.position.z);
+        _last_measurement << msg->pose.position.x, msg->pose.position.y, msg->pose.position.z;
+        _has_new_measurement = true;
+    }
+
+
 };
 
 

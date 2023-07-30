@@ -44,5 +44,5 @@ using Timestep = duration<double>;
 													\
 	using State_dot = std::function<State(Time, const State&, const Input&, const Disturbance&)>;
 
-
 } // namespace Models
+

@@ -9,6 +9,8 @@ namespace Models {
 template<int n_x, int n_y, int n_u, int n_v=n_x, int n_w=n_y>
 class Model_base {
 public:
+	static constexpr int _Nx = n_x, _Ny = n_y, _Nu = n_u, _Nv = n_v, _Nw = n_w;
+
 	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
 	/**
 	 * @brief Parent class for modelling dynamics

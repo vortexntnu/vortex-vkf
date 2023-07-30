@@ -20,6 +20,9 @@ public:
 	virtual State integrate(State_dot f, Timestep dt, Time t_k, const State& x_k, const Input& u_k, const Disturbance& v_k) = 0;
 
 };
+template<typename Model>
+using RK_method_M = RK_method<Model::_Nx, Model::_Nu, Model::_Nv>;
+
 
 template<int n_x, int n_u, int n_v>
 class None : public RK_method<n_x,n_u,n_v> {
@@ -34,6 +37,9 @@ public:
 		return f(t_k, x_k, u_k, v_k);
 	}
 };
+template<typename Model>
+using None_M = None<Model::_Nx, Model::_Nu, Model::_Nv>;
+
 
 template<int n_x, int n_u, int n_v>
 class RK4 : public RK_method<n_x,n_u,n_v> {
@@ -49,6 +55,8 @@ public:
 		return x_k + (dt/1s/6.0)*(k1+2*k2+2*k3+k4);
 	}
 };
+template<typename Model>
+using RK4_M = RK4<Model::_Nx, Model::_Nu, Model::_Nv>;
 
 template<int n_x, int n_u, int n_v>
 class Forward_Euler : public RK_method<n_x,n_u,n_v> {
@@ -59,6 +67,8 @@ public:
 		return x_k + dt/1s*f(t_k, x_k, u_k, v_k);
 	}
 };
+template<typename Model>
+using Forward_Euler_M = Forward_Euler<Model::_Nx, Model::_Nu, Model::_Nv>;
 
 template<int n_x, int n_u, int n_v>
 class Heun : public RK_method<n_x,n_u,n_v> {

@@ -11,10 +11,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # Find dependencies
-find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(Eigen3 REQUIRED)
+find_package(ament_cmake    REQUIRED)
+find_package(rclcpp         REQUIRED)
+find_package(std_msgs       REQUIRED)
+find_package(geometry_msgs  REQUIRED)
+find_package(Eigen3         REQUIRED)
 
 
 # Add include
@@ -28,6 +29,7 @@ add_executable(${PROJECT_NAME}_node
 ament_target_dependencies(${PROJECT_NAME}_node 
   rclcpp 
   std_msgs
+  geometry_msgs
   Eigen3
 )
 
