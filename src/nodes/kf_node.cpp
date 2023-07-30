@@ -2,37 +2,32 @@
 #include <filters/KF.hpp>
 #include <filters/UKF.hpp>
 #include <models/LTI_model.hpp>
+#include <models/temp_gyro_model.hpp>
+#include <integration_methods/ERK_methods.hpp>
 
 #include <iostream>
 #include <memory>
 
-constexpr int n_x = 1, n_y = 1, n_u = 1, n_v = 1, n_w = 1;
+constexpr int n_x = 7, n_y = 3, n_u = 3, n_v = 6, n_w = 3;
+
 using namespace Models;
-using namespace Filters;
-constexpr int n_a = n_x+n_v+n_w; // Size of augmented state
-using Mat_aa  = Matrix<double,n_a,n_a>;
-using State_a = Vector<double,n_a>;
 DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
 
-int main()
+int main(int argc, char **argv)
 {
-     // Make augmented covariance matrix
-     Mat_xx P;
-     Mat_vv Q;
-     Mat_ww R;
-     P << 1;
-     Q << 3;
-     R << 1;
+     rclcpp::init(argc, argv);
 
-     Mat_aa P_a;
-     P_a << 	P		    , Mat_xv::Zero(), Mat_xw::Zero(),
-               Mat_vx::Zero(), Q			, Mat_vw::Zero(),
-               Mat_wx::Zero(), Mat_wv::Zero(), R			 ;
+     // Create model
+     auto model = std::make_shared<Models::Temp_gyro_model>();
+     // Create integrator
+     auto integrator = std::make_shared<Integrator::RK4<n_x,n_u,n_v>>();
+     // Create filter
+     State x0 = State::Zero();
+     Mat_xx P0 = Mat_xx::Identity();
+     auto ukf = std::make_shared<Filters::UKF<n_x,n_y,n_u,n_v,n_w>>(model, x0, P0);
 
+     auto node = std::make_shared<Nodes::KF_node<n_x,n_y,n_u,n_v,n_w>>(ukf, 0.1s);
 
-     std::cout << "P: \n" << P << std::endl;
-     Mat_aa sqrt_P_a = P_a.llt().matrixLLT();
-     std::cout << "P_a: \n" << P_a << std::endl;
-     std::cout << "sqrt_P_a: \n" << sqrt_P_a << std::endl;
-     std::cout << "reconstructed P_a: \n" << sqrt_P_a*sqrt_P_a.transpose() << std::endl;
+     rclcpp::spin(node);
+     rclcpp::shutdown();
 }

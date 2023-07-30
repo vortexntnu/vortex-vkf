@@ -54,7 +54,7 @@ private:
 
 		// Use the symmetric sigma point set
 		sigma_points.col(0) = x_a;
-		for (size_t i{1}; i<=n_a; i++)
+		for (size_t i=1; i<=n_a; i++)
 		{
 			sigma_points.col(i)     = x_a + _GAMMA*sqrt_P_a.col(i-1);
 			sigma_points.col(i+n_a) = x_a - _GAMMA*sqrt_P_a.col(i-1);
@@ -71,7 +71,7 @@ public:
 
 		// Propagate sigma points through f
 		Matrix<double,n_x,2*n_a+1> sigma_x_pred;
-		for (size_t i{0}; i<2*n_a+1; i++)
+		for (size_t i=0; i<2*n_a+1; i++)
 		{
 			auto x_i = sigma_points.template block<n_x,1>(0,i);
 			auto v_i = sigma_points.template block<n_v,1>(n_x,i);
@@ -81,7 +81,7 @@ public:
 		// Predicted State Estimate x_k-
 		State x_pred;
 		x_pred = _W_x0*sigma_x_pred.col(0);
-		for (size_t i{1}; i<2*n_a+1; i++)
+		for (size_t i=1; i<2*n_a+1; i++)
 		{
 			x_pred += _W_xi*sigma_x_pred.col(i);
 		}
@@ -89,14 +89,14 @@ public:
 		// Predicted State Covariance P_xx-
 		Mat_xx P_xx_pred;
 		P_xx_pred = _W_c0*(sigma_x_pred.col(0)-x_pred)*(sigma_x_pred.col(0)-x_pred).transpose();
-		for (size_t i{1}; i<2*n_a+1; i++)
+		for (size_t i=1; i<2*n_a+1; i++)
 		{
 			_W_ci*(sigma_x_pred.col(i)-x_pred)*(sigma_x_pred.col(i)-x_pred).transpose();
 		}
 
 		// Propagate sigma points through h
 		Matrix<double,n_y,2*n_a+1> sigma_y_pred;
-		for (size_t i{0}; i<2*n_a+1; i++)
+		for (size_t i=0; i<2*n_a+1; i++)
 		{
 			auto x_i = sigma_points.template block<n_x,1>(0,i);
 			auto w_i = sigma_points.template block<n_w,1>(n_x+n_v,i);
@@ -106,7 +106,7 @@ public:
 		// Predicted Output y_pred
 		Measurement y_pred;
 		y_pred = _W_x0*sigma_y_pred.col(0);
-		for (size_t i{1}; i<2*n_a+1; i++)
+		for (size_t i=1; i<2*n_a+1; i++)
 		{
 			y_pred += _W_xi*sigma_y_pred.col(i);
 		}		
@@ -114,7 +114,7 @@ public:
 		// Output Covariance P_yy
 		Mat_yy P_yy;
 		P_yy = _W_c0*(sigma_y_pred.col(0)-y_pred)*(sigma_y_pred.col(0)-y_pred).transpose();
-		for (size_t i{1}; i<2*n_a+1; i++)
+		for (size_t i=1; i<2*n_a+1; i++)
 		{
 			P_yy += _W_ci*(sigma_y_pred.col(i)-y_pred)*(sigma_y_pred.col(i)-y_pred).transpose();
 		}
@@ -122,7 +122,7 @@ public:
 		// Cross Covariance P_xy
 		Mat_xy P_xy;
 		P_xy = _W_c0*(sigma_x_pred.col(0)-x_pred)*(sigma_y_pred.col(0)-y_pred).transpose();
-		for (size_t i{1}; i<2*n_a+1; i++)
+		for (size_t i=1; i<2*n_a+1; i++)
 		{
 			P_xy += _W_ci*(sigma_x_pred.col(i)-x_pred)*(sigma_y_pred.col(i)-y_pred).transpose();
 		}

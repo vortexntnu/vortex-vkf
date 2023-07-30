@@ -24,6 +24,8 @@ public:
 	State get_state() const { return _x; }
 	Mat_xx get_covariance() const { return _P_xx; }
 protected:
+
+	
 	const State _x0;
 	const Mat_xx _P0_xx;
 	State _x;

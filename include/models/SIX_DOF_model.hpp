@@ -60,7 +60,7 @@ public:
      */
     Measurement h(Time T, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const override final
     {
-        (void)Ts;
+        (void)T;
         (void)x;
         (void)w;
         Measurement y;
