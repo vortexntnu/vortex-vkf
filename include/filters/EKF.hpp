@@ -54,5 +54,6 @@ public:
 private:
 	Models::EKF_model_base<n_x,n_y,n_u,n_v,n_w> *model;
 };
-
+template <typename Model>
+using EKF_M = EKF<Model::_Nx, Model::_Ny, Model::_Nu, Model::_Nv, Model::_Nw>;
 }

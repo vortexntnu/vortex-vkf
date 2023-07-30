@@ -18,7 +18,7 @@ int main(int argc, char **argv)
      constexpr int n_v = Temp_gyro_model::_Nv;
      constexpr int n_w = Temp_gyro_model::_Nw;
      DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
-     
+
      rclcpp::init(argc, argv);
 
      // Create model
@@ -28,9 +28,9 @@ int main(int argc, char **argv)
      // Create filter
      State x0 = State::Zero();
      Mat_xx P0 = Mat_xx::Identity();
-     auto ukf = std::make_shared<Filters::UKF<n_x,n_y,n_u,n_v,n_w>>(model, x0, P0);
+     auto ukf = std::make_shared<Filters::UKF_M<Temp_gyro_model>>(model, x0, P0);
 
-     auto node = std::make_shared<Nodes::KF_node<n_x,n_y,n_u,n_v,n_w>>(ukf, 0.1s);
+     auto node = std::make_shared<Nodes::KF_node_M<Temp_gyro_model>>(ukf, 0.1s);
 
      rclcpp::spin(node);
      rclcpp::shutdown();

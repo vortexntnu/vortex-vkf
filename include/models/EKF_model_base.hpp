@@ -30,7 +30,7 @@ public:
 		(void)x;
 		(void)u;
 		(void)v;
-		return Mat_vv::Identity();
+		return Mat_xv::Identity();
 	}
 
 	virtual Mat_yx H_x(Time t, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const = 0;
@@ -40,7 +40,7 @@ public:
 		(void)x;
 		(void)u;
 		(void)w;
-		return Mat_ww::Identity();
+		return Mat_yw::Identity();
 	}
 };
 } // namespace Models

@@ -18,7 +18,7 @@ public:
 	Model_base(Mat_vv Q = Mat_vv::Identity(), Mat_ww R = Mat_ww::Identity()) :  _Q{Q}, _R{R} {}
 
 	/**
-	 * @brief Discrete prediction equation f:
+	 * @brief Prediction equation f: Can be either continuous or discrete time, depending on the integrator that is used.
 	 * Calculate the zero noise prediction at time \p t from \p x.
 	 * @param t Time-step
 	 * @param x State
@@ -27,7 +27,7 @@ public:
 	virtual State f(Time t, const State& x, const Input& u = Input::Zero(), const Disturbance& v = Disturbance::Zero()) const = 0;
 
 	/**
-	 * @brief Discrete prediction equation f:
+	 * @brief Measurement equation h:
 	 * Calculate the zero noise prediction at time \p t from \p x.
 	 * @param t Time-step
 	 * @param x State
@@ -36,7 +36,7 @@ public:
 	virtual Measurement h(Time t, const State& x, const Input& u = Input::Zero(), const Noise& w = Noise::Zero()) const = 0;
 
 	/**
-	 * @brief Covariance matrix of model:
+	 * @brief Covariance matrix of model disturbance:
 	 * Calculate the transition covariance \p Q for time \p t
 	 * @param t Time-step
 	 * @param x State
@@ -50,7 +50,7 @@ public:
 	}
 
 	/**
-	 * @brief Covariance matrix of model:
+	 * @brief Covariance matrix of measurement noise:
 	 * Calculate the transition covariance \p Q for time \p t
 	 * @param t Time-step
 	 * @param x State

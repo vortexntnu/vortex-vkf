@@ -68,7 +68,8 @@ private:
 
 
 };
-
+template<typename Model>
+using KF_node_M = KF_node<Model::_Nx, Model::_Ny, Model::_Nu, Model::_Nv, Model::_Nw>;
 
 
 } // namespace Nodes

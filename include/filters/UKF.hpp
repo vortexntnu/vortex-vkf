@@ -145,12 +145,14 @@ public:
 	}
 
 };
+template<typename Model>
+using UKF_M = UKF<Model::_Nx, Model::_Ny, Model::_Nu, Model::_Nv, Model::_Nw>;
 
 
 
 // required namespace-scope declarations to avoid linker error
-// template<int n_x, int n_y, int n_u, int n_v, int n_w>
-// 	constexpr int UKF<n_x,n_y,n_u,n_v,n_w>::n_a;
+template<int n_x, int n_y, int n_u, int n_v, int n_w>
+	constexpr int UKF<n_x,n_y,n_u,n_v,n_w>::n_a;
 template<int n_x, int n_y, int n_u, int n_v, int n_w>
 	constexpr double UKF<n_x,n_y,n_u,n_v,n_w>::_ALPHA_SQUARED;
 template<int n_x, int n_y, int n_u, int n_v, int n_w>
@@ -171,4 +173,4 @@ template<int n_x, int n_y, int n_u, int n_v, int n_w>
 	constexpr double UKF<n_x,n_y,n_u,n_v,n_w>::_W_ci;
 
 
-}
+} // namespace filters
