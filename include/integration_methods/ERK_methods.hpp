@@ -10,85 +10,53 @@ namespace Integrator {
 using namespace Models;
 
 // Base class RK_method for RK4 and forward_euler to derive from
-template <int n_x, int n_u, int n_v> class RK_method {
-public:
-	RK_method()          = default;
-	virtual ~RK_method() = default;
-	DEFINE_MODEL_TYPES(n_x, 0, n_u, n_v, 0)
-	virtual State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k, const Input &u_k, const Disturbance &v_k) = 0;
-};
-template <typename Model> using RK_method_M = RK_method<Model::_Nx, Model::_Nu, Model::_Nv>;
 
-template <int n_x, int n_u, int n_v> class None : public RK_method<n_x, n_u, n_v> {
+
+template <int n_x> class None {
 public:
 	/**
-	 * @brief Does not integrate, just returns f(x_k, u_k, v_k). Use if f is a discrete model
+	 * @brief Does not integrate, just returns f(t_k, x_k). Use if f is a discrete model
 	 */
 	None() = default;
-	DEFINE_MODEL_TYPES(n_x, 0, n_u, n_v, 0)
-	State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k, const Input &u_k, const Disturbance &v_k) override { return f(t_k, x_k, u_k, v_k); }
+	DEFINE_MODEL_TYPES(n_x, 0, 0, 0, 0)
+	static State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k) { return f(t_k, x_k); }
 };
-template <typename Model> using None_M = None<Model::_Nx, Model::_Nu, Model::_Nv>;
+template <typename Model> using None_M = None<Model::_Nx>;
 
-template <int n_x, int n_u, int n_v> class RK4 : public RK_method<n_x, n_u, n_v> {
+template <int n_x> class RK4 {
 public:
-	DEFINE_MODEL_TYPES(n_x, 0, n_u, n_v, 0)
-	State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k, const Input &u_k, const Disturbance &v_k) override
+	DEFINE_MODEL_TYPES(n_x, 0, 0, 0, 0)
+	static State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k)
 	{
-		State k1 = f(t_k + 0.0 * dt, x_k, u_k, v_k);
-		State k2 = f(t_k + 0.5 * dt, x_k + 0.5 * dt / 1s * k1, u_k, v_k);
-		State k3 = f(t_k + 0.5 * dt, x_k + 0.5 * dt / 1s * k2, u_k, v_k);
-		State k4 = f(t_k + 1.0 * dt, x_k + 1.0 * dt / 1s * k3, u_k, v_k);
+		State k1 = f(t_k, x_k);
+		State k2 = f(t_k + 0.5 * dt, x_k + 0.5 * dt / 1s * k1);
+		State k3 = f(t_k + 0.5 * dt, x_k + 0.5 * dt / 1s * k2);
+		State k4 = f(t_k + 1.0 * dt, x_k + 1.0 * dt / 1s * k3);
 
 		return x_k + (dt / 1s / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4);
 	}
 };
-template <typename Model> using RK4_M = RK4<Model::_Nx, Model::_Nu, Model::_Nv>;
+template <typename Model> using RK4_M = RK4<Model::_Nx>;
 
-template <int n_x, int n_u, int n_v> class Forward_Euler : public RK_method<n_x, n_u, n_v> {
+template <int n_x> class Forward_Euler {
 public:
-	DEFINE_MODEL_TYPES(n_x, 0, n_u, n_v, 0)
-	State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k, const Input &u_k, const Disturbance &v_k) override
+	DEFINE_MODEL_TYPES(n_x, 0, 0, 0, 0)
+	static State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k)
 	{
-		return x_k + dt / 1s * f(t_k, x_k, u_k, v_k);
+		return x_k + dt / 1s * f(t_k, x_k);
 	}
 };
-template <typename Model> using Forward_Euler_M = Forward_Euler<Model::_Nx, Model::_Nu, Model::_Nv>;
+template <typename Model> using Forward_Euler_M = Forward_Euler<Model::_Nx>;
 
-template <int n_x, int n_u, int n_v> class Heun : public RK_method<n_x, n_u, n_v> {
+
+
+
+template <int n_x, int n_stages> class Butcher {
 public:
-	DEFINE_MODEL_TYPES(n_x, 0, n_u, n_v, 0)
+	DEFINE_MODEL_TYPES(n_x, 0, 0, 0, 0)
 	/**
-	 * @brief Heun's method, aka. explicit trapezoidal method
-	 *
-	 */
-	Heun() = default;
-	State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k, const Input &u_k, const Disturbance &v_k) override
-	{
-		State k1 = f(t_k, x_k, u_k, v_k);
-		State k2 = f(t_k + dt, x_k + dt / 1s * k1, u_k, v_k);
-
-		return x_k + (dt / 1s / 2.0) * (k1 + k2);
-	}
-};
-
-template <int n_x, int n_u, int n_v> class Midpoint : public RK_method<n_x, n_u, n_v> {
-public:
-	DEFINE_MODEL_TYPES(n_x, 0, n_u, n_v, 0)
-	State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k, const Input &u_k, const Disturbance &v_k) override
-	{
-		State k1 = f(t_k + 0.0 * dt, x_k, u_k, v_k);
-		State k2 = f(t_k + 0.5 * dt, x_k + 0.5 * dt / 1s * k1, u_k, v_k);
-		return x_k + dt / 1s * k2;
-	}
-};
-
-template <int n_x, int n_u, int n_v, int n_stages> class Butcher : public RK_method<n_x, n_u, n_v> {
-public:
-	DEFINE_MODEL_TYPES(n_x, 0, n_u, n_v, 0)
-	/**
-	 * @brief Construct a ERK method from a Butcher table
-	 *
+	 * @brief Construct an ERK method from a Butcher table. Cannot be passed as a class to a template
+	 * as it needs the non-static members A, b and c to be intitalized in an object.
 	 * @param A
 	 * @param b
 	 * @param c
@@ -111,11 +79,11 @@ public:
 		}
 	}
 
-	State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k, const Input &u_k, const Disturbance &v_k) override
+	State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k)
 	{
 		Eigen::Matrix<double, n_x, n_stages> k = Eigen::Matrix<double, n_x, n_stages>::Zero();
 		for (size_t i = 0; i < n_stages; i++) {
-			k.col(i) = f(t_k + _c(i) * dt, x_k + dt / 1s * k * _A.row(i).transpose(), u_k, v_k);
+			k.col(i) = f(t_k + _c(i) * dt, x_k + dt / 1s * k * _A.row(i).transpose());
 		}
 		return x_k + dt / 1s * k * _b;
 	}
@@ -126,9 +94,9 @@ private:
 	Eigen::Vector<double, n_stages> _c;
 };
 
-template <int n_x, int n_u, int n_v> class ODE45 : public RK_method<n_x, n_u, n_v> {
+template <int n_x> class ODE45 {
 public:
-	DEFINE_MODEL_TYPES(n_x, 0, n_u, n_v, 0)
+	DEFINE_MODEL_TYPES(n_x, 0, 0, 0, 0)
 	/**
 	 * @brief Variable step size Runge-Kutta method
 	 *
@@ -177,13 +145,11 @@ public:
 	 * @param dt Time step size / Simulation time
 	 * @param t_k Start time
 	 * @param x_k Start state
-	 * @param u_k Input considered constant over the step
-	 * @param v_k Disturbance considered constant over the step
 	 * @return Integrated state
 	 * @throws std::runtime_error if the maximum number of iterations is reached
 	 * @throws std::runtime_error if the step size becomes too small
 	 */
-	State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k, const Input &u_k, const Disturbance &v_k) override
+	State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k)
 	{
 		// Copy t and x
 		const Time t_kp1 = t_k + dt; // Final time t_k+1
@@ -195,7 +161,7 @@ public:
 			// Compute k_i
 			Eigen::Matrix<double, n_x, n_stages> k = Eigen::Matrix<double, n_x, n_stages>::Zero();
 			for (size_t i = 0; i < n_stages; i++) {
-				k.col(i) = f(t_i + _c(i) * h, x_i + h / 1s * k * _A.row(i).transpose(), u_k, v_k);
+				k.col(i) = f(t_i + _c(i) * h, x_i + h / 1s * k * _A.row(i).transpose());
 			}
 
 			State x_ip1_hat = x_i + h / 1s * k * _b.col(0); // Higher order solution
@@ -228,6 +194,7 @@ public:
 			// Compute new step size
 			Timestep h_new;
 			static constexpr double f_ac = std::pow(0.25, 1.0 / (q + 1));                 // safety factor
+			
 			h_new                        = f_ac * h * std::pow(1 / error, 1.0 / (q + 1)); // optimal step size
 			h_new                        = std::max(h_new / 1s, 0.2 * h / 1s) * 1s;       // limit step size decrease
 			h_new                        = std::min(h_new / 1s, 5.0 * h / 1s) * 1s;       // limit step size increase

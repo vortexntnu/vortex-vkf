@@ -37,8 +37,11 @@ private:
 	{
 		// Make augmented covariance matrix
 		Mat_aa P_a;
-		P_a << P, Mat_xv::Zero(), Mat_xw::Zero(), Mat_vx::Zero(), Q, Mat_vw::Zero(), Mat_wx::Zero(), Mat_wv::Zero(), R;
-
+		// clang-format off
+		P_a << 	P			  , Mat_xv::Zero(), Mat_xw::Zero(),
+			  	Mat_vx::Zero(), Q			  , Mat_vw::Zero(),
+			  	Mat_wx::Zero(), Mat_wv::Zero(), R	
+		// clang-format on
 		Mat_aa sqrt_P_a = P_a.llt().matrixLLT();
 
 		// Make augmented state vector
@@ -145,4 +148,32 @@ template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr double UKF<n_x,
 template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr double UKF<n_x, n_y, n_u, n_v, n_w>::_W_xi;
 template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr double UKF<n_x, n_y, n_u, n_v, n_w>::_W_ci;
 
+
+
+Matrix<double, n_a, 2 * n_a + 1> UKF::get_sigma_points(const State &x, const Mat_xx &P, const Mat_vv &Q, const Mat_ww &R)
+{
+	// Make augmented covariance matrix
+	Mat_aa P_a;
+	// clang-format off
+	P_a << 	P			  , Mat_xv::Zero(), Mat_xw::Zero(),
+			Mat_vx::Zero(), Q			  , Mat_vw::Zero(),
+			Mat_wx::Zero(), Mat_wv::Zero(), R	
+	// clang-format on
+	Mat_aa sqrt_P_a = P_a.llt().matrixLLT();
+
+	// Make augmented state vector
+	State_a x_a;
+	x_a << x, Disturbance::Zero(), Noise::Zero();
+
+	// Calculate sigma points
+	Matrix<double, n_a, 2 * n_a + 1> sigma_points;
+
+	// Use the symmetric sigma point set
+	sigma_points.col(0) = x_a;
+	for (size_t i = 1; i <= n_a; i++) {
+		sigma_points.col(i)       = x_a + _GAMMA * sqrt_P_a.col(i - 1);
+		sigma_points.col(i + n_a) = x_a - _GAMMA * sqrt_P_a.col(i - 1);
+	}
+	return sigma_points;
+}
 } // namespace Filters
