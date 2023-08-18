@@ -5,15 +5,16 @@
 namespace Filters {
 using namespace Models;
 
-template<int n_x, int n_y, int n_u, int n_v=n_x, int n_w=n_y>
-class EKF : public Kalman_filter_base<n_x,n_y,n_u,n_v,n_w> {
+template <int n_x, int n_y, int n_u, int n_v = n_x, int n_w = n_y> class EKF : public Kalman_filter_base<n_x, n_y, n_u, n_v, n_w> {
 public:
-	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
+	DEFINE_MODEL_TYPES(n_x, n_y, n_u, n_v, n_w)
 
-	EKF(Models::EKF_model_base<n_x,n_y,n_u,n_v,n_w> *ekf_model, State& x0, Mat_xx& P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{ekf_model} {}
+	EKF(Models::EKF_model_base<n_x, n_y, n_u, n_v, n_w> *ekf_model, State &x0, Mat_xx &P0) : Kalman_filter_base<n_x, n_y, n_u, n_v, n_w>(x0, P0), model{ekf_model}
+	{
+	}
 	~EKF() {}
-	
-	State iterate(Time Ts, const Measurement& y, const Input& u = Input::Zero()) override final
+
+	State iterate(Time Ts, const Measurement &y, const Input &u = Input::Zero()) override final
 	{
 		// Calculate Jacobians F_x, F_v
 		Mat_xx F_x = model->F_x(Ts, this->_x, u);
@@ -52,8 +53,7 @@ public:
 	}
 
 private:
-	Models::EKF_model_base<n_x,n_y,n_u,n_v,n_w> *model;
+	Models::EKF_model_base<n_x, n_y, n_u, n_v, n_w> *model;
 };
-template <typename Model>
-using EKF_M = EKF<Model::_Nx, Model::_Ny, Model::_Nu, Model::_Nv, Model::_Nw>;
-}
+template <typename Model> using EKF_M = EKF<Model::_Nx, Model::_Ny, Model::_Nu, Model::_Nv, Model::_Nw>;
+} // namespace Filters

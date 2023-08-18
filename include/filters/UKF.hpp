@@ -1,48 +1,44 @@
 #pragma once
-#include <filters/Kalman_filter_base.hpp>
-#include <models/Model_base.hpp>
 #include <cmath>
+#include <filters/Kalman_filter_base.hpp>
 #include <memory>
+#include <models/Model_base.hpp>
 
 namespace Filters {
 using namespace Models;
 
-template<int n_x, int n_y, int n_u, int n_v=n_x, int n_w=n_y>
-class UKF : public Kalman_filter_base<n_x,n_y,n_u,n_v,n_w> {
+template <int n_x, int n_y, int n_u, int n_v = n_x, int n_w = n_y> class UKF : public Kalman_filter_base<n_x, n_y, n_u, n_v, n_w> {
 public:
-	DEFINE_MODEL_TYPES(n_x,n_y,n_u,n_v,n_w)
-	static constexpr int n_a = n_x+n_v+n_w; // Size of augmented state
-	using Mat_aa  = Matrix<double,n_a,n_a>;
-	using State_a = Vector<double,n_a>;
+	DEFINE_MODEL_TYPES(n_x, n_y, n_u, n_v, n_w)
+	static constexpr int n_a = n_x + n_v + n_w; // Size of augmented state
+	using Mat_aa             = Matrix<double, n_a, n_a>;
+	using State_a            = Vector<double, n_a>;
 
-	UKF(std::shared_ptr<Model_base<n_x,n_y,n_u,n_v,n_w>> model, State x0, Mat_xx P0) : Kalman_filter_base<n_x,n_y,n_u,n_v,n_w>(x0, P0), model{model} 
-	{}
+	UKF(std::shared_ptr<Model_base<n_x, n_y, n_u, n_v, n_w>> model, State x0, Mat_xx P0) : Kalman_filter_base<n_x, n_y, n_u, n_v, n_w>(x0, P0), model{model} {}
 	~UKF() {}
 
 private:
 	// Parameters used for calculating scaling factor _GAMMA and weights W_x0, W_c0 and W_xi
-	// lambda selected according to the scaled unscented transform. (van der Merwe (2004)) 
+	// lambda selected according to the scaled unscented transform. (van der Merwe (2004))
 	static constexpr double _ALPHA_SQUARED = 1;
-	static constexpr double _BETA   	   = 2;
-	static constexpr double _KAPPA 		   = 0;
-	static constexpr double _LAMBDA 	   = _ALPHA_SQUARED*(n_a+_KAPPA)-n_a;
-	static constexpr double _GAMMA         = std::sqrt(n_a+_LAMBDA);
+	static constexpr double _BETA          = 2;
+	static constexpr double _KAPPA         = 0;
+	static constexpr double _LAMBDA        = _ALPHA_SQUARED * (n_a + _KAPPA) - n_a;
+	static constexpr double _GAMMA         = std::sqrt(n_a + _LAMBDA);
 
-	static constexpr double _W_x0 = _LAMBDA/(n_a+_LAMBDA);
-	static constexpr double _W_c0 = _LAMBDA/(n_a+_LAMBDA)+(1-_ALPHA_SQUARED+_BETA);
-	static constexpr double _W_xi = 1/(2*(n_a+_LAMBDA));
-	static constexpr double _W_ci = 1/(2*(n_a+_LAMBDA));
+	static constexpr double _W_x0 = _LAMBDA / (n_a + _LAMBDA);
+	static constexpr double _W_c0 = _LAMBDA / (n_a + _LAMBDA) + (1 - _ALPHA_SQUARED + _BETA);
+	static constexpr double _W_xi = 1 / (2 * (n_a + _LAMBDA));
+	static constexpr double _W_ci = 1 / (2 * (n_a + _LAMBDA));
 
-    std::shared_ptr<Model_base<n_x,n_y,n_u,n_v,n_w>> model;
+	std::shared_ptr<Model_base<n_x, n_y, n_u, n_v, n_w>> model;
 
-	Matrix<double,n_a,2*n_a+1> get_sigma_points(const State& x, const Mat_xx& P, const Mat_vv &Q, const Mat_ww& R)
-	{	
+	Matrix<double, n_a, 2 * n_a + 1> get_sigma_points(const State &x, const Mat_xx &P, const Mat_vv &Q, const Mat_ww &R)
+	{
 		// Make augmented covariance matrix
 		Mat_aa P_a;
-		P_a << 	P			  , Mat_xv::Zero(), Mat_xw::Zero(),
-			  	Mat_vx::Zero(), Q			  , Mat_vw::Zero(),
-			  	Mat_wx::Zero(), Mat_wv::Zero(), R			  ;
-		
+		P_a << P, Mat_xv::Zero(), Mat_xw::Zero(), Mat_vx::Zero(), Q, Mat_vw::Zero(), Mat_wx::Zero(), Mat_wv::Zero(), R;
+
 		Mat_aa sqrt_P_a = P_a.llt().matrixLLT();
 
 		// Make augmented state vector
@@ -50,83 +46,74 @@ private:
 		x_a << x, Disturbance::Zero(), Noise::Zero();
 
 		// Calculate sigma points
-		Matrix<double,n_a,2*n_a+1> sigma_points;
+		Matrix<double, n_a, 2 * n_a + 1> sigma_points;
 
 		// Use the symmetric sigma point set
 		sigma_points.col(0) = x_a;
-		for (size_t i=1; i<=n_a; i++)
-		{
-			sigma_points.col(i)     = x_a + _GAMMA*sqrt_P_a.col(i-1);
-			sigma_points.col(i+n_a) = x_a - _GAMMA*sqrt_P_a.col(i-1);
+		for (size_t i = 1; i <= n_a; i++) {
+			sigma_points.col(i)       = x_a + _GAMMA * sqrt_P_a.col(i - 1);
+			sigma_points.col(i + n_a) = x_a - _GAMMA * sqrt_P_a.col(i - 1);
 		}
 		return sigma_points;
 	}
 
 public:
-	State iterate(Time t, const Measurement& y, const Input& u = Input::Zero()) override final
+	State iterate(Time t, const Measurement &y, const Input &u = Input::Zero()) override final
 	{
-		Mat_vv Q = model->Q(t,this->_x); 
-		Mat_ww R = model->R(t,this->_x); 
-		Matrix<double,n_a,2*n_a+1> sigma_points = get_sigma_points(this->_x, this->_P_xx, Q, R);
+		Mat_vv Q                                     = model->Q(t, this->_x);
+		Mat_ww R                                     = model->R(t, this->_x);
+		Matrix<double, n_a, 2 *n_a + 1> sigma_points = get_sigma_points(this->_x, this->_P_xx, Q, R);
 
 		// Propagate sigma points through f
-		Matrix<double,n_x,2*n_a+1> sigma_x_pred;
-		for (size_t i=0; i<2*n_a+1; i++)
-		{
-			auto x_i = sigma_points.template block<n_x,1>(0,i);
-			auto v_i = sigma_points.template block<n_v,1>(n_x,i);
+		Matrix<double, n_x, 2 * n_a + 1> sigma_x_pred;
+		for (size_t i = 0; i < 2 * n_a + 1; i++) {
+			auto x_i            = sigma_points.template block<n_x, 1>(0, i);
+			auto v_i            = sigma_points.template block<n_v, 1>(n_x, i);
 			sigma_x_pred.col(i) = model->f(t, x_i, u, v_i);
 		}
 
 		// Predicted State Estimate x_k-
 		State x_pred;
-		x_pred = _W_x0*sigma_x_pred.col(0);
-		for (size_t i=1; i<2*n_a+1; i++)
-		{
-			x_pred += _W_xi*sigma_x_pred.col(i);
+		x_pred = _W_x0 * sigma_x_pred.col(0);
+		for (size_t i = 1; i < 2 * n_a + 1; i++) {
+			x_pred += _W_xi * sigma_x_pred.col(i);
 		}
 
 		// Predicted State Covariance P_xx-
 		Mat_xx P_xx_pred;
-		P_xx_pred = _W_c0*(sigma_x_pred.col(0)-x_pred)*(sigma_x_pred.col(0)-x_pred).transpose();
-		for (size_t i=1; i<2*n_a+1; i++)
-		{
-			_W_ci*(sigma_x_pred.col(i)-x_pred)*(sigma_x_pred.col(i)-x_pred).transpose();
+		P_xx_pred = _W_c0 * (sigma_x_pred.col(0) - x_pred) * (sigma_x_pred.col(0) - x_pred).transpose();
+		for (size_t i = 1; i < 2 * n_a + 1; i++) {
+			_W_ci *(sigma_x_pred.col(i) - x_pred) * (sigma_x_pred.col(i) - x_pred).transpose();
 		}
 
 		// Propagate sigma points through h
-		Matrix<double,n_y,2*n_a+1> sigma_y_pred;
-		for (size_t i=0; i<2*n_a+1; i++)
-		{
-			auto x_i = sigma_points.template block<n_x,1>(0,i);
-			auto w_i = sigma_points.template block<n_w,1>(n_x+n_v,i);
+		Matrix<double, n_y, 2 * n_a + 1> sigma_y_pred;
+		for (size_t i = 0; i < 2 * n_a + 1; i++) {
+			auto x_i            = sigma_points.template block<n_x, 1>(0, i);
+			auto w_i            = sigma_points.template block<n_w, 1>(n_x + n_v, i);
 			sigma_y_pred.col(i) = model->h(t, x_i, u, w_i);
 		}
 
 		// Predicted Output y_pred
 		Measurement y_pred;
-		y_pred = _W_x0*sigma_y_pred.col(0);
-		for (size_t i=1; i<2*n_a+1; i++)
-		{
-			y_pred += _W_xi*sigma_y_pred.col(i);
-		}		
+		y_pred = _W_x0 * sigma_y_pred.col(0);
+		for (size_t i = 1; i < 2 * n_a + 1; i++) {
+			y_pred += _W_xi * sigma_y_pred.col(i);
+		}
 
 		// Output Covariance P_yy
 		Mat_yy P_yy;
-		P_yy = _W_c0*(sigma_y_pred.col(0)-y_pred)*(sigma_y_pred.col(0)-y_pred).transpose();
-		for (size_t i=1; i<2*n_a+1; i++)
-		{
-			P_yy += _W_ci*(sigma_y_pred.col(i)-y_pred)*(sigma_y_pred.col(i)-y_pred).transpose();
+		P_yy = _W_c0 * (sigma_y_pred.col(0) - y_pred) * (sigma_y_pred.col(0) - y_pred).transpose();
+		for (size_t i = 1; i < 2 * n_a + 1; i++) {
+			P_yy += _W_ci * (sigma_y_pred.col(i) - y_pred) * (sigma_y_pred.col(i) - y_pred).transpose();
 		}
 
 		// Cross Covariance P_xy
 		Mat_xy P_xy;
-		P_xy = _W_c0*(sigma_x_pred.col(0)-x_pred)*(sigma_y_pred.col(0)-y_pred).transpose();
-		for (size_t i=1; i<2*n_a+1; i++)
-		{
-			P_xy += _W_ci*(sigma_x_pred.col(i)-x_pred)*(sigma_y_pred.col(i)-y_pred).transpose();
+		P_xy = _W_c0 * (sigma_x_pred.col(0) - x_pred) * (sigma_y_pred.col(0) - y_pred).transpose();
+		for (size_t i = 1; i < 2 * n_a + 1; i++) {
+			P_xy += _W_ci * (sigma_x_pred.col(i) - x_pred) * (sigma_y_pred.col(i) - y_pred).transpose();
 		}
-
 
 		// Kalman gain K
 		Mat_yy P_yy_inv = P_yy.llt().solve(Mat_yy::Identity()); // Use Cholesky decomposition for inverting P_yy
@@ -143,34 +130,19 @@ public:
 
 		return x_next;
 	}
-
 };
-template<typename Model>
-using UKF_M = UKF<Model::_Nx, Model::_Ny, Model::_Nu, Model::_Nv, Model::_Nw>;
-
-
+template <typename Model> using UKF_M = UKF<Model::_Nx, Model::_Ny, Model::_Nu, Model::_Nv, Model::_Nw>;
 
 // required namespace-scope declarations to avoid linker error
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
-	constexpr int UKF<n_x,n_y,n_u,n_v,n_w>::n_a;
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
-	constexpr double UKF<n_x,n_y,n_u,n_v,n_w>::_ALPHA_SQUARED;
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
-	constexpr double UKF<n_x,n_y,n_u,n_v,n_w>::_BETA;
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
-	constexpr double UKF<n_x,n_y,n_u,n_v,n_w>::_KAPPA;
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
-	constexpr double UKF<n_x,n_y,n_u,n_v,n_w>::_LAMBDA;
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
-	constexpr double UKF<n_x,n_y,n_u,n_v,n_w>::_GAMMA;
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
-	constexpr double UKF<n_x,n_y,n_u,n_v,n_w>::_W_x0;
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
-	constexpr double UKF<n_x,n_y,n_u,n_v,n_w>::_W_c0;
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
-	constexpr double UKF<n_x,n_y,n_u,n_v,n_w>::_W_xi;
-template<int n_x, int n_y, int n_u, int n_v, int n_w>
-	constexpr double UKF<n_x,n_y,n_u,n_v,n_w>::_W_ci;
+template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr int UKF<n_x, n_y, n_u, n_v, n_w>::n_a;
+template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr double UKF<n_x, n_y, n_u, n_v, n_w>::_ALPHA_SQUARED;
+template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr double UKF<n_x, n_y, n_u, n_v, n_w>::_BETA;
+template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr double UKF<n_x, n_y, n_u, n_v, n_w>::_KAPPA;
+template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr double UKF<n_x, n_y, n_u, n_v, n_w>::_LAMBDA;
+template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr double UKF<n_x, n_y, n_u, n_v, n_w>::_GAMMA;
+template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr double UKF<n_x, n_y, n_u, n_v, n_w>::_W_x0;
+template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr double UKF<n_x, n_y, n_u, n_v, n_w>::_W_c0;
+template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr double UKF<n_x, n_y, n_u, n_v, n_w>::_W_xi;
+template <int n_x, int n_y, int n_u, int n_v, int n_w> constexpr double UKF<n_x, n_y, n_u, n_v, n_w>::_W_ci;
 
-
-} // namespace filters
+} // namespace Filters
