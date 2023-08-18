@@ -55,6 +55,7 @@ private:
         }
         // Calculate next iterate
         State x_next = _filter->iterate(Ts, _last_measurement);
+        _has_new_measurement = false;
         // Publish 
         RCLCPP_INFO_STREAM(this->get_logger(), '\n' << x_next);
     }
