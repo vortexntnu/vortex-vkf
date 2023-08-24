@@ -2,15 +2,17 @@
 
 #include <models/Model_base.hpp>
 #include <models/model_definitions.hpp>
+#include <integration_methods/ERK_methods.hpp>
 
 namespace Models {
-
-class Temp_gyro_model : public Model_base<7, 3, 3, 6, 3> {
+constexpr int n_x = 7, n_y = 7, n_u = 1, n_v = 6, n_w = 6;
+using Base = Model_base<Integrator::RK4<n_x>, n_x, n_y, n_u, n_v, n_w>;
+class Temp_gyro_model : public Base {
 public:
-	DEFINE_MODEL_TYPES(7, 3, 3, 6, 3)
+	DEFINE_MODEL_TYPES(n_x, n_y, n_u, n_v, n_w)
 	using Quaternion = Eigen::Quaterniond;
 
-	Temp_gyro_model() : Model_base<7, 3, 3, 6, 3>(){};
+	Temp_gyro_model() : Base(){};
 
 	State f(Time t, const State &x, const Input &u = Input::Zero(), const Disturbance &v = Disturbance::Zero()) const override final
 	{
@@ -30,11 +32,10 @@ public:
 		(void)t;
 		(void)x;
 		(void)u;
-		// 6 dof imu measurement
+
 		Measurement z;
-		z << w(0), w(1), w(2);
+		z << 0, w;
 		return z;
-		return w;
 	}
 };
 } // namespace Models

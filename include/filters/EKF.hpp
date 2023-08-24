@@ -1,15 +1,18 @@
 #pragma once
 #include <filters/Kalman_filter_base.hpp>
-#include <models/EKF_model_base.hpp>
+#include <models/EKF_models.hpp>
 
 namespace Filters {
 using namespace Models;
 
-template <int n_x, int n_y, int n_u, int n_v = n_x, int n_w = n_y> class EKF : public Kalman_filter_base<n_x, n_y, n_u, n_v, n_w> {
+template <class EKF_Model> class EKF : public Kalman_filter_base<EKF_Model> {
 public:
-	DEFINE_MODEL_TYPES(n_x, n_y, n_u, n_v, n_w)
+	// These type definitions are needed because of the stupid two-phase lookup for dependent names in templates in C++
+	using Base = Kalman_filter_base<EKF_Model>;
+	using Base::_n_x; using Base::_n_y; using Base::_n_u; using Base::_n_v; using Base::_n_w; // can be comma separated in C++17
+	DEFINE_MODEL_TYPES(_n_x, _n_y, _n_u, _n_v, _n_w)
 
-	EKF(Models::EKF_model_base<n_x, n_y, n_u, n_v, n_w> *ekf_model, State &x0, Mat_xx &P0) : Kalman_filter_base<n_x, n_y, n_u, n_v, n_w>(x0, P0), model{ekf_model}
+	EKF(std::shared_ptr<EKF_Model> ekf_model, State &x0, Mat_xx &P0) : Base(x0, P0), model{ekf_model}
 	{
 	}
 	~EKF() {}
@@ -53,7 +56,6 @@ public:
 	}
 
 private:
-	Models::EKF_model_base<n_x, n_y, n_u, n_v, n_w> *model;
+	std::shared_ptr<EKF_Model> model;
 };
-template <typename Model> using EKF_M = EKF<Model::_Nx, Model::_Ny, Model::_Nu, Model::_Nv, Model::_Nw>;
 } // namespace Filters

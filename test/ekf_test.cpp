@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <filters/EKF.hpp>
-#include <models/LTI_model.hpp>
+#include <models/EKF_models.hpp>
 #include <models/model_definitions.hpp>
 
 using namespace Models;
@@ -11,12 +11,13 @@ using namespace Filters;
 class EKFTest : public ::testing::Test {
 protected:
 	static constexpr int n_x{3}, n_y{1}, n_u{2}, n_v{n_x}, n_w{n_y};
+	using LTI_model = Models::LTI_model<Integrator::None<n_x>, n_x, n_y, n_u, n_v, n_w>;
 	static constexpr size_t num_iterations{1000};
 	static constexpr double COV{1};
 
 	DEFINE_MODEL_TYPES(n_x, n_y, n_u, n_v, n_w)
-	LTI_model<n_x, n_y, n_u> *model;
-	EKF<n_x, n_y, n_u, n_v, n_w> *filter;
+	std::shared_ptr<LTI_model> model;
+	std::shared_ptr<EKF<LTI_model>> filter;
 
 	EKFTest()
 	{
@@ -36,8 +37,8 @@ protected:
 		x0 << 1, 0, 0;
 		P0 = Mat_xx::Identity();
 
-		model  = new LTI_model<n_x, n_y, n_u, n_v, n_w>{A, B, C, Q, R};
-		filter = new EKF<n_x, n_y, n_u, n_v, n_w>{model, x0, P0};
+		model  = std::make_shared<LTI_model>(A, B, C, Q, R);
+		filter = std::make_shared<EKF<LTI_model>>(model, x0, P0);
 
 		// Generate random measurements
 		std::random_device rd;
@@ -57,8 +58,6 @@ protected:
 	}
 	~EKFTest()
 	{
-		delete filter;
-		delete model;
 	}
 	// Vector for storing measurements
 	std::vector<Measurement> y;

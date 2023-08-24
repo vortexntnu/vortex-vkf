@@ -4,9 +4,10 @@
 namespace Filters {
 using namespace Models;
 
-template <int n_x, int n_y, int n_u, int n_v = n_x, int n_w = n_y> class Kalman_filter_base {
+template <class Model> class Kalman_filter_base {
 public:
-	DEFINE_MODEL_TYPES(n_x, n_y, n_u, n_v, n_w)
+	static constexpr int _n_x = Model::_n_x, _n_y = Model::_n_y, _n_u = Model::_n_u, _n_v = Model::_n_v, _n_w = Model::_n_w;
+	DEFINE_MODEL_TYPES(_n_x, _n_y, _n_u, _n_v, _n_w)
 
 	Kalman_filter_base(State x0, Mat_xx P0) : _x0{x0}, _P0_xx{P0}, _x{x0}, _P_xx{P0} {}
 	virtual ~Kalman_filter_base() {}
@@ -21,6 +22,8 @@ public:
 	}
 	State get_state() const { return _x; }
 	Mat_xx get_covariance() const { return _P_xx; }
+
+
 
 protected:
 	const State _x0;

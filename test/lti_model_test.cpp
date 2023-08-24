@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <models/LTI_model.hpp>
+#include <models/EKF_models.hpp>
 using namespace Models;
 using Eigen::Matrix;
 using Eigen::Vector;
@@ -7,6 +7,7 @@ using Eigen::Vector;
 class LTImodelTest : public ::testing::Test {
 protected:
 	static constexpr int n_x{3}, n_y{1}, n_u{2}, n_v{n_x}, n_w{n_y};
+	using LTI_model = Models::LTI_model<Integrator::None<n_x>, n_x, n_y, n_u, n_v, n_w>;
 	LTImodelTest()
 	{
 		Matrix<double, n_x, n_x> A;
@@ -22,10 +23,10 @@ protected:
 		Q << 1, 0, 0, 0, 2, 0, 0, 0, 3;
 		R << 1;
 
-		model = Models::LTI_model<n_x, n_y, n_u, n_v, n_w>{A, B, C, Q, R};
+		model = std::make_shared<LTI_model>(A, B, C, Q, R);
 	}
 
-	Models::LTI_model<n_x, n_y, n_u, n_v, n_w> model;
+	std::shared_ptr<LTI_model> model;
 };
 
 TEST_F(LTImodelTest, f)
@@ -37,7 +38,7 @@ TEST_F(LTImodelTest, f)
 	x1 << 1.5, 0, 0;
 	u0 << 1, 0;
 
-	ASSERT_EQ(x1, model.f(1ms, x0, u0));
+	ASSERT_EQ(x1, model->f(1ms, x0, u0)) << "Incorrect derivative";
 }
 
 TEST_F(LTImodelTest, h)
@@ -48,5 +49,5 @@ TEST_F(LTImodelTest, h)
 	x0 << 1, 0, 0;
 	y0 << 1;
 
-	ASSERT_EQ(y0, model.h(1ms, x0));
+	ASSERT_EQ(y0, model->h(1ms, x0)) << "Incorrect measurement";
 }

@@ -10,12 +10,21 @@ using namespace std::chrono;
 using Time     = duration<double>;
 using Timestep = duration<double>;
 
+/**
+ * @brief Define the types used in the models. 
+ * THIS HAS TO BE USED INSIDE THE Models NAMESPACE
+ * @param n_x State size
+ * @param n_y Measurement size
+ * @param n_u Input size
+ * @param n_v Disturbance size
+ * @param n_w Noise size
+ */
 #define DEFINE_MODEL_TYPES(n_x, n_y, n_u, n_v, n_w)                                                                                                            \
 	using State       = Eigen::Vector<double, n_x>;                                                                                                              \
 	using Measurement = Eigen::Vector<double, n_y>;                                                                                                              \
 	using Input       = Eigen::Vector<double, n_u>;                                                                                                              \
 	using Disturbance = Eigen::Vector<double, n_v>;                                                                                                              \
-	using Noise       = Eigen::Vector<double, n_y>;                                                                                                              \
+	using Noise       = Eigen::Vector<double, n_w>;                                                                                                              \
                                                                                                                                                                \
 	using Mat_xx = Eigen::Matrix<double, n_x, n_x>;                                                                                                              \
 	using Mat_xy = Eigen::Matrix<double, n_x, n_y>;                                                                                                              \

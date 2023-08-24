@@ -19,9 +19,9 @@ public:
 	 */
 	None() = default;
 	DEFINE_MODEL_TYPES(n_x, 0, 0, 0, 0)
-	static State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k) { return f(t_k, x_k); }
+	static State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k) { (void)dt; return f(t_k, x_k); }
 };
-template <typename Model> using None_M = None<Model::_Nx>;
+template <typename Model> using None_M = None<Model::n_x>;
 
 template <int n_x> class RK4 {
 public:
@@ -36,7 +36,7 @@ public:
 		return x_k + (dt / 1s / 6.0) * (k1 + 2 * k2 + 2 * k3 + k4);
 	}
 };
-template <typename Model> using RK4_M = RK4<Model::_Nx>;
+template <typename Model> using RK4_M = RK4<Model::_n_x>;
 
 template <int n_x> class Forward_Euler {
 public:
@@ -46,7 +46,7 @@ public:
 		return x_k + dt / 1s * f(t_k, x_k);
 	}
 };
-template <typename Model> using Forward_Euler_M = Forward_Euler<Model::_Nx>;
+template <typename Model> using Forward_Euler_M = Forward_Euler<Model::_n_x>;
 
 
 

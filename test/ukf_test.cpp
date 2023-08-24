@@ -7,6 +7,7 @@
 
 #include <filters/UKF.hpp>
 #include <models/Model_base.hpp>
+#include <integration_methods/ERK_methods.hpp>
 
 using namespace Filters;
 using namespace Models;
@@ -14,9 +15,9 @@ using namespace Models;
 constexpr int n_x = 1, n_y = 1, n_u = 1;
 DEFINE_MODEL_TYPES(n_x, n_y, n_u, n_x, n_y)
 
-class unlinear_model : public Model_base<n_x, n_y, n_u> {
+class Unlinear_model : public Model_base<Integrator::None<n_x>, n_x, n_y, n_u> {
 public:
-	unlinear_model(Mat_vv Q, Mat_ww R) : Model_base<n_x, n_y, n_u>(Q, R){};
+	Unlinear_model(Mat_vv Q, Mat_ww R) : Model_base<Integrator::None<n_x>, n_x, n_y, n_u>(Q, R){};
 
 	State f(Time t, const State &x, const Input &u = Input::Zero(), const Disturbance &v = Disturbance::Zero()) const override final
 	{
@@ -47,8 +48,8 @@ protected:
 		P0    = Mat_xx::Identity() * 1e-10; // Trust the initial state
 		Q     = Mat_vv::Identity() * 1e-3;
 		R     = Mat_ww::Identity() * 1e-5;
-		model = std::make_shared<unlinear_model>(Q, R);
-		ukf   = std::make_shared<UKF<n_x, n_y, n_u>>(model, x0, P0);
+		model = std::make_shared<Unlinear_model>(Q, R);
+		ukf   = std::make_shared<UKF<Unlinear_model>>(model, x0, P0);
 	}
 
 	void TearDown() override {}
@@ -60,8 +61,8 @@ protected:
 	Mat_vv Q;
 	Mat_ww R;
 
-	std::shared_ptr<unlinear_model> model;
-	std::shared_ptr<UKF<n_x, n_y, n_u>> ukf;
+	std::shared_ptr<Unlinear_model> model;
+	std::shared_ptr<UKF<Unlinear_model>> ukf;
 };
 
 TEST_F(UKFtest, testConvergence)
