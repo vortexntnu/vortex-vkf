@@ -65,7 +65,7 @@ protected:
 	std::shared_ptr<UKF<Unlinear_model>> ukf;
 };
 
-TEST_F(UKFtest, testConvergence)
+TEST_F(UKFtest, Convergence)
 {
 	// Genereate random noise vector
 
@@ -83,7 +83,7 @@ TEST_F(UKFtest, testConvergence)
 		v << d_disturbance(gen); // get random number with normal distribution using gen as random source
 		// Simulate model
 		x = model->f(t, x, Input::Zero(), v);
-		// Get measurement
+		// Simulate measurement
 		w << d_noise(gen);
 		Measurement y = model->h(t, x, Input::Zero(), w);
 		// Iterate UKF

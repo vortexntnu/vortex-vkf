@@ -128,6 +128,8 @@ public:
 
 		// Corrected State Estimate x_next
 		State x_next = x_pred + K * (y - y_pred);
+		// Normalize quaternions if applicable
+		x_next = model->post_state_update(x_next);
 		// Corrected State Covariance P_xx_next
 		Mat_xx P_xx_next = P_xx_pred - K * P_yy * K.transpose();
 

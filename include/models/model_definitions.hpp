@@ -38,6 +38,12 @@ using Timestep = duration<double>;
 	using Mat_yv = Eigen::Matrix<double, n_y, n_v>;                                                                                                              \
 	using Mat_yw = Eigen::Matrix<double, n_y, n_w>;                                                                                                              \
                                                                                                                                                                \
+	using Mat_ux = Eigen::Matrix<double, n_u, n_x>;                                                                                                              \
+	using Mat_uy = Eigen::Matrix<double, n_u, n_y>;                                                                                                              \
+	using Mat_uu = Eigen::Matrix<double, n_u, n_u>;                                                                                                              \
+	using Mat_uv = Eigen::Matrix<double, n_u, n_v>;                                                                                                              \
+	using Mat_uw = Eigen::Matrix<double, n_u, n_w>;                                                                                                              \
+																																							   \
 	using Mat_vx = Eigen::Matrix<double, n_v, n_x>;                                                                                                              \
 	using Mat_vy = Eigen::Matrix<double, n_v, n_y>;                                                                                                              \
 	using Mat_vu = Eigen::Matrix<double, n_v, n_u>;                                                                                                              \

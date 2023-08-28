@@ -83,6 +83,18 @@ public:
 		return _R;
 	}
 
+	/**
+	 * @brief State update function:
+	 * Use this for post-processing of the state after the correction step.
+	 * This is needed for example in the case of quaternions, in order to normalize the state.
+	 * @param x State
+	 * @return The next state x_(k+1) = F(x_k,...)
+	 */
+	virtual const State post_state_update(const State &x) const
+	{
+		return x;
+	}
+
 	Mat_vv _Q;
 	Mat_ww _R;
 };
