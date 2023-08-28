@@ -124,7 +124,7 @@ public:
 	 */
 	State f(Time t, const State &x, const Input &u = Input::Zero(), const Disturbance &v = Disturbance::Zero()) const override final
 	{
-		(void)t;
+		(void)t; // unused
 		return _A * x + _B * u + _G * v;
 	}
 	/**
@@ -136,7 +136,7 @@ public:
 	 */
 	Measurement h(Time t, const State &x, const Input &u = Input::Zero(), const Noise &w = Noise::Zero()) const override final
 	{
-		(void)t;
+		(void)t; // unused
 		return _C * x + _D * u + _H * w;
 	}
 	/**
@@ -150,10 +150,10 @@ public:
 	 */
 	Mat_xx F_x(Time t, const State &x, const Input &u, const Disturbance &v = Disturbance::Zero()) const override final
 	{
-		(void)t;
-		(void)x;
-		(void)u;
-		(void)v;
+		(void)t; // unused
+		(void)x; // unused
+		(void)u; // unused
+		(void)v; // unused
 		return _A;
 	}
 
@@ -167,10 +167,10 @@ public:
 	 */
 	Mat_xv F_v(Time t, const State &x, const Input &u, const Disturbance &v = Disturbance::Zero()) const override final
 	{
-		(void)t;
-		(void)x;
-		(void)u;
-		(void)v;
+		(void)t; // unused
+		(void)x; // unused
+		(void)u; // unused
+		(void)v; // unused
 		return _G;
 	}
 	/**
@@ -244,5 +244,85 @@ public:
 	Mat_yw _H;
 };
 
+using Landmark_base = EKF_model_base<Integrator::RK4<7>, 7, 7, 0, 6, 6>;
+class Landmark_model : public Landmark_base {
+public:
+	// These type definitions are needed because of the stupid two-phase lookup for dependent names in templates in C++
+	using Base = Landmark_base;
+	using Base::_n_x; using Base::_n_y; using Base::_n_u; using Base::_n_v; using Base::_n_w;
+	DEFINE_MODEL_TYPES(7, 7, 0, 6, 6)
+
+	Landmark_model() : Base() {}
+	~Landmark_model() {}
+
+	/**
+	 * @brief Prediction equation f(t,x,u,v) = x_dot
+	 * 
+	 * @param t Simulation time
+	 * @param x State [x, y, z, q_w, q_x, q_y, q_z]
+	 * @param u Input (no input)
+	 * @param v Disturbance [x, y, z, r_1, r_2, r_3]
+	 * @return State 
+	 */
+	State f(Time t, const State &x, const Input &u = Input::Zero(), const Disturbance &v = Disturbance::Zero()) const override final
+	{
+		(void)t; // unused
+		(void)u; // unused
+
+		// Derivative of position
+		Eigen::Vector3d p_dot{v.head(3)};
+		// Derivative of orientation
+		Eigen::Quaterniond q{x(3), x(4), x(5), x(6)};
+		Eigen::Quaterniond q_dot = q * Eigen::Quaterniond(0, v(3), v(4), v(5));
+		q_dot = q_dot.coeffs() * 0.5;
+		// Combine
+		State x_dot;
+		x_dot << p_dot, q_dot.coeffs();
+		return x_dot;
+	}
+
+	/**
+	 * @brief Measurement equation h(t,x,u,w) = y
+	 * 
+	 * @param t Simulation time
+	 * @param x State [x, y, z, q_w, q_x, q_y, q_z]
+	 * @param u Input (no input)
+	 * @param w Noise [x, y, z, r_1, r_2, r_3]
+	 * @return Measurement [x, y, z, q_w, q_x, q_y, q_z]
+	 */
+	Measurement h(Time t, const State &x, const Input &u = Input::Zero(), const Noise &w = Noise::Zero()) const override final
+	{
+		(void)t;
+		(void)u;
+		
+		Eigen::Vector3d p_meas{x.head(3)+w.head(3)};
+		Eigen::Quaterniond q{x(3), x(4), x(5), x(6)};
+		// Convert noise rotation vector to quaternion
+		double alpha = w.tail(3).norm();
+		Eigen::Quaterniond q_noise{cos(alpha/2), sin(alpha/2)*w(3), sin(alpha/2)*w(4), sin(alpha/2)*w(5)};
+		Eigen::Quaterniond q_meas = q * q_noise;
+
+		Measurement y;
+		y << p_meas, q_meas.coeffs();
+		return y;
+	}
+	Mat_xx F_x(Time t, const State &x, const Input &u, const Disturbance &v = Disturbance::Zero()) const override final
+	{
+		(void)t;
+		(void)x;
+		(void)u;
+		(void)v;
+		return Mat_xx::Identity();
+	}
+	Mat_xv F_v(Time t, const State &x, const Input &u, const Disturbance &v = Disturbance::Zero()) const override final
+	{
+		(void)t;
+		(void)x;
+		(void)u;
+		(void)v;
+		return Mat_xv::Identity();
+	}
+
+};
 
 } // namespace Models
