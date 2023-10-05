@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 	auto ukf  = std::make_shared<Filters::UKF<Temp_gyro_model>>(model, x0, P0);
 
 	auto node = std::make_shared<Nodes::KF_node<Temp_gyro_model>>(ukf, 0.1s);
-
+	RCLCPP_INFO(node->get_logger(), "KF node created");
 	rclcpp::spin(node);
 	rclcpp::shutdown();
 }

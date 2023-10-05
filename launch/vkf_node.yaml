@@ -2,6 +2,6 @@ launch:
 
 - node:
     pkg: "vortex-vkf"
-    exec: "vkf_node"
+    exec: "vortex-vkf_node"
     name: "vkf_node"
-    namespace: "filter"
+
