@@ -2,7 +2,7 @@
 #include <cmath>
 
 namespace vortex {
-namespace probability {
+namespace prob {
 
     class ChiSquared {
     public:

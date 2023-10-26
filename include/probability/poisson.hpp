@@ -12,7 +12,7 @@
 #include <cmath>
 
 namespace vortex {
-namespace probability {
+namespace prob {
 
 class Poisson {
 public:

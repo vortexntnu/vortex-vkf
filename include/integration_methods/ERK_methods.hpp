@@ -12,7 +12,8 @@ using namespace Models;
 // Base class RK_method for RK4 and forward_euler to derive from
 
 
-template <int n_x> class None {
+template <int n_x> 
+class None {
 public:
 	/**
 	 * @brief Does not integrate, just returns f(t_k, x_k). Use if f is a discrete model
@@ -23,7 +24,8 @@ public:
 };
 template <typename Model> using None_M = None<Model::n_x>;
 
-template <int n_x> class RK4 {
+template <int n_x> 
+class RK4 {
 public:
 	DEFINE_MODEL_TYPES(n_x, 0, 0, 0, 0)
 	static State integrate(State_dot f, Timestep dt, Time t_k, const State &x_k)

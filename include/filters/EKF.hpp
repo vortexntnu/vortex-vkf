@@ -1,63 +1,72 @@
+/**
+ * @file EKF.hpp
+ * @author Eirik Kolås
+ * @brief 
+ * @version 0.1
+ * @date 2023-10-26
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
+
 #pragma once
-#include <filters/Kalman_filter_base.hpp>
-#include <models/EKF_models.hpp>
+#include <tuple>
+#include <probability/multi_var_gauss.hpp>
 
-namespace Filters {
-using namespace Models;
+namespace vortex {
+namespace filters {
 
-template <class EKF_Model> class EKF : public Kalman_filter_base<EKF_Model> {
+/** @brief Extended Kalman Filter
+ * 
+ * @tparam DynamicModel Dynamic model type. Has to have function for Jacobian of state transition.
+ * @tparam SensorModel Sensor model type. Has to have function for Jacobian of measurement. (get_H)
+ */
+template <class DynamicModel, class SensorModel>
+class EKF {
 public:
-	// These type definitions are needed because of the stupid two-phase lookup for dependent names in templates in C++
-	using Base = Kalman_filter_base<EKF_Model>;
-	using Base::_n_x; using Base::_n_y; using Base::_n_u; using Base::_n_v; using Base::_n_w; // can be comma separated in C++17
-	DEFINE_MODEL_TYPES(_n_x, _n_y, _n_u, _n_v, _n_w)
+    EKF(DynamicModel dynamic_model, SensorModel sensor_model)
+        : dynamic_model_(dynamic_model), sensor_model_(sensor_model) {}
 
-	EKF(std::shared_ptr<EKF_Model> ekf_model, State &x0, Mat_xx &P0) : Base(x0, P0), model{ekf_model}
-	{
-	}
-	~EKF() {}
+    /** Perform one EKF prediction step
+     * @param x_est_prev Previous state estimate
+     * @param dt Time step
+    */
+    std::tuple<DynamicModel, SensorModel> predict(std::chrono::duration<double> dt, prob::MultiVarGauss<n_dim_x_> x_est_prev) {
+        prob::MultiVarGauss<n_dim_x_> x_est_pred = dynamic_model_.pred_from_est(x_est_prev, dt);
+        prob::MultiVarGauss<n_dim_z_> z_est_pred = sensor_model_.pred_from_est(x_est_pred);
+        return {x_est_pred, z_est_pred};
+    }
 
-	State iterate(Time Ts, const Measurement &y, const Input &u = Input::Zero()) override final
-	{
-		// Calculate Jacobians F_x, F_v
-		Mat_xx F_x = model->F_x(Ts, this->_x, u);
-		Mat_xv F_v = model->F_v(Ts, this->_x, u);
-		Mat_vv Q   = model->Q(Ts, this->_x);
-		// Predicted State Estimate x_k-
-		State x_pred = model->f(Ts, this->_x, u);
-		// Predicted State Covariance P_xx-
-		Mat_xx P_xx_pred = F_x * this->_P_xx * F_x.transpose() + F_v * Q * F_v.transpose();
-		// Predicted Output y_pred
-		Measurement y_pred = model->h(Ts, x_pred);
+    /** Perform one EKF update step
+     * @param x_est_pred Predicted state
+     * @param z_est_pred Predicted measurement
+     * @param z_meas Measurement
+     * @return MultivarGauss Updated state
+    */
+    prob::MultiVarGauss<n_dim_x_> update(prob::MultiVarGauss<n_dim_x_> x_est_pred, prob::MultiVarGauss<n_dim_z_> z_est_pred, Eigen::Vector<double, n_dim_z_> z_meas) {
+        auto H_mat = sensor_model_.H(x_est_pred);
+        auto R_mat = sensor_model_.R(x_est_pred);
+        auto P_mat = x_est_pred.cov();
+        auto S_mat = z_est_pred.cov();
+        auto S_mat_inv = z_est_pred.cov_inv();
+        auto I = Eigen::Matrix<double, n_dim_x_, n_dim_x_>::Identity();
 
-		// Calculate Jacobians H_x, H_w
-		Mat_yx H_x = model->H_x(Ts, x_pred, u);
-		Mat_yw H_w = model->H_w(Ts, x_pred, u);
-		Mat_ww R   = model->R(Ts, x_pred);
-		// Output Covariance P_yy
-		Mat_yy P_yy = H_x * P_xx_pred * H_x.transpose() + H_w * R * H_w.transpose();
-		// Cross Covariance P_xy
-		Mat_xy P_xy = P_xx_pred * H_x.transpose();
+        Eigen::Matrix<double, n_dim_x_, n_dim_z_> kalman_gain = P_mat * H_mat.transpose() * S_mat_inv;
+        Eigen::Vector<double, n_dim_z_> innovation = z_meas - z_est_pred.mean();
 
-		// Kalman gain K
-		Mat_yy P_yy_inv = P_yy.llt().solve(Mat_yy::Identity()); // Use Cholesky decomposition for inverting P_yy
-		Mat_xy K        = P_xy * P_yy_inv;
+        Eigen::Matrix<double, n_dim_x_, n_dim_x_> state_upd_mean = x_est_pred.mean() + kalman_gain * innovation;
+        // Use the Joseph form of the covariance update to ensure positive definiteness
+        Eigen::Matrix<double, n_dim_x_, n_dim_x_> state_upd_cov = (I - kalman_gain * H_mat) * P_mat * (I - kalman_gain * H_mat).transpose() + kalman_gain * R_mat * kalman_gain.transpose();
 
-		// Corrected State Estimate x_next
-		State x_next = x_pred + K * (y - y_pred);
-		// Normalize quaternions if applicable
-		x_next = model->post_state_update(x_next);
-		// Corrected State Covariance P_xx_next
-		Mat_xx P_xx_next = (Mat_xx::Identity() - K * H_x) * P_xx_pred;
-
-		// Update local state
-		this->_x    = x_next;
-		this->_P_xx = P_xx_next;
-
-		return x_next;
-	}
+        return prob::MultiVarGauss<n_dim_x_>(state_upd_mean, state_upd_cov);
+    }
 
 private:
-	std::shared_ptr<EKF_Model> model;
+    const Dynamic_model dynamic_model_;
+    const Sensor_model sensor_model_;
+    static constexpr n_dim_x_ = DynamicModel::n_dim;
+    static constexpr n_dim_z_ = SensorModel::n_dim;
 };
-} // namespace Filters
+
+}  // namespace filters
+}  // namespace vortex

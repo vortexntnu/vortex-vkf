@@ -15,7 +15,7 @@
 #include "multi_var_gauss.hpp"
 
 namespace vortex {
-namespace probability {
+namespace prob {
 
 /** 
  * A class for representing a multivariate Gaussian mixture distribution
