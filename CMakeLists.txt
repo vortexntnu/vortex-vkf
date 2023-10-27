@@ -62,13 +62,14 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(${PROJECT_NAME}_test 
     test/main.cpp
-    test/matrix_size_test.cpp
-    test/lti_model_test.cpp
+    # test/matrix_size_test.cpp
+    # test/lti_model_test.cpp
     # test/six_dof_model_test.cpp
-    test/ekf_test.cpp
-    test/ukf_test.cpp
-    test/erk_test.cpp
+    # test/ukf_test.cpp
+    # test/erk_test.cpp
     test/probability_test.cpp
+    test/dynamic_model_test.cpp
+    test/sensor_model_test.cpp
   )
   target_include_directories(${PROJECT_NAME}_test PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

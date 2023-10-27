@@ -8,18 +8,20 @@
  * @copyright Copyright (c) 2023
  * 
  */
-
-#include <Eigen/Dense>
+#pragma once
+#include <eigen3/Eigen/Dense>
+#include <eigen3/unsupported/Eigen/MatrixFunctions> // For exp
 #include <probability/multi_var_gauss.hpp>
+#include <integration_methods/ERK_methods.hpp>
 
 namespace vortex {
-namespace filters {
+namespace models {
 
-template <int n_dim>
+template <int N_DIM_x>
 class DynamicModel {
-    using State = Eigen::Matrix<double, n_dim, 1>;
-    using Mat_xx = Eigen::Matrix<double, n_dim, n_dim>;
 public:
+    using State = Eigen::Vector<double, N_DIM_x>;
+    using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
 
     virtual ~DynamicModel() = default;
 
@@ -59,7 +61,7 @@ public:
     virtual Mat_xx F_d(const State& x, double dt) 
     {
         // Use (4.58) from the book
-        return Eigen::expm(A_c(x) * dt);
+        return (A_c(x) * dt).exp();
     }
 
     /** Discrete time process noise
@@ -70,35 +72,49 @@ public:
     virtual Mat_xx Q_d(const State& x, double dt)
     {
         // See https://en.wikipedia.org/wiki/Discretization#Discretization_of_process_noise for more info
-        Mat_xx A_c = A_c(x);
-        Mat_xx Q_c = Q_c(x);
 
-        Mat_xx F;
+        Mat_xx A_c = this->A_c(x);
+        Mat_xx Q_c = this->Q_c(x);
+
+        Eigen::Matrix<double, 2 * N_DIM_x, 2 * N_DIM_x> F;
         // clang-format off
-        F << -A_c           , Q_c,
-             Mat_xx::Zeros(), A_c.transpose();
+        F << -A_c          , Q_c,
+             Mat_xx::Zero(), A_c.transpose();
         // clang-format on
-        Eigen::Matrix<double, 2 * n_dim, 2 * n_dim> G = Eigen::expm(F * dt);
-        return G.template block<n_dim, n_dim>(0, n_dim) * G.template block<n_dim, n_dim>(n_dim, n_dim).transpose();
+        Eigen::Matrix<double, 2 * N_DIM_x, 2 * N_DIM_x> G = (F * dt).exp();
+        return G.template block<N_DIM_x, N_DIM_x>(0, N_DIM_x) * G.template block<N_DIM_x, N_DIM_x>(N_DIM_x, N_DIM_x).transpose();
     }
     
 
-    /** Propagate state estimate through dynamics
+    /** Get the predicted state distribution given a state estimate
      * @param x_est State estimate
      * @param dt Time step
      * @return State
      */
-    virtual prob::MultiVarGauss<n_dim> pred_from_est(const prob::MultiVarGauss<n_dim>& x_est, double dt)
+    virtual prob::MultiVarGauss<N_DIM_x> pred_from_est(const prob::MultiVarGauss<N_DIM_x>& x_est, double dt)
     {
         Mat_xx P = x_est.cov();
-        Mat_xx F_d = F_d(x_est.mean(), dt);
-        Mat_xx Q_d = Q_d(x_est.mean(), dt);
-        prob::MultiVarGauss x_est_pred(f_d(x_est.mean(), dt), F_d * P * F_d.transpose() + Q_d);
+        Mat_xx F_d = this->F_d(x_est.mean(), dt);
+        Mat_xx Q_d = this->Q_d(x_est.mean(), dt);
+        prob::MultiVarGauss<N_DIM_x> x_est_pred(this->f_d(x_est.mean(), dt), F_d * P * F_d.transpose() + Q_d);
+
+        return x_est_pred;
+    }
+
+    /** Get the predicted state distribution given a state
+     * @param x State
+     * @param dt Time step
+     * @return State
+     */
+    virtual prob::MultiVarGauss<N_DIM_x> pred_from_state(const State& x, double dt)
+    {
+        Mat_xx Q_d = this->Q_d(x, dt);
+        prob::MultiVarGauss<N_DIM_x> x_est_pred(this->f_d(x, dt), Q_d);
 
         return x_est_pred;
     }
 
 };
 
-}  // namespace filters
+}  // namespace models
 }  // namespace vortex

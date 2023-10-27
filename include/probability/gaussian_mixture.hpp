@@ -19,15 +19,15 @@ namespace prob {
 
 /** 
  * A class for representing a multivariate Gaussian mixture distribution
- * @tparam n_dim dimentions of the Gaussian
+ * @tparam N_DIM_x dimentions of the Gaussian
  */
-template <int n_dim>
+template <int N_DIM_x>
 class GaussianMixture {
 public:
-    using Vector = Eigen::Vector<double, n_dim>;
-    using Matrix = Eigen::Matrix<double, n_dim, n_dim>;
+    using Vector = Eigen::Vector<double, N_DIM_x>;
+    using Matrix = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
     
-    GaussianMixture(std::vector<int> weights, std::vector<MultiVarGauss<n_dim>> gaussians)
+    GaussianMixture(std::vector<int> weights, std::vector<MultiVarGauss<N_DIM_x>> gaussians)
         : weights_(weights), gaussians_(gaussians) 
     {
         assert(weights_.size() == gaussians_.size());
@@ -78,18 +78,18 @@ public:
     /** Reduce the Gaussian mixture to a single Gaussian
      * @return MultiVarGauss
     */
-    MultiVarGauss<n_dim> reduce() const {
+    MultiVarGauss<N_DIM_x> reduce() const {
         return MultivarGauss(mean(), cov());
     }
 
     /** dimentions of the Gaussian mixture
      * @return int 
     */
-    int n_dims() const { return (n_dim); }
+    int n_dims() const { return (N_DIM_x); }
 
 private: 
     std::vector<int> weights_;
-    std::vector<MultiVarGauss<n_dim>> gaussians_;
+    std::vector<MultiVarGauss<N_DIM_x>> gaussians_;
     
 
 };  // class GaussianMixture

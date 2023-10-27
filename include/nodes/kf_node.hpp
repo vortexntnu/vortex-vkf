@@ -10,7 +10,7 @@ using std::placeholders::_1;
 #include <filters/Kalman_filter_base.hpp>
 #include <filters/UKF.hpp>
 #include <models/model_definitions.hpp>
-#include <models/temp_gyro_model.hpp>
+// #include <models/temp_gyro_model.hpp>
 namespace Nodes {
 using namespace Models;
 using Period = Timestep;

@@ -8,36 +8,36 @@
  * @copyright Copyright (c) 2023
  * 
  */
-
-#include <Eigen/Dense>
+#pragma once
+#include <eigen3/Eigen/Dense>
 #include <probability/multi_var_gauss.hpp>
 
 namespace vortex {
-namespace filters {
+namespace models {
 
 
-template <int n_dim_x, int n_dim_z>
+template <int N_DIM_x, int N_DIM_z>
 class SensorModel {
-    using Measurement = Eigen::Matrix<double, n_dim_z, 1>;
-    using State = Eigen::Matrix<double, n_dim_x, 1>;
-    using Mat_zz = Eigen::Matrix<double, n_dim_z, n_dim_z>;
-    using Mat_zx = Eigen::Matrix<double, n_dim_z, n_dim_x>;
-    using Mat_xx = Eigen::Matrix<double, n_dim_x, n_dim_x>;
 public:
+    using Measurement = Eigen::Vector<double, N_DIM_z>;
+    using State       = Eigen::Vector<double, N_DIM_x>;
+    using Mat_xx      = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+    using Mat_zx      = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
+    using Mat_zz      = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
 
     virtual ~SensorModel() = default;
 
     virtual Measurement h(const State& x) const = 0;
-    vitrual Mat_zx H(const State& x) const = 0;
+    virtual Mat_zx H(const State& x) const = 0;
     virtual Mat_zz R(const State& x) const = 0;
 
     /**
-     * @brief Get the predicted measurement distribution given a state estimate
+     * @brief Get the predicted measurement distribution given a state estimate. Updates the covariance
      * 
      * @param x_est State estimate
      * @return prob::MultiVarGauss 
      */
-    virtual prob::MultiVarGauss pred_from_est(const prob::MultiVarGauss<n_dim_x>& x_est) const 
+    virtual prob::MultiVarGauss<N_DIM_z> pred_from_est(const prob::MultiVarGauss<N_DIM_x>& x_est) const 
     {
         Mat_xx P = x_est.cov();
         Mat_zx H = this->H(x_est.mean());
@@ -47,15 +47,15 @@ public:
     }
 
     /**
-     * @brief Get the predicted measurement distribution given a state
+     * @brief Get the predicted measurement distribution given a state. Does not update the covariance
      * @param x State
      * @return prob::MultiVarGauss 
      */
-    virtual prob::MultiVarGauss pred_from_state(const State& x) const 
+    virtual prob::MultiVarGauss<N_DIM_z> pred_from_state(const State& x) const 
     {
         return {this->h(x), this->R(x)};
     }
 };
 
-}  // namespace filters
+}  // namespace models
 }  // namespace vortex
