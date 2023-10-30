@@ -17,12 +17,12 @@
 namespace vortex {
 namespace models {
 
-template <int N_DIM_x>
+template <int n_dim_x>
 class DynamicModel {
 public:
+    static constexpr int N_DIM_x = n_dim_x;
     using State = Eigen::Vector<double, N_DIM_x>;
     using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-
     virtual ~DynamicModel() = default;
 
     /** Continuos time dynamics

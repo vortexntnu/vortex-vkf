@@ -12,7 +12,7 @@
 #pragma once
 #include <eigen3/Eigen/Dense>
 #include <vector>
-#include "multi_var_gauss.hpp"
+#include <probability/multi_var_gauss.hpp>
 
 namespace vortex {
 namespace prob {
@@ -24,8 +24,8 @@ namespace prob {
 template <int N_DIM_x>
 class GaussianMixture {
 public:
-    using Vector = Eigen::Vector<double, N_DIM_x>;
-    using Matrix = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+    using Vec = Eigen::Vector<double, N_DIM_x>;
+    using Mat = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
     
     GaussianMixture(std::vector<int> weights, std::vector<MultiVarGauss<N_DIM_x>> gaussians)
         : weights_(weights), gaussians_(gaussians) 
@@ -37,7 +37,7 @@ public:
      * @param x
      * @return double
      */
-    double pdf(const Vector& x) const {
+    double pdf(const Vec& x) const {
         double pdf = 0;
         for (int i = 0; i < gaussians_.size(); i++) {
             pdf += weights_[i] * gaussians_[i].pdf(x);
@@ -48,8 +48,8 @@ public:
     /** Find the mean of the Gaussian mixture
      * @return Vector 
     */
-    Vector mean() const { 
-        Vector mean = Vector::Zero();
+    Vec mean() const { 
+        Vec mean = Vec::Zero();
         for (int i = 0; i < gaussians_.size(); i++) {
             mean += weights_[i] * gaussians_[i].mean();
         }
@@ -59,16 +59,16 @@ public:
     /** Find the covariance of the Gaussian mixture
      * @return Matrix 
     */
-    Matrix cov() const { 
+    Mat cov() const { 
         // Spread of innovations
-        Matrix P_bar = Matrix::Zero();
+        Mat P_bar = Mat::Zero();
         for (int i = 0; i < gaussians_.size(); i++) {
             P_bar += weights_[i] * gaussians_[i].mean() * gaussians_[i].mean().transpose();
         }
         P_bar -= mean() * mean().transpose();
 
         // Spread of Gaussians
-        Matrix P = Matrix::Zero();
+        Mat P = Mat::Zero();
         for (int i = 0; i < gaussians_.size(); i++) {
             P += weights_[i] * gaussians_[i].cov();
         }
@@ -93,5 +93,8 @@ private:
     
 
 };  // class GaussianMixture
+
 }  // namespace probability
 }  // namespace vortex
+
+int sum(int a, int b);

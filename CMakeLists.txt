@@ -7,7 +7,11 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-local-typedefs -fopenmp)
+  add_compile_options(
+    -Wall -Wextra -Wpedantic 
+    -Wno-unused-local-typedefs # Suppress warnings from model_definitions.hpp
+    -fopenmp # For parallel processing with Eigen
+  )
 endif()
 
 # Find dependencies
@@ -16,6 +20,9 @@ find_package(rclcpp         REQUIRED)
 find_package(std_msgs       REQUIRED)
 find_package(geometry_msgs  REQUIRED)
 find_package(Eigen3         REQUIRED)
+find_package(OpenMP         REQUIRED) # For parallel processing with Eigen
+find_package(Gnuplot REQUIRED)
+find_package(Boost REQUIRED COMPONENTS iostreams system filesystem) # for gnuplot
 
 
 # Add include
@@ -30,7 +37,11 @@ ament_target_dependencies(${PROJECT_NAME}_node
   rclcpp 
   std_msgs
   geometry_msgs
-  Eigen3
+  Gnuplot
+  Boost
+)
+target_link_libraries(${PROJECT_NAME}_node 
+  Eigen3::Eigen
 )
 
 # Let ros2 run find the executables
@@ -77,7 +88,14 @@ if(BUILD_TESTING)
   )
   ament_target_dependencies(${PROJECT_NAME}_test
     std_msgs
+    Gnuplot
+    Boost
   )
+  target_link_libraries(${PROJECT_NAME}_test 
+    Eigen3::Eigen
+    OpenMP::OpenMP_CXX
+  )
+
 
 endif()
 

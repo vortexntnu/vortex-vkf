@@ -1,21 +1,21 @@
 #pragma once
-#include <eigen3/Eigen/Dense>
+#include <Eigen/Dense>
 
 namespace vortex {
 namespace prob {
 
 /** 
  * A class for representing a multivariate Gaussian distribution
- * @tparam N_DIM_x dimentions of the Gaussian
+ * @tparam N_DIMS dimentions of the Gaussian
  */
-template <int N_DIM_x>
+template <int N_DIMS>
 class MultiVarGauss {
 public:
-    using Vector = Eigen::Vector<double, N_DIM_x>;
-    using Matrix = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+    using Vector = Eigen::Vector<double, N_DIMS>;
+    using Matrix = Eigen::Matrix<double, N_DIMS, N_DIMS>;
     
     MultiVarGauss(const Vector& mean, const Matrix& cov)
-        : mean_(mean), cov_(cov), cov_inv_(cov_.llt().solve(Matrix::Identity()))
+        : mean_(mean), cov_(cov), cov_inv_(cov_.llt().solve(Matrix::Identity(N_DIMS, N_DIMS)))
     {
         // Check that the covariance matrix is positive definite and symmetric
         if (cov_ != cov_.transpose()) {
@@ -33,7 +33,7 @@ public:
     double pdf(const Vector& x) const {
         const auto diff = x - mean_;
         const auto exponent = -0.5 * diff.transpose() * cov_inv_ * diff;
-        return std::exp(exponent) / std::sqrt(std::pow(2 * M_PI, N_DIM_x) * cov_.determinant());
+        return std::exp(exponent) / std::sqrt(std::pow(2 * M_PI, N_DIMS) * cov_.determinant());
     }
 
     /** Calculate the log likelihood of x given the Gaussian.
@@ -44,7 +44,7 @@ public:
     double logpdf(const Vector& x) const {
         const auto diff = x - mean_;
         const auto exponent = -0.5 * diff.transpose() * cov_inv_ * diff;
-        return exponent - 0.5 * std::log(std::pow(2 * M_PI, N_DIM_x) * cov_.determinant());
+        return exponent - 0.5 * std::log(std::pow(2 * M_PI, N_DIMS) * cov_.determinant());
     }
     
 
@@ -65,7 +65,7 @@ public:
     /** dimentions of the Gaussian
      * @return int 
     */
-    int n_dims() const { return N_DIM_x; }
+    int n_dims() const { return N_DIMS; }
     
     private:
     Vector mean_;

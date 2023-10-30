@@ -16,9 +16,11 @@ namespace vortex {
 namespace models {
 
 
-template <int N_DIM_x, int N_DIM_z>
+template <int n_dim_x, int n_dim_z>
 class SensorModel {
 public:
+    static constexpr int N_DIM_x = n_dim_x;
+    static constexpr int N_DIM_z = n_dim_z;
     using Measurement = Eigen::Vector<double, N_DIM_z>;
     using State       = Eigen::Vector<double, N_DIM_x>;
     using Mat_xx      = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;

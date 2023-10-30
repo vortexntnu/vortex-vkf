@@ -51,3 +51,35 @@ public:
     }
 
 };
+
+class VariableLengthSensorModel : public vortex::models::SensorModel<2, Eigen::Dynamic> {
+public:
+    using typename SensorModel<2, Eigen::Dynamic>::Measurement;
+    using typename SensorModel<2, Eigen::Dynamic>::State;
+    using typename SensorModel<2, Eigen::Dynamic>::Mat_xx;
+    using typename SensorModel<2, Eigen::Dynamic>::Mat_zx;
+    using typename SensorModel<2, Eigen::Dynamic>::Mat_zz;
+    using SensorModel::N_DIM_z;
+    using SensorModel::N_DIM_x;
+
+
+    VariableLengthSensorModel(int n_z) : n_z(n_z) {}
+
+    Measurement h(const State& x) const override
+    {
+        return x;
+    }
+
+    Mat_zx H(const State& x) const override
+    {
+        (void)x; // unused
+        return Mat_zx::Identity(N_DIM_x, N_DIM_x);
+    }
+    Mat_zz R(const State& x) const override
+    {
+        (void)x; // unused
+        return Mat_zz::Identity(N_DIM_x, N_DIM_x)*0.1;
+    }
+
+    const int n_z;
+};
