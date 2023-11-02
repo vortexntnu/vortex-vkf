@@ -6,6 +6,7 @@ class SimpleDynamicModel : public vortex::models::DynamicModel<2> {
 public:
     using typename DynamicModel<2>::State;
     using typename DynamicModel<2>::Mat_xx;
+    using DynamicModel<2>::N_DIM_x;
 
     // A stable state transition 
     State f_c(const State &x) const override
@@ -33,6 +34,8 @@ public:
     using typename SensorModel<2, 2>::Mat_xx;
     using typename SensorModel<2, 2>::Mat_zx;
     using typename SensorModel<2, 2>::Mat_zz;
+    using SensorModel<2, 2>::N_DIM_x;
+    using SensorModel<2, 2>::N_DIM_z;
 
     Measurement h(const State& x) const override
     {

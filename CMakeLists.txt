@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
 project(vortex-vkf)
 
-# Default to C++14
+# Default to C++17
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 14)
-endif()
+  set(CMAKE_CXX_STANDARD 17)
+  endif()
+set(CMAKE_CXX_STANDARD 17)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(
@@ -73,11 +74,7 @@ if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(${PROJECT_NAME}_test 
     test/main.cpp
-    # test/matrix_size_test.cpp
-    # test/lti_model_test.cpp
-    # test/six_dof_model_test.cpp
-    # test/ukf_test.cpp
-    # test/erk_test.cpp
+    test/ekf_test.cpp
     test/probability_test.cpp
     test/dynamic_model_test.cpp
     test/sensor_model_test.cpp
@@ -92,7 +89,7 @@ if(BUILD_TESTING)
     Boost
   )
   target_link_libraries(${PROJECT_NAME}_test 
-    Eigen3::Eigen
+    Eigen3::Eigen # Makes us able to use #include <Eigen/Dense> instead of #include <eigen3/Eigen/Dense>
     OpenMP::OpenMP_CXX
   )
 

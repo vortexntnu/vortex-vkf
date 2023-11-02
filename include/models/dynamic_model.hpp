@@ -48,7 +48,7 @@ public:
      * @param dt Time step
      * @return State
      */
-    virtual State f_d(const State& x, double dt) 
+    virtual State f_d(const State& x, double dt) const
     {
         return F_d(x, dt) * x;
     }
@@ -58,7 +58,7 @@ public:
      * @param dt Time step
      * @return State_jac
      */
-    virtual Mat_xx F_d(const State& x, double dt) 
+    virtual Mat_xx F_d(const State& x, double dt) const
     {
         // Use (4.58) from the book
         return (A_c(x) * dt).exp();
@@ -69,7 +69,7 @@ public:
      * @param dt Time step
      * @return Matrix Process noise covariance
      */
-    virtual Mat_xx Q_d(const State& x, double dt)
+    virtual Mat_xx Q_d(const State& x, double dt) const
     {
         // See https://en.wikipedia.org/wiki/Discretization#Discretization_of_process_noise for more info
 
@@ -91,7 +91,7 @@ public:
      * @param dt Time step
      * @return State
      */
-    virtual prob::MultiVarGauss<N_DIM_x> pred_from_est(const prob::MultiVarGauss<N_DIM_x>& x_est, double dt)
+    virtual prob::MultiVarGauss<N_DIM_x> pred_from_est(const prob::MultiVarGauss<N_DIM_x>& x_est, double dt) const
     {
         Mat_xx P = x_est.cov();
         Mat_xx F_d = this->F_d(x_est.mean(), dt);
@@ -106,7 +106,7 @@ public:
      * @param dt Time step
      * @return State
      */
-    virtual prob::MultiVarGauss<N_DIM_x> pred_from_state(const State& x, double dt)
+    virtual prob::MultiVarGauss<N_DIM_x> pred_from_state(const State& x, double dt) const
     {
         Mat_xx Q_d = this->Q_d(x, dt);
         prob::MultiVarGauss<N_DIM_x> x_est_pred(this->f_d(x, dt), Q_d);

@@ -27,8 +27,8 @@ public:
     using Vec = Eigen::Vector<double, N_DIM_x>;
     using Mat = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
     
-    GaussianMixture(std::vector<int> weights, std::vector<MultiVarGauss<N_DIM_x>> gaussians)
-        : weights_(weights), gaussians_(gaussians) 
+    GaussianMixture(std::vector<double> weights, std::vector<MultiVarGauss<N_DIM_x>> gaussians)
+        : weights_(std::move(weights)), gaussians_(std::move(gaussians)) 
     {
         assert(weights_.size() == gaussians_.size());
     }
@@ -87,14 +87,22 @@ public:
     */
     int n_dims() const { return (N_DIM_x); }
 
+    /** Get the weights of the Gaussian mixture
+     * @return std::vector<int> 
+    */
+    std::vector<double> weights() const { return weights_; }
+
+    /** Get the Gaussians of the Gaussian mixture
+     * @return std::vector<MultiVarGauss<N_DIM_x>> 
+    */
+    std::vector<MultiVarGauss<N_DIM_x>> gaussians() const { return gaussians_; }
+
 private: 
-    std::vector<int> weights_;
-    std::vector<MultiVarGauss<N_DIM_x>> gaussians_;
+    const std::vector<double> weights_;
+    const std::vector<MultiVarGauss<N_DIM_x>> gaussians_;
     
 
 };  // class GaussianMixture
 
 }  // namespace probability
 }  // namespace vortex
-
-int sum(int a, int b);
