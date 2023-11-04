@@ -59,7 +59,7 @@ public:
      * @return MultivarGauss Updated state
     */
     Gauss_x update(const Gauss_x& x_est_pred, const Gauss_z& z_est_pred, const Vec_z& z_meas) {
-        Mat_xz H_mat = sensor_model_.H(x_est_pred.mean());
+        Mat_zx H_mat = sensor_model_.H(x_est_pred.mean());
         Mat_zz R_mat = sensor_model_.R(x_est_pred.mean());
         Mat_xx P_mat = x_est_pred.cov();
         Mat_zz S_mat_inv = z_est_pred.cov_inv();
@@ -80,9 +80,10 @@ public:
      * @param x_est_prev Previous state estimate
      * @param z_meas Vec_z
      * @param dt Time step
+     * @return std::tuple<Gauss_x, Gauss_x, Gauss_z> Updated state, predicted state, predicted measurement
      */
-    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const Gauss_x& x_est_prev, const Gauss_z& z_meas, double dt) {
-        std::pair<Gauss_x, Gauss_z> pred = predict(dt, x_est_prev);
+    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const Gauss_x& x_est_prev, const Vec_z& z_meas, double dt) {
+        std::pair<Gauss_x, Gauss_z> pred = predict(x_est_prev, dt);
         Gauss_x x_est_pred = pred.first;
         Gauss_z z_est_pred = pred.second;
         Gauss_x x_est_upd  = update(x_est_pred, z_est_pred, z_meas);

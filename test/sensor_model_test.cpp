@@ -5,30 +5,38 @@
 
 namespace simple_sensor_model_test {
 
-using Measurement = typename SimpleSensorModel::Vec_z;
-using Vec_x = typename SimpleSensorModel::Vec_x;
-using Mat_xx = typename SimpleSensorModel::Mat_xx;
+using SensorModel = SimpleSensorModel<2,1>;
+using Measurement = typename SensorModel::Vec_z;
+using Vec_x = typename SensorModel::Vec_x;
+using Vec_z = typename SensorModel::Vec_z;
+using Mat_xx = typename SensorModel::Mat_xx;
+using Mat_zz = typename SensorModel::Mat_zz;
+using Mat_zx = typename SensorModel::Mat_zx;
+using Mat_xz = typename SensorModel::Mat_xz;
+using Gauss_x = typename SensorModel::Gauss_x;
+using Gauss_z = typename SensorModel::Gauss_z;
 
 
 TEST(SensorModel, initSimpleModel)
 {   
-    SimpleSensorModel model;
-    EXPECT_EQ(model.h(Vec_x::Zero()), Vec_x::Zero());
+    SensorModel model;
+    EXPECT_EQ(model.h(Vec_x::Zero()), Vec_z::Zero());
 
     Vec_x x{1,2};
-    EXPECT_EQ(model.h(x), x);
+    Vec_z z{1};
+    EXPECT_EQ(model.h(x), z);
 }
 
 TEST(SensorModel, predictSimpleModel)
 {
-    SimpleSensorModel model;
-    vortex::prob::MultiVarGauss<2> x_est{Vec_x::Zero(), Mat_xx::Identity()};
-    vortex::prob::MultiVarGauss<2> pred = model.pred_from_est(x_est);
-    EXPECT_EQ(pred.mean(), Vec_x::Zero());
-    EXPECT_TRUE(pred.cov().isApprox(Mat_xx::Identity()*1.1));
+    SensorModel model;
+    Gauss_x x_est{Vec_x::Zero(), Mat_xx::Identity()};
+    Gauss_z pred = model.pred_from_est(x_est);
+    EXPECT_EQ(pred.mean(), Vec_z::Zero());
+    EXPECT_TRUE(pred.cov().isApprox(Mat_zz::Identity()*1.1));
 
     pred = model.pred_from_state(x_est.mean());
-    EXPECT_TRUE(pred.cov().isApprox(Mat_xx::Identity()*0.1));
+    EXPECT_TRUE(pred.cov().isApprox(Mat_zz::Identity()*0.1));
 }
 
 

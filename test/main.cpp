@@ -2,10 +2,7 @@
 #include <eigen3/Eigen/Core>
 
 int main(int argc, char **argv)
-{
-	(void)argc;
-	(void)argv;
-	
+{	
 	Eigen::initParallel();
 	Eigen::setNbThreads(8);
 

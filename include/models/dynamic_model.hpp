@@ -17,11 +17,11 @@
 namespace vortex {
 namespace models {
 
-template <int n_dim_x>
 /**
  * @brief Interface for dynamic models. 
  * 
  */
+template <int n_dim_x>
 class DynamicModelI {
 public:
     static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
@@ -82,13 +82,15 @@ public:
         Mat_xx A_c = this->A_c(x);
         Mat_xx Q_c = this->Q_c(x);
 
-        Eigen::Matrix<double, 2 * N_DIM_x, 2 * N_DIM_x> F;
-        // clang-format off
-        F << -A_c          , Q_c,
-             Mat_xx::Zero(), A_c.transpose();
-        // clang-format on
-        Eigen::Matrix<double, 2 * N_DIM_x, 2 * N_DIM_x> G = (F * dt).exp();
-        return G.template block<N_DIM_x, N_DIM_x>(0, N_DIM_x) * G.template block<N_DIM_x, N_DIM_x>(N_DIM_x, N_DIM_x).transpose();
+        Eigen::Matrix<double, 2 * N_DIM_x, 2 * N_DIM_x> v_1;
+        v_1 << -A_c, Q_c, Mat_xx::Zero(), A_c.transpose();
+        v_1 *= dt;
+        v_1 = v_1.exp();
+        Mat_xx F_d = v_1.template block<N_DIM_x, N_DIM_x>(N_DIM_x, N_DIM_x).transpose();
+        Mat_xx F_d_inv_Q_d = v_1.template block<N_DIM_x, N_DIM_x>(0, N_DIM_x);
+        Mat_xx Q_d = F_d * F_d_inv_Q_d;
+
+        return Q_d;
     }
     
 
