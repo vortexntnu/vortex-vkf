@@ -4,7 +4,7 @@
 
 namespace simple_dynamic_model_test {
 
-using State  = typename SimpleDynamicModel::State;
+using Vec_x  = typename SimpleDynamicModel::Vec_x;
 using Mat_xx = typename SimpleDynamicModel::Mat_xx;
 
 TEST(DynamicModel, initSimpleModel)
@@ -16,7 +16,7 @@ TEST(DynamicModel, iterateSimpleModel)
 {
     SimpleDynamicModel model;
     double dt = 1.0;
-    State x = State::Zero();
+    Vec_x x = Vec_x::Zero();
 
     for (size_t i = 0; i < 10; i++)
     {

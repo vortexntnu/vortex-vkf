@@ -81,7 +81,7 @@ public:
      * @brief Calculate the mode-match filter outputs (6.36), following step 3 in (6.4.1) in the book
      * 
      * @param moment_based_preds Moment-based predictions
-     * @param z_meas Measurement
+     * @param z_meas Vec_z
      * @param dt Time step
      */
     std::tuple<std::vector<prob::MultiVarGauss<N_DIM_x>>, std::vector<prob::MultiVarGauss<N_DIM_x>>, std::vector<prob::MultiVarGauss<N_DIM_z>>>> mode_match_filter(const std::vector<prob::MultiVarGauss<N_DIM_x>>& moment_based_preds, Vec_zz z_meas, double dt) 
@@ -101,7 +101,7 @@ public:
     /**
      * @brief Update the mixing probabilites using (6.37) from setp 3 and (6.38) from step 4 in (6.4.1) in the book
      * @param ekf_outs Mode-match filter outputs
-     * @param z_meas Measurement
+     * @param z_meas Vec_z
      * @param dt Time step
      * @param weights Weights 
      */
@@ -127,7 +127,7 @@ public:
      * @brief Perform one IMM filter step
      * 
      * @param x_est_prev Mixture from previous time step
-     * @param z_meas Measurement
+     * @param z_meas Vec_z
      * @param dt Time step
      */
     std::tuple<prob::GaussianMixture<N_DIM_x>, prob::GaussianMixture<N_DIM_x>, prob::GaussianMixture<N_DIM_z> step(const prob::GaussianMixture<N_DIM_x>& x_est_prev, Vec_z z_meas, double dt)

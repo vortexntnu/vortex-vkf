@@ -17,29 +17,36 @@ namespace models {
 
 
 template <int n_dim_x, int n_dim_z>
-class SensorModel {
+/**
+ * @brief Interface for sensor models.
+ * 
+ */
+class SensorModelI {
 public:
-    static constexpr int N_DIM_x = n_dim_x;
-    static constexpr int N_DIM_z = n_dim_z;
-    using Measurement = Eigen::Vector<double, N_DIM_z>;
-    using State       = Eigen::Vector<double, N_DIM_x>;
-    using Mat_xx      = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-    using Mat_zx      = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
-    using Mat_zz      = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
+    static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
+    static constexpr int N_DIM_z = n_dim_z; // Declare so that children of this class can reference it
+    using Vec_z  = Eigen::Vector<double, N_DIM_z>;
+    using Vec_x  = Eigen::Vector<double, N_DIM_x>;
+    using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+    using Mat_zx = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
+    using Mat_xz = Eigen::Matrix<double, N_DIM_x, N_DIM_z>;
+    using Mat_zz = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
+    using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
+    using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
 
-    virtual ~SensorModel() = default;
+    virtual ~SensorModelI() = default;
 
-    virtual Measurement h(const State& x) const = 0;
-    virtual Mat_zx H(const State& x) const = 0;
-    virtual Mat_zz R(const State& x) const = 0;
+    virtual Vec_z h(const Vec_x& x) const = 0;
+    virtual Mat_zx H(const Vec_x& x) const = 0;
+    virtual Mat_zz R(const Vec_x& x) const = 0;
 
     /**
      * @brief Get the predicted measurement distribution given a state estimate. Updates the covariance
      * 
-     * @param x_est State estimate
+     * @param x_est Vec_x estimate
      * @return prob::MultiVarGauss 
      */
-    virtual prob::MultiVarGauss<N_DIM_z> pred_from_est(const prob::MultiVarGauss<N_DIM_x>& x_est) const 
+    virtual Gauss_z pred_from_est(const Gauss_x& x_est) const 
     {
         Mat_xx P = x_est.cov();
         Mat_zx H = this->H(x_est.mean());
@@ -50,10 +57,10 @@ public:
 
     /**
      * @brief Get the predicted measurement distribution given a state. Does not update the covariance
-     * @param x State
+     * @param x Vec_x
      * @return prob::MultiVarGauss 
      */
-    virtual prob::MultiVarGauss<N_DIM_z> pred_from_state(const State& x) const 
+    virtual Gauss_z pred_from_state(const Vec_x& x) const 
     {
         return {this->h(x), this->R(x)};
     }

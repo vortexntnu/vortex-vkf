@@ -18,58 +18,64 @@ namespace vortex {
 namespace models {
 
 template <int n_dim_x>
-class DynamicModel {
+/**
+ * @brief Interface for dynamic models. 
+ * 
+ */
+class DynamicModelI {
 public:
-    static constexpr int N_DIM_x = n_dim_x;
-    using State = Eigen::Vector<double, N_DIM_x>;
+    static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
+    using Vec_x = Eigen::Vector<double, N_DIM_x>;
     using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-    virtual ~DynamicModel() = default;
+    using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
+
+    virtual ~DynamicModelI() = default;
 
     /** Continuos time dynamics
-     * @param x State
+     * @param x Vec_x
      * @return State_dot
      */
-    virtual State f_c(const State& x) const = 0;
+    virtual Vec_x f_c(const Vec_x& x) const = 0;
     
     /** Jacobian of continuous time dynamics
-     * @param x State
+     * @param x Vec_x
      * @return State_jac
      */
-    virtual Mat_xx A_c(const State& x) const = 0; 
+    virtual Mat_xx A_c(const Vec_x& x) const = 0; 
 
     /** Continuous time process noise
-     * @param x State
+     * @param x Vec_x
      * @return Matrix Process noise covariance
      */
-    virtual Mat_xx Q_c(const State& x) const = 0;
+    virtual Mat_xx Q_c(const Vec_x& x) const = 0;
 
     /** Discrete time dynamics
-     * @param x State
+     * @param x Vec_x
      * @param dt Time step
-     * @return State
+     * @return Vec_x
      */
-    virtual State f_d(const State& x, double dt) const
+    virtual Vec_x f_d(const Vec_x& x, double dt) const
     {
         return F_d(x, dt) * x;
     }
 
     /** Jacobian of discrete time dynamics
-     * @param x State
+     * @param x Vec_x
      * @param dt Time step
      * @return State_jac
      */
-    virtual Mat_xx F_d(const State& x, double dt) const
+    virtual Mat_xx F_d(const Vec_x& x, double dt) const
     {
         // Use (4.58) from the book
         return (A_c(x) * dt).exp();
     }
 
     /** Discrete time process noise
-     * @param x State
+     * @param x Vec_x
      * @param dt Time step
      * @return Matrix Process noise covariance
      */
-    virtual Mat_xx Q_d(const State& x, double dt) const
+    virtual Mat_xx Q_d(const Vec_x& x, double dt) const
     {
         // See https://en.wikipedia.org/wiki/Discretization#Discretization_of_process_noise for more info
 
@@ -87,29 +93,29 @@ public:
     
 
     /** Get the predicted state distribution given a state estimate
-     * @param x_est State estimate
+     * @param x_est Vec_x estimate
      * @param dt Time step
-     * @return State
+     * @return Vec_x
      */
-    virtual prob::MultiVarGauss<N_DIM_x> pred_from_est(const prob::MultiVarGauss<N_DIM_x>& x_est, double dt) const
+    virtual Gauss_x pred_from_est(const Gauss_x& x_est, double dt) const
     {
         Mat_xx P = x_est.cov();
         Mat_xx F_d = this->F_d(x_est.mean(), dt);
         Mat_xx Q_d = this->Q_d(x_est.mean(), dt);
-        prob::MultiVarGauss<N_DIM_x> x_est_pred(this->f_d(x_est.mean(), dt), F_d * P * F_d.transpose() + Q_d);
+        Gauss_x x_est_pred(this->f_d(x_est.mean(), dt), F_d * P * F_d.transpose() + Q_d);
 
         return x_est_pred;
     }
 
     /** Get the predicted state distribution given a state
-     * @param x State
+     * @param x Vec_x
      * @param dt Time step
-     * @return State
+     * @return Vec_x
      */
-    virtual prob::MultiVarGauss<N_DIM_x> pred_from_state(const State& x, double dt) const
+    virtual Gauss_x pred_from_state(const Vec_x& x, double dt) const
     {
         Mat_xx Q_d = this->Q_d(x, dt);
-        prob::MultiVarGauss<N_DIM_x> x_est_pred(this->f_d(x, dt), Q_d);
+        Gauss_x x_est_pred(this->f_d(x, dt), Q_d);
 
         return x_est_pred;
     }

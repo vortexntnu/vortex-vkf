@@ -17,10 +17,10 @@ namespace vortex {
 namespace models {
 
 template <int n_dim_x, int n_models>
-class ImmModel : public DynamicModel<n_dim_x> {
+class ImmModel : public DynamicModelI<n_dim_x> {
 public:
-    using typename DynamicModel<n_dim_x>::State;
-    using typename DynamicModel<n_dim_x>::Mat_xx;
+    using typename DynamicModelI<n_dim_x>::State;
+    using typename DynamicModelI<n_dim_x>::Mat_xx;
     using Vec_nn = Eigen::Vector<double, n_models>;
     using Mat_nn = Eigen::Matrix<double, n_models, n_models>;
 
@@ -31,7 +31,7 @@ public:
      * I.e. the probability of switching from model i to model j is jump_matrix(i,j). Diagonal should be 0.
      * @param hold_times Holding time for each state. Parameter is the mean of an exponential distribution.
      */
-    ImmModel(std::vector<std::shared_ptr<DynamicModel<n_dim_x>>> models, Mat_nn jump_matrix, Vec_nn hold_times)
+    ImmModel(std::vector<std::shared_ptr<DynamicModelI<n_dim_x>>> models, Mat_nn jump_matrix, Vec_nn hold_times)
         : models_(std::move(models)), jump_matrix_(std::move(jump_matrix)), hold_times_(std::move(hold_times)), N_MODELS_(n_models)
     {
         // Validate input
@@ -102,12 +102,12 @@ public:
      * @brief Get the dynamic models
      * @return models
      */
-    std::vector<std::shared_ptr<DynamicModel<n_dim_x>>> get_models() const
+    std::vector<std::shared_ptr<DynamicModelI<n_dim_x>>> get_models() const
     {
         return models_;
     }
 private:
-    const std::vector<std::shared_ptr<DynamicModel<n_dim_x>>> models_;
+    const std::vector<std::shared_ptr<DynamicModelI<n_dim_x>>> models_;
     const Mat_nn jump_matrix_;
     const Vec_nn hold_times_;
 public:
