@@ -1,0 +1,7 @@
+launch:
+
+- node:
+    pkg: vortex-vkf
+    exec: vortex-vkf_node
+    name: vkf_node
+
