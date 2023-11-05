@@ -17,7 +17,7 @@ namespace vortex {
 namespace models {
 
 template <int n_dim_x, int n_models>
-class ImmModel : public DynamicModelI<n_dim_x> {
+class ImmModel : public DynamicModelI<n_dim_x> { // TODO: Should NOT inherit from DynamicModelI
 public:
     static constexpr size_t N_MODELS_ = n_models;
     using typename DynamicModelI<n_dim_x>::Vec_x;

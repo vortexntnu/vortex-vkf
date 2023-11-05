@@ -35,9 +35,23 @@ public:
     using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
 
     virtual ~SensorModelI() = default;
-
+    /**
+     * @brief Sensor Model
+     * @param x State
+     * @return Vec_z
+     */
     virtual Vec_z h(const Vec_x& x) const = 0;
+    /**
+     * @brief Jacobian of sensor model with respect to state
+     * @param x State
+     * @return Mat_zx 
+     */
     virtual Mat_zx H(const Vec_x& x) const = 0;
+    /**
+     * @brief Noise covariance matrix
+     * @param x State
+     * @return Mat_zz 
+     */
     virtual Mat_zz R(const Vec_x& x) const = 0;
 
     /**
