@@ -8,60 +8,6 @@
 #include <random>
 #include <gnuplot-iostream.h>
 
-// using namespace vortex::filters;
-// using namespace vortex::models;
-// using namespace vortex::prob;
-
-
-// const int N_DIMS_x = SimpleDynamicModel::N_DIM_x;
-// const int N_DIMS_z = SimpleSensorModel::N_DIM_z;
-// using DynModI = DynamicModelI<N_DIMS_x>;
-// using SensModI = SensorModelI<N_DIMS_x, N_DIMS_z>;
-// using Vec_x = typename DynModI::Vec_x;
-// using Mat_xx = typename DynModI::Mat_xx;
-// using Vec_z = typename SensModI::Vec_z;
-// using Gauss_x = typename DynModI::Gauss_x;
-// using Gauss_z = typename SensModI::Gauss_z;
-
-// TEST(EKF, Init) {
-
-//     SimpleDynamicModel dynamic_model;
-//     SimpleSensorModel sensor_model;
-//     EKF<SimpleDynamicModel, SimpleSensorModel> ekf(dynamic_model, sensor_model);
-
-//     // Initial state
-//     Gauss_x x({0, 0}, Mat_xx::Identity());
-
-//     // Predict
-//     auto pred = ekf.predict(x, 0.1);
-//     Gauss_x x_est_pred = pred.first;
-//     Gauss_z z_est_pred = pred.second;
-
-//     // Update
-//     Vec_z z = {1, 1};
-//     Gauss_x x_est_upd = ekf.update(x_est_pred, z_est_pred, z);
-
-//     // Check that the state is close to zero
-//     // ASSERT_TRUE(x.isMuchSmallerThan(Vec_x::Ones()));
-// }
-
-// TEST(EKF, Predict) {
-    
-//     SimpleDynamicModel dynamic_model;
-//     SimpleSensorModel sensor_model;
-//     EKF<SimpleDynamicModel, SimpleSensorModel> ekf(dynamic_model, sensor_model);
-
-//     // Initial state
-//     Gauss_x x({0, 0}, Mat_xx::Identity());
-
-//     // Predict
-//     auto pred = ekf.predict(x, 0.1);
-//     Gauss_x x_est_pred = pred.first;
-//     Gauss_z z_est_pred = pred.second;
-
-    
-// }
-
 class EKFTestCVModel : public ::testing::Test {
 protected:
     using PosMeasModel = FirstStatesMeasuredModel<4>;
@@ -101,25 +47,6 @@ TEST_F(EKFTestCVModel, Predict) {
     ASSERT_EQ(z_est_pred.mean(), z_true);
 }
 
-TEST_F(EKFTestCVModel, Update) {
-    // Initial state
-    Gauss_x x({0, 0, 1, 0}, Mat_xx::Identity());
-    double dt = 0.1;
-    // Predict
-    auto pred = ekf_->predict(x, dt);
-    Gauss_x x_est_pred = pred.first;
-    Gauss_z z_est_pred = pred.second;
-
-    // Update
-    Vec_z z = Vec_z::Zero(2);
-    Gauss_x x_est_upd = ekf_->update(x_est_pred, z_est_pred, z);
-
-    // Check that the state is close to zero
-    Vec_x x_true = x.mean() + Vec_x({dt, 0, 0, 0});
-    Vec_z z_true = x_true.head(2);
-    ASSERT_EQ(x_est_upd.mean(), x_true);
-    ASSERT_EQ(z_est_pred.mean(), z_true);
-}
 
 TEST_F(EKFTestCVModel, Convergence)
 {
@@ -156,23 +83,17 @@ TEST_F(EKFTestCVModel, Convergence)
         x_true.push_back(x_true_i);
         z_meas.push_back(z_meas_i);
 
-        // Predict
+        // Predict and update
         auto step = ekf_->step(x_est.back(), z_meas_i, dt);
         Gauss_x x_est_upd = std::get<0>(step);
-        // Gauss_x x_est_pred = std::get<1>(step);
         Gauss_z z_est_pred = std::get<2>(step);
 
-        // Update state
+        // Save results
         time.push_back(time.back() + dt);
         x_est.push_back(x_est_upd);
         z_est.push_back(z_est_pred);
     }
 
-    // Test that the state converges to the true state
-    ASSERT_NEAR(x_est.back().mean()(0), x_true.back()(0), 1e-1);
-    ASSERT_NEAR(x_est.back().mean()(1), x_true.back()(1), 1e-1);
-    ASSERT_NEAR(x_est.back().mean()(2), x_true.back()(2), 1e-1);
-    ASSERT_NEAR(x_est.back().mean()(3), x_true.back()(3), 1e-1);
 
     // Plot the results
     std::vector<double> x_true_x, x_true_y, x_true_u, x_true_v, x_est_x, x_est_y, x_est_u, x_est_v, z_meas_x, z_meas_y;
@@ -214,6 +135,10 @@ TEST_F(EKFTestCVModel, Convergence)
     gp.send1d(boost::make_tuple(time, x_est_u));
     gp << "unset multiplot\n";
 
-
+    // Test that the state converges to the true state
+    ASSERT_NEAR(x_est.back().mean()(0), x_true.back()(0), 1e-1);
+    ASSERT_NEAR(x_est.back().mean()(1), x_true.back()(1), 1e-1);
+    ASSERT_NEAR(x_est.back().mean()(2), x_true.back()(2), 1e-1);
+    ASSERT_NEAR(x_est.back().mean()(3), x_true.back()(3), 1e-1);
 
 }

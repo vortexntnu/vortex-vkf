@@ -76,7 +76,7 @@ public:
     }
 
     /**
-     * @brief Perform one EKF update step
+     * @brief Perform one EKF prediction and update step
      * @param x_est_prev Previous state estimate
      * @param z_meas Vec_z
      * @param dt Time step
