@@ -38,24 +38,24 @@ find_package(Boost REQUIRED
 include_directories(include)
 
 # === Executables ===
-add_executable(${PROJECT_NAME}_node 
-  src/nodes/kf_node.cpp
-)
-ament_target_dependencies(${PROJECT_NAME}_node 
-  rclcpp 
-  std_msgs
-  geometry_msgs
-  Gnuplot
-  Boost
-)
-target_link_libraries(${PROJECT_NAME}_node 
-  Eigen3::Eigen
-)
+# add_executable(${PROJECT_NAME}_node 
+#   src/nodes/kf_node.cpp
+# )
+# ament_target_dependencies(${PROJECT_NAME}_node 
+#   rclcpp 
+#   std_msgs
+#   geometry_msgs
+#   Gnuplot
+#   Boost
+# )
+# target_link_libraries(${PROJECT_NAME}_node 
+#   Eigen3::Eigen
+# )
 
-install(TARGETS
-  ${PROJECT_NAME}_node
-  DESTINATION lib/${PROJECT_NAME}
-)
+# install(TARGETS
+#   ${PROJECT_NAME}_node
+#   DESTINATION lib/${PROJECT_NAME}
+# )
 
 
 # === Libraries ===
@@ -113,6 +113,7 @@ if(BUILD_TESTING)
   ament_add_gtest(${PROJECT_NAME}_test 
     test/main.cpp
     test/ekf_test.cpp
+    test/ukf_test.cpp
     test/probability_test.cpp
     test/dynamic_model_test.cpp
     test/sensor_model_test.cpp

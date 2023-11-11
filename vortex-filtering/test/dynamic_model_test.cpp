@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <models/dynamic_model.hpp>
-#include <models/movement_models.hpp>
+#include <vortex_filtering/models/dynamic_model.hpp>
+#include <vortex_filtering/models/movement_models.hpp>
 #include "test_models.hpp"
 
 namespace simple_dynamic_model_test {

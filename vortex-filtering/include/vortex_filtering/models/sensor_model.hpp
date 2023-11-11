@@ -16,15 +16,60 @@ namespace vortex {
 namespace models {
 
 
+template <int n_dim_x, int n_dim_z, int n_dim_w>
+/**
+ * @brief Interface for sensor models.
+ * 
+ */
+class SensorModelBaseI {
+public:
+    static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
+    using Vec_x  = Eigen::Vector<double, N_DIM_x>;
+    using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+
+    static constexpr int N_DIM_z = n_dim_z; // Declare so that children of this class can reference it
+    using Vec_z  = Eigen::Vector<double, N_DIM_z>;
+    using Mat_zx = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
+    using Mat_xz = Eigen::Matrix<double, N_DIM_x, N_DIM_z>;
+    using Mat_zz = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
+
+    static constexpr int N_DIM_w = n_dim_w; // Declare so that children of this class can reference it
+    using Vec_w  = Eigen::Vector<double, N_DIM_w>;
+    using Mat_xw = Eigen::Matrix<double, N_DIM_x, N_DIM_w>;
+    using Mat_zw = Eigen::Matrix<double, N_DIM_z, N_DIM_w>;
+    using Mat_ww = Eigen::Matrix<double, N_DIM_w, N_DIM_w>;
+    using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
+    using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
+    using Gauss_w = prob::MultiVarGauss<N_DIM_w>;
+
+    virtual ~SensorModelBaseI() = default;
+
+    /**
+     * @brief Sensor Model
+     * @param x State
+     * @return Vec_z
+     */
+    virtual Vec_z h(const Vec_x& x, const Vec_w& w) const = 0;
+
+    /**
+     * @brief Noise covariance matrix
+     * 
+     */
+    virtual Mat_zz R(const Vec_x& x) const = 0;
+};
+
+
+
 template <int n_dim_x, int n_dim_z>
 /**
  * @brief Interface for sensor models.
  * 
  */
-class SensorModelI {
+class SensorModelI : public SensorModelBaseI<n_dim_x, n_dim_z, n_dim_z>{
 public:
     static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
     static constexpr int N_DIM_z = n_dim_z; // Declare so that children of this class can reference it
+    static constexpr int N_DIM_w = n_dim_z; // Declare so that children of this class can reference it
     using Vec_z  = Eigen::Vector<double, N_DIM_z>;
     using Vec_x  = Eigen::Vector<double, N_DIM_x>;
     using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
@@ -35,6 +80,17 @@ public:
     using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
 
     virtual ~SensorModelI() = default;
+    /** Sensor Model
+     * Overriding SensorModelBaseI::h
+     * @param x State
+     * @param w Noise
+     * @return Vec_z
+     */
+    Vec_z h(const Vec_x& x, const Vec_z& w) const override
+    {
+        return this->h(x) + w;
+    }
+    
     /**
      * @brief Sensor Model
      * @param x State
@@ -52,7 +108,7 @@ public:
      * @param x State
      * @return Mat_zz 
      */
-    virtual Mat_zz R(const Vec_x& x) const = 0;
+    virtual Mat_zz R(const Vec_x& x) const override = 0;
 
     /**
      * @brief Get the predicted measurement distribution given a state estimate. Updates the covariance
@@ -78,7 +134,9 @@ public:
     {
         return {this->h(x), this->R(x)};
     }
+
 };
+
 
 }  // namespace models
 }  // namespace vortex

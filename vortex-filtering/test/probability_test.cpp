@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include <probability/binomial.hpp>
-#include <probability/gaussian_mixture.hpp>
-#include <probability/multi_var_gauss.hpp>
-#include <probability/poisson.hpp>
+#include <vortex_filtering/probability/binomial.hpp>
+#include <vortex_filtering/probability/gaussian_mixture.hpp>
+#include <vortex_filtering/probability/multi_var_gauss.hpp>
+#include <vortex_filtering/probability/poisson.hpp>
 
 
 TEST(multiVarGauss, initGaussian)

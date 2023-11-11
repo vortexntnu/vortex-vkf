@@ -25,6 +25,7 @@ namespace filters {
  */
 template <class DynamicModelT, class SensorModelT>
 class EKF {
+public:
     static constexpr int N_DIM_x = DynamicModelT::N_DIM_x;
     static constexpr int N_DIM_z = SensorModelT::N_DIM_z;
     using DynModI  = models::DynamicModelI<N_DIM_x>;
@@ -38,7 +39,6 @@ class EKF {
     using Gauss_x  = typename DynModI::Gauss_x;
     using Gauss_z  = typename SensModI::Gauss_z;
 
-public:
     EKF(DynamicModelT dynamic_model, SensorModelT sensor_model)
         : dynamic_model_(std::move(dynamic_model)), sensor_model_(std::move(sensor_model)) {}
 

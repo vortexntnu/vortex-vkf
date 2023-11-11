@@ -1,6 +1,6 @@
 #pragma once
-#include <models/dynamic_model.hpp>
-#include <models/sensor_model.hpp>
+#include <vortex_filtering/models/dynamic_model.hpp>
+#include <vortex_filtering/models/sensor_model.hpp>
 
 class SimpleDynamicModel : public vortex::models::DynamicModelI<2> {
 public:
@@ -40,22 +40,23 @@ public:
     using SensModI::N_DIM_x;
     using SensModI::N_DIM_z;
 
+    SimpleSensorModel(double cov) : cov_(cov) {}
     Vec_z h(const Vec_x& x) const override
     {
         return H(x)*x;
     }
 
-    Mat_zx H(const Vec_x& x) const override
+    Mat_zx H(const Vec_x&) const override
     {
-        (void)x; // unused
         return Mat_zx::Identity();
     }
-    Mat_zz R(const Vec_x& x) const override
+    Mat_zz R(const Vec_x&) const override
     {
-        (void)x; // unused
-        return Mat_zz::Identity()*0.1;
+        return Mat_zz::Identity()*cov_;
     }
 
+private:
+    const double cov_;
 };
 
 class VariableLengthSensorModel : public vortex::models::SensorModelI<2, Eigen::Dynamic> {
@@ -76,54 +77,39 @@ public:
         return H(x)*x;
     }
 
-    Mat_zx H(const Vec_x& x) const override
+    Mat_zx H(const Vec_x&) const override
     {
-        (void)x; // unused
         return Mat_zx::Identity(N_DIM_x, N_DIM_x);
     }
-    Mat_zz R(const Vec_x& x) const override
+    Mat_zz R(const Vec_x&) const override
     {
-        (void)x; // unused
         return Mat_zz::Identity(N_DIM_x, N_DIM_x)*0.1;
     }
 
     const int N_z;
 };
 
-template<int n_dim_x>
-class FirstStatesMeasuredModel : public vortex::models::SensorModelI<n_dim_x, Eigen::Dynamic> {
+class UnlinearModel1 : public vortex::models::DynamicModelBaseI<1,1,1> {
 public:
-    using SensModI = vortex::models::SensorModelI<n_dim_x, Eigen::Dynamic>;
-    using SensModI::N_DIM_x;
-    using typename SensModI::Vec_z;
-    using typename SensModI::Vec_x;
-    using typename SensModI::Mat_xx;
-    using typename SensModI::Mat_zx;
-    using typename SensModI::Mat_zz;
+    using typename DynamicModelBaseI<1,1,1>::Vec_x;
+    using typename DynamicModelBaseI<1,1,1>::Mat_xx;
+    using typename DynamicModelBaseI<1,1,1>::Mat_xv;
+    using typename DynamicModelBaseI<1,1,1>::Vec_v;
 
-    FirstStatesMeasuredModel(int n_z, double std) : n_z_(n_z), std_(std) {}
+    UnlinearModel1(double cov) : cov_(cov) {}
 
-    Vec_z h(const Vec_x& x) const override
+    Vec_x f_d(const Vec_x& x, const Vec_u&, const Vec_v& v, double) const override
     {
-        return H(x)*x;
+        Vec_x x_next;
+        x_next << std::sin(x(0)) + v(0);
+        return x_next;
     }
 
-    Mat_zx H(const Vec_x& x) const override
+    Mat_xx Q_d(const Vec_x&, double) const override
     {
-        (void)x; // unused
-        Mat_zx H = Mat_zx::Zero(n_z_, N_DIM_x);
-        H.block(0, 0, n_z_, n_z_) = Mat_zz::Identity(n_z_, n_z_);
-
-        return H;
+        return Mat_xx::Identity()*cov_;
     }
+private:
+    const double cov_;
 
-    Mat_zz R(const Vec_x& x) const override
-    {
-        (void)x; // unused
-        return Mat_zz::Identity(n_z_, n_z_)*std_*std_;
-    }
-
-    private:
-        int n_z_;
-        double std_;
 };

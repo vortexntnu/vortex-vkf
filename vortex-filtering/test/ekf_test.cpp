@@ -1,16 +1,16 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-#include <filters/ekf.hpp>
-#include <probability/multi_var_gauss.hpp>
-#include <models/movement_models.hpp>
+#include <vortex_filtering/filters/ekf.hpp>
+#include <vortex_filtering/probability/multi_var_gauss.hpp>
+#include <vortex_filtering/models/movement_models.hpp>
 #include "test_models.hpp"
 #include <random>
 #include <gnuplot-iostream.h>
 
 class EKFTestCVModel : public ::testing::Test {
 protected:
-    using PosMeasModel = FirstStatesMeasuredModel<4>;
+    using PosMeasModel = SimpleSensorModel<4,2>;
     using CVModel = vortex::models::CVModel;
     using Vec_x = typename CVModel::Vec_x;
     using Mat_xx = typename CVModel::Mat_xx;
@@ -22,7 +22,7 @@ protected:
         // Create dynamic model
         dynamic_model_ = std::make_shared<CVModel>(1.0);
         // Create sensor model
-        sensor_model_ = std::make_shared<PosMeasModel>(2, 1.0);
+        sensor_model_ = std::make_shared<PosMeasModel>(1.0);
         // Create EKF
         ekf_ = std::make_shared<vortex::filters::EKF<CVModel, PosMeasModel>>(*dynamic_model_, *sensor_model_);
     }

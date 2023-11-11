@@ -1,5 +1,5 @@
 #pragma once
-#include <models/model_definitions.hpp>
+#include <vortex_filtering/models/model_definitions.hpp>
 
 namespace Filters {
 using namespace Models;

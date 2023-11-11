@@ -4,7 +4,7 @@
 #include <eigen3/Eigen/Eigen>
 #include <functional>
 
-#include <models/model_definitions.hpp>
+#include <vortex_filtering/models/model_definitions.hpp>
 
 namespace Integrator {
 using namespace Models;

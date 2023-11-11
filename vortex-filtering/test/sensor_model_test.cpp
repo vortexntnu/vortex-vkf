@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
-#include <models/sensor_model.hpp>
-#include <probability/multi_var_gauss.hpp>
+#include <vortex_filtering/models/sensor_model.hpp>
+#include <vortex_filtering/probability/multi_var_gauss.hpp>
 #include "test_models.hpp"
 
 namespace simple_sensor_model_test {
@@ -19,7 +19,7 @@ using Gauss_z = typename SensorModel::Gauss_z;
 
 TEST(SensorModel, initSimpleModel)
 {   
-    SensorModel model;
+    SensorModel model(0.1);
     EXPECT_EQ(model.h(Vec_x::Zero()), Vec_z::Zero());
 
     Vec_x x{1,2};
@@ -29,7 +29,7 @@ TEST(SensorModel, initSimpleModel)
 
 TEST(SensorModel, predictSimpleModel)
 {
-    SensorModel model;
+    SensorModel model(0.1);
     Gauss_x x_est{Vec_x::Zero(), Mat_xx::Identity()};
     Gauss_z pred = model.pred_from_est(x_est);
     EXPECT_EQ(pred.mean(), Vec_z::Zero());
