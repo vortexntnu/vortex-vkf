@@ -24,7 +24,7 @@ protected:
         // Create sensor model
         sensor_model_ = std::make_shared<PosMeasModel>(1.0);
         // Create EKF
-        ekf_ = std::make_shared<vortex::filters::EKF<CVModel, PosMeasModel>>(*dynamic_model_, *sensor_model_);
+        ekf_ = std::make_shared<vortex::filters::EKF<CVModel, PosMeasModel>>(dynamic_model_, sensor_model_);
     }
 
     std::shared_ptr<CVModel> dynamic_model_;

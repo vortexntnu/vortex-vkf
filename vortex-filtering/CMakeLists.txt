@@ -12,7 +12,7 @@ if(NOT CMAKE_CXX_STANDARD)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(
     -Wall -Wextra -Wpedantic 
-    -Wno-unused-local-typedefs # Suppress warnings from model_definitions.hpp
+    # -Wno-unused-local-typedefs # Suppress warnings from unused typedefs
     -fopenmp # For parallel processing with Eigen
   )
 endif()
