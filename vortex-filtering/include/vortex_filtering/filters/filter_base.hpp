@@ -9,14 +9,14 @@
 namespace vortex {
 namespace filters {
 
-template<typename DynamicModelT, typename SensorModelT>
+template<typename DynModT, typename SensModT>
 class KalmanFilterBase {
 public:
-	static constexpr int N_DIM_x = DynamicModelT::N_DIM_x;
-	static constexpr int N_DIM_u = DynamicModelT::N_DIM_u;
-	static constexpr int N_DIM_z = SensorModelT::N_DIM_z;
-	static constexpr int N_DIM_v = DynamicModelT::N_DIM_v;
-	static constexpr int N_DIM_w = SensorModelT::N_DIM_w;
+	static constexpr int N_DIM_x = DynModT::N_DIM_x;
+	static constexpr int N_DIM_u = DynModT::N_DIM_u;
+	static constexpr int N_DIM_z = SensModT::N_DIM_z;
+	static constexpr int N_DIM_v = DynModT::N_DIM_v;
+	static constexpr int N_DIM_w = SensModT::N_DIM_w;
 
 	using DynModI  = models::DynamicModelBaseI<N_DIM_x, N_DIM_u, N_DIM_v>;
     using SensModI = models::SensorModelBaseI<N_DIM_x, N_DIM_z, N_DIM_w>;

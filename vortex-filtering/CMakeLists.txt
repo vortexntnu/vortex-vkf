@@ -117,6 +117,7 @@ if(BUILD_TESTING)
     test/probability_test.cpp
     test/dynamic_model_test.cpp
     test/sensor_model_test.cpp
+    test/filter_test.cpp
   )
   target_include_directories(${PROJECT_NAME}_test PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

@@ -15,7 +15,7 @@ public:
     using Vector = Eigen::Vector<double, n_dims_>;
     using Matrix = Eigen::Matrix<double, n_dims_, n_dims_>;
     
-    MultiVarGauss(const Vector& mean, const Matrix& cov)
+    MultiVarGauss(const Vector& mean = Vector::Zero(), const Matrix& cov = Matrix::Identity())
         : mean_(mean), cov_(cov), actual_n_dims_(cov_.rows()), cov_inv_(cov_.llt().solve(Matrix::Identity(n_dims(), n_dims())))
     {
         // Check that the covariance matrix is positive definite and symmetric

@@ -89,14 +89,14 @@ public:
     const int N_z;
 };
 
-class UnlinearModel1 : public vortex::models::DynamicModelBaseI<1,1,1> {
+class NonlinearModel1 : public vortex::models::DynamicModelBaseI<1,1,1> {
 public:
     using typename DynamicModelBaseI<1,1,1>::Vec_x;
     using typename DynamicModelBaseI<1,1,1>::Mat_xx;
     using typename DynamicModelBaseI<1,1,1>::Mat_xv;
     using typename DynamicModelBaseI<1,1,1>::Vec_v;
 
-    UnlinearModel1(double cov) : cov_(cov) {}
+    NonlinearModel1(double cov) : cov_(cov) {}
 
     Vec_x f_d(const Vec_x& x, const Vec_u&, const Vec_v& v, double) const override
     {

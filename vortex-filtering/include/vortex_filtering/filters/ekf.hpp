@@ -24,14 +24,14 @@ namespace filters {
  * @tparam DynamicModelI Dynamic model type. Has to have function for Jacobian of state transition.
  * @tparam SensorModelI Sensor model type. Has to have function for Jacobian of measurement. (get_H)
  */
-template <class DynamicModelT, class SensorModelT>
-class EKF : public KalmanFilterBase<DynamicModelT, SensorModelT> {
+template <class DynModT, class SensModT>
+class EKF : public KalmanFilterBase<DynModT, SensModT> {
 public:
-    static constexpr int N_DIM_x = DynamicModelT::N_DIM_x;
-    static constexpr int N_DIM_z = SensorModelT::N_DIM_z;
-    static constexpr int N_DIM_u = DynamicModelT::N_DIM_u;
-    static constexpr int N_DIM_v = DynamicModelT::N_DIM_v;
-    static constexpr int N_DIM_w = SensorModelT::N_DIM_w;
+    static constexpr int N_DIM_x = DynModT::N_DIM_x;
+    static constexpr int N_DIM_z = SensModT::N_DIM_z;
+    static constexpr int N_DIM_u = DynModT::N_DIM_u;
+    static constexpr int N_DIM_v = DynModT::N_DIM_v;
+    static constexpr int N_DIM_w = SensModT::N_DIM_w;
 
     using DynModI  = models::DynamicModelBaseI<N_DIM_x, N_DIM_u, N_DIM_v>;
     using SensModI = models::SensorModelBaseI<N_DIM_x, N_DIM_z, N_DIM_w>;
@@ -47,7 +47,7 @@ public:
     using Gauss_x  = typename prob::MultiVarGauss<N_DIM_x>;
     using Gauss_z  = typename prob::MultiVarGauss<N_DIM_z>;
 
-    EKF(std::shared_ptr<DynamicModelT> dynamic_model, std::shared_ptr<SensorModelT> sensor_model)
+    EKF(std::shared_ptr<DynModT> dynamic_model, std::shared_ptr<SensModT> sensor_model)
         : dynamic_model_(dynamic_model), sensor_model_(sensor_model) {}
 
     /** Perform one EKF prediction step
@@ -61,9 +61,9 @@ public:
     std::pair<Gauss_x, Gauss_z> predict(DynModIShared dyn_mod, SensModIShared sens_mod, const Gauss_x& x_est_prev, const Vec_x&, double dt) override
     {
         // cast to dynamic model type to access pred_from_est
-        auto dyn_model = std::dynamic_pointer_cast<DynamicModelT>(dyn_mod);
+        auto dyn_model = std::dynamic_pointer_cast<DynModT>(dyn_mod);
         // cast to sensor model type to access pred_from_est
-        auto sens_model = std::dynamic_pointer_cast<SensorModelT>(sens_mod);
+        auto sens_model = std::dynamic_pointer_cast<SensModT>(sens_mod);
 
         Gauss_x x_est_pred = dyn_model->pred_from_est(x_est_prev, dt);
         Gauss_z z_est_pred = sens_model->pred_from_est(x_est_pred);
@@ -82,7 +82,7 @@ public:
     Gauss_x update(DynModIShared, SensModIShared sens_mod, const Gauss_x& x_est_pred, const Gauss_z& z_est_pred, const Vec_z& z_meas) override
     {
         // cast to sensor model type
-        auto sens_model = std::dynamic_pointer_cast<SensorModelT>(sens_mod);
+        auto sens_model = std::dynamic_pointer_cast<SensModT>(sens_mod);
         Mat_zx H_mat = sens_model->H(x_est_pred.mean());
         Mat_zz R_mat = sens_model->R(x_est_pred.mean());
         Mat_xx P_mat = x_est_pred.cov();

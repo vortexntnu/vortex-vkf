@@ -17,7 +17,7 @@
 namespace vortex {
 namespace filters {
 
-template <typename ImmModelT, class SensorModelT>
+template <typename ImmModelT, class SensModT>
 class ImmFilter {
 public:
     using ImmModelT::N_DIM_x;
@@ -27,13 +27,13 @@ public:
     using ImmModelT::Vec_x;
     using ImmModelT::Mat_xx;
     using ImmModelT::Vec_x;
-    using SensorModelT::N_DIM_z;
-    using SensorModelT::Mat_zz;
-    using SensorModelT::Vec_z;
-    using SensorModelT::Mat_xz;
+    using SensModT::N_DIM_z;
+    using SensModT::Mat_zz;
+    using SensModT::Vec_z;
+    using SensModT::Mat_xz;
 
 
-    ImmFilter(const ImmModelT& imm_model, const SensorModelT& sensor_model)
+    ImmFilter(const ImmModelT& imm_model, const SensModT& sensor_model)
         : imm_model_(imm_model), sensor_model_(sensor_model) 
         {
             for (int i = 0; i < N_MODELS; i++) {
@@ -105,7 +105,7 @@ public:
      * @param dt Time step
      * @param weights Weights 
      */
-    Mat_nn update_probabilities(const std::vector<std::tuple<ImmModelT, SensorModelT>>& ekf_outs, Vec_z z_meas, double dt, Vec_n weights) 
+    Mat_nn update_probabilities(const std::vector<std::tuple<ImmModelT, SensModT>>& ekf_outs, Vec_z z_meas, double dt, Vec_n weights) 
     {
         Mat_nn pi_mat = imm_model_.get_pi_mat_d(dt);
         Vec_n weights_pred = pi_mat.transpose() * weights
@@ -146,8 +146,8 @@ public:
 
 private:
     ImmModel imm_model_;
-    SensorModelT sensor_model_;
-    std::vector<std::unique_ptr<EKF<ImmModelT, SensorModelT>>> ekfs_;
+    SensModT sensor_model_;
+    std::vector<std::unique_ptr<EKF<ImmModelT, SensModT>>> ekfs_;
 };
 
 } // namespace filters

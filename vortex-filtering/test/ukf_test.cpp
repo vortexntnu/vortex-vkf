@@ -11,9 +11,9 @@
 
 class UKFtest : public ::testing::Test {
 protected:
-	using Vec_x = typename UnlinearModel1::Vec_x;
-	using Mat_xx = typename UnlinearModel1::Mat_xx;
-	using Gauss_x = typename UnlinearModel1::Gauss_x;
+	using Vec_x = typename NonlinearModel1::Vec_x;
+	using Mat_xx = typename NonlinearModel1::Mat_xx;
+	using Gauss_x = typename NonlinearModel1::Gauss_x;
 
 	using Vec_z = typename SimpleSensorModel<1,1>::Vec_z;
 	using Mat_zz = typename SimpleSensorModel<1,1>::Mat_zz;
@@ -26,16 +26,16 @@ protected:
 		double R = 0.1;
 
 		// Create dynamic model
-		dynamic_model_ = std::make_shared<UnlinearModel1>(Q);
+		dynamic_model_ = std::make_shared<NonlinearModel1>(Q);
 		// Create sensor model
 		sensor_model_ = std::make_shared<SimpleSensorModel<1,1>>(R);
 		// Create UKF
-		ukf_ = std::make_shared<vortex::filters::UKF<UnlinearModel1, SimpleSensorModel<1,1>>>(dynamic_model_, sensor_model_);
+		ukf_ = std::make_shared<vortex::filters::UKF<NonlinearModel1, SimpleSensorModel<1,1>>>(dynamic_model_, sensor_model_);
 	}
 
-	std::shared_ptr<UnlinearModel1> dynamic_model_;
+	std::shared_ptr<NonlinearModel1> dynamic_model_;
 	std::shared_ptr<SimpleSensorModel<1,1>> sensor_model_;
-	std::shared_ptr<vortex::filters::UKF<UnlinearModel1, SimpleSensorModel<1,1>>> ukf_;
+	std::shared_ptr<vortex::filters::UKF<NonlinearModel1, SimpleSensorModel<1,1>>> ukf_;
 };
 
 TEST_F(UKFtest, Predict)

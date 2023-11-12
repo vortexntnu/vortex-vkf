@@ -39,6 +39,7 @@ public:
     using Vec_v = Eigen::Vector<double, N_DIM_v>;
     using Mat_vv = Eigen::Matrix<double, N_DIM_v, N_DIM_v>;
     using Mat_xv = Eigen::Matrix<double, N_DIM_x, N_DIM_v>;
+    using Gauss_v = prob::MultiVarGauss<N_DIM_v>;
 
     virtual ~DynamicModelBaseI() = default;
 
@@ -65,7 +66,7 @@ public:
      */
     Vec_x sample_f_d(const Vec_x& x, const Vec_u& u, double dt, std::mt19937& gen) const
     {
-        Vec_v v = {Vec_v::Zero(), Q_d(x, dt)};
+        Gauss_v v = {Vec_v::Zero(), Q_d(x, dt)};
         return f_d(x, u, v.sample(gen), dt);
     }
 
