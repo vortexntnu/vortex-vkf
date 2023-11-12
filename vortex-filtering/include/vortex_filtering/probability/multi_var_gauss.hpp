@@ -1,5 +1,6 @@
 #pragma once
 #include <Eigen/Dense>
+#include <random>
 
 namespace vortex {
 namespace prob {
@@ -59,6 +60,28 @@ public:
     double mahalanobis_distance(const Vector& x) const {
         const auto diff = x - mean_;
         return std::sqrt(diff.transpose() * cov_inv_ * diff);
+    }
+
+    /** Sample from the Gaussian
+     * @param gen Random number generator
+     * @return Vector 
+     */
+    Vector sample(std::mt19937& gen) const {
+        std::normal_distribution<> d{0, 1};
+        Vector sample;
+        for (int i = 0; i < n_dims(); ++i) {
+            sample(i) = d(gen);
+        }
+        return mean_ + cov_.llt().matrixL() * sample;
+    }
+
+    /** Sample from the Gaussian
+     * @return Vector 
+     */
+    Vector sample() const {
+        std::random_device rd;                            
+        std::mt19937 gen(rd());                           
+        return sample(gen);
     }
 
 

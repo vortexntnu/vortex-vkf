@@ -7,6 +7,7 @@
  */
 #pragma once
 #include <Eigen/Dense>
+#include <random>
 #include <eigen3/unsupported/Eigen/MatrixFunctions> // For exp
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
@@ -54,6 +55,32 @@ public:
      * @param x Vec_x State
      */
     virtual Mat_vv Q_d(const Vec_x& x, double dt) const = 0;
+
+    /** Sample from the discrete time dynamics
+     * @param x Vec_x State
+     * @param u Vec_u Input
+     * @param dt Time step
+     * @param gen Random number generator (For deterministic behaviour)
+     * @return Vec_x State
+     */
+    Vec_x sample_f_d(const Vec_x& x, const Vec_u& u, double dt, std::mt19937& gen) const
+    {
+        Vec_v v = {Vec_v::Zero(), Q_d(x, dt)};
+        return f_d(x, u, v.sample(gen), dt);
+    }
+
+    /** Sample from the discrete time dynamics
+     * @param x Vec_x State
+     * @param dt Time step
+     * @return Vec_x State
+     */
+    Vec_x sample_f_d(const Vec_x& x, double dt) const
+    {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        return sample_f_d(x, Vec_u::Zero(), dt, gen);
+    }
+
 };
 
 

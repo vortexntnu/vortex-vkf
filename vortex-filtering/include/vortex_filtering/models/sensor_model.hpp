@@ -10,6 +10,7 @@
  */
 #pragma once
 #include <eigen3/Eigen/Dense>
+#include <random>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
 namespace vortex {
@@ -55,7 +56,31 @@ public:
      * @brief Noise covariance matrix
      * 
      */
-    virtual Mat_zz R(const Vec_x& x) const = 0;
+    virtual Mat_ww R(const Vec_x& x) const = 0;
+
+    /** Sample from the sensor model
+     * @param x State
+     * @param w Noise
+     * @param gen Random number generator (For deterministic behaviour)
+     * @return Vec_z
+     */
+    Vec_z sample_h(const Vec_x& x, std::mt19937& gen) const
+    {
+        prob::MultiVarGauss<N_DIM_w> w = {Vec_w::Zero(), R(x)};
+        return this->h(x, w.sample(gen));
+    }
+
+    /** Sample from the sensor model
+     * @param x State
+     * @return Vec_z
+     */
+    Vec_z sample_h(const Vec_x& x) const
+    {
+        std::random_device rd;                            
+        std::mt19937 gen(rd());                             
+        return sample_h(x, gen);
+    }
+
 };
 
 

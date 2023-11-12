@@ -30,11 +30,13 @@ classDiagram
     class DynamicModelBase{
         +virtual f_d(x, u, v, dt) Vec_x
         +virtual Q_d(x, dt) Mat_vv
+        +sample_f_d(x, u, v, dt) Vec_x
     }
 
     class SensorModelBase{
         +virtual h(x, w) Vec_z
         +virtual R(x) Mat_ww
+        +sample_h(x) Vec_z
     }
 
     class DynamicModelI {
