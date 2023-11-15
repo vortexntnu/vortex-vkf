@@ -22,7 +22,7 @@ namespace vortex {
 namespace filters {
 
 template<typename DynModT, typename SensModT>
-class UKF : public KalmanFilterBase<DynModT, SensModT> {
+class UKF : public KalmanFilterI<DynModT, SensModT> {
 public:
     static constexpr int N_DIM_x = DynModT::N_DIM_x;
     static constexpr int N_DIM_u = DynModT::N_DIM_u;

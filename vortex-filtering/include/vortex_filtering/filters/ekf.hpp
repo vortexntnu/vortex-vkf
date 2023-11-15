@@ -25,7 +25,7 @@ namespace filters {
  * @tparam SensorModelI Sensor model type. Has to have function for Jacobian of measurement. (get_H)
  */
 template <class DynModT, class SensModT>
-class EKF : public KalmanFilterBase<DynModT, SensModT> {
+class EKF : public KalmanFilterI<DynModT, SensModT> {
 public:
     static constexpr int N_DIM_x = DynModT::N_DIM_x;
     static constexpr int N_DIM_z = SensModT::N_DIM_z;

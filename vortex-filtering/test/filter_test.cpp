@@ -21,7 +21,7 @@ struct SimData
 template <typename DynModT, typename SensModT>
 struct TestParams
 {
-    std::shared_ptr<vortex::filters::KalmanFilterBase<DynModT, SensModT>> kf;
+    std::shared_ptr<vortex::filters::KalmanFilterI<DynModT, SensModT>> kf;
     std::shared_ptr<DynModT> dyn_mod_real;
     std::shared_ptr<SensModT> sens_mod_real;
     std::shared_ptr<DynModT> dyn_mod_filter;
@@ -114,7 +114,7 @@ testing::AssertionResult isApproxEqual(const Eigen::VectorXd& a, const Eigen::Ve
 
     for (int i = 0; i < a.size(); ++i) {
         if (std::abs(a(i) - b(i)) > tol) {
-            return testing::AssertionFailure() << "Vectors are not the same,  "
+            return testing::AssertionFailure() << "Vectors are not the same, "
                                                << "a: " << a.transpose()
                                                << ", b: " << b.transpose();
         }
