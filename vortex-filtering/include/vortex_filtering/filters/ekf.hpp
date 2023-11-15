@@ -21,7 +21,7 @@ namespace filters {
 
 /** @brief Extended Kalman Filter. (I stands for interface, T for Type)
  * 
- * @tparam DynamicModelI Dynamic model type. Has to have function for Jacobian of state transition.
+ * @tparam DynamicModelEKFI Dynamic model type. Has to have function for Jacobian of state transition.
  * @tparam SensorModelI Sensor model type. Has to have function for Jacobian of measurement. (get_H)
  */
 template <class DynModT, class SensModT>
@@ -33,8 +33,8 @@ public:
     static constexpr int N_DIM_v = DynModT::N_DIM_v;
     static constexpr int N_DIM_w = SensModT::N_DIM_w;
 
-    using DynModI  = models::DynamicModelBaseI<N_DIM_x, N_DIM_u, N_DIM_v>;
-    using SensModI = models::SensorModelBaseI<N_DIM_x, N_DIM_z, N_DIM_w>;
+    using DynModI  = models::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
+    using SensModI = models::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
     using DynModIShared = std::shared_ptr<DynModI>;
     using SensModIShared = std::shared_ptr<SensModI>;
 

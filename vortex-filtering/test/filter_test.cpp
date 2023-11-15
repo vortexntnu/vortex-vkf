@@ -104,51 +104,66 @@ protected:
 
 };
 
-using DynModT = NonlinearModel1;
-using SensModT = SimpleSensorModel<1,1>;
-using Nonlin1Test = KFTest<DynModT,SensModT>;
-TEST_P(Nonlin1Test, ukf_convergence)
+testing::AssertionResult isApproxEqual(const Eigen::VectorXd& a, const Eigen::VectorXd& b, double tol)
 {
-    constexpr int N_DIM_x = DynModT::N_DIM_x;
-    constexpr int N_DIM_z = SensModT::N_DIM_z;
-    auto params = GetParam();
-    SimData<N_DIM_x, N_DIM_z> sim_data = simulate(params);
+    if (a.size() != b.size()) {
+        return testing::AssertionFailure() << "Vectors are not the same size, "
+                                           << "a: " << a.transpose()
+                                           << ", b: " << b.transpose();
+    }
 
-    // Check
-    for (size_t i = 0; i<N_DIM_x; i++) {
-        EXPECT_NEAR(sim_data.x_true.back()(i), sim_data.x_est.back().mean()(i), params.tolerance) << "i = " << i;
+    for (int i = 0; i < a.size(); ++i) {
+        if (std::abs(a(i) - b(i)) > tol) {
+            return testing::AssertionFailure() << "Vectors are not the same,  "
+                                               << "a: " << a.transpose()
+                                               << ", b: " << b.transpose();
+        }
+    }
+
+    return testing::AssertionSuccess();
+}
+
+
+template<typename DynModT>
+using KFTestDynamicModels = KFTest<DynModT, SimpleSensorModel<DynModT::N_DIM_x, DynModT::N_DIM_x>>;
+
+TYPED_TEST_SUITE_P(KFTestDynamicModels);
+
+TYPED_TEST_P(KFTestDynamicModels, ukf_convergence)
+{
+    using DynModT = TypeParam;
+    constexpr int N_DIM_x = DynModT::N_DIM_x;
+    using SensModT = SimpleSensorModel<N_DIM_x, N_DIM_x>;
+    constexpr int N_DIM_z = SensModT::N_DIM_z;
+
+    std::vector<TestParams<DynModT, SensModT>> test_cases;
+    test_cases.push_back({std::make_shared<vortex::filters::UKF<DynModT, SensModT>>(),
+                          std::make_shared<DynModT>(0.1),
+                          std::make_shared<SensModT>(0.01),
+                          std::make_shared<DynModT>(0.1),
+                          std::make_shared<SensModT>(0.01),
+                          1000,
+                          3,
+                          DynModT::Vec_x::Ones(),
+                          typename DynModT::Gauss_x(DynModT::Vec_x::Zero(), DynModT::Mat_xx::Identity()),
+                          1e-3});
+
+    // Simulate
+    for (auto params : test_cases) {
+        SimData<N_DIM_x, N_DIM_z> sim_data = this->simulate(params);
+
+        // Check
+        std::cout << "x_true: " << sim_data.x_true.back().transpose() << std::endl;
+        std::cout << "x_est:  " << sim_data.x_est.back().mean().transpose() << std::endl;
+        EXPECT_TRUE(isApproxEqual(sim_data.x_true.back(), sim_data.x_est.back().mean(), params.tolerance));
     }
    
 } 
-// clang-format off
-using Params = TestParams<DynModT,SensModT>;
-INSTANTIATE_TEST_SUITE_P(
-    Nonlin1TestSuite, Nonlin1Test,
-    testing::Values(
-        Params {
-            std::make_shared<vortex::filters::UKF<DynModT, SensModT>>(),
-            std::make_shared<DynModT>(0.1),
-            std::make_shared<SensModT>(0.1),
-            std::make_shared<DynModT>(0.1),
-            std::make_shared<SensModT>(0.1),
-            100,
-            0.1,
-            DynModT::Vec_x::Zero(),
-            DynModT::Gauss_x{DynModT::Vec_x::Zero(), DynModT::Mat_xx::Identity()*0.1},
-            1e-2
-        },
-        Params {
-            std::make_shared<vortex::filters::UKF<DynModT, SensModT>>(),
-            std::make_shared<DynModT>(0.01),
-            std::make_shared<SensModT>(0.01),
-            std::make_shared<DynModT>(0.01),
-            std::make_shared<SensModT>(0.01),
-            100,
-            0.1,
-            DynModT::Vec_x::Zero(),
-            DynModT::Gauss_x{DynModT::Vec_x::Zero(), DynModT::Mat_xx::Identity()*0.1},
-            1e-2
-        }
-    )
-);
-// clang-format on
+
+
+REGISTER_TYPED_TEST_SUITE_P(KFTestDynamicModels, 
+                            ukf_convergence);
+
+
+using DynamicModelsList = ::testing::Types<NonlinearModel1>;
+INSTANTIATE_TYPED_TEST_SUITE_P(KFTestSuite, KFTestDynamicModels, DynamicModelsList);

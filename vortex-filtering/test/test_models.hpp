@@ -2,11 +2,11 @@
 #include <vortex_filtering/models/dynamic_model.hpp>
 #include <vortex_filtering/models/sensor_model.hpp>
 
-class SimpleDynamicModel : public vortex::models::DynamicModelI<2> {
+class SimpleDynamicModel : public vortex::models::DynamicModelEKFI<2> {
 public:
-    using typename DynamicModelI<2>::Vec_x;
-    using typename DynamicModelI<2>::Mat_xx;
-    using DynamicModelI<2>::N_DIM_x;
+    using typename DynamicModelEKFI<2>::Vec_x;
+    using typename DynamicModelEKFI<2>::Mat_xx;
+    using DynamicModelEKFI<2>::N_DIM_x;
 
     // A stable state transition 
     Vec_x f_c(const Vec_x &x) const override
@@ -28,9 +28,9 @@ public:
 };
 
 template<int n_dim_x, int n_dim_z>
-class SimpleSensorModel : public vortex::models::SensorModelI<n_dim_x, n_dim_z> {
+class SimpleSensorModel : public vortex::models::SensorModelEKFI<n_dim_x, n_dim_z> {
 public:
-    using SensModI = vortex::models::SensorModelI<n_dim_x, n_dim_z>;
+    using SensModI = vortex::models::SensorModelEKFI<n_dim_x, n_dim_z>;
 
     using typename SensModI::Vec_z;
     using typename SensModI::Vec_x;
@@ -59,15 +59,15 @@ private:
     const double cov_;
 };
 
-class VariableLengthSensorModel : public vortex::models::SensorModelI<2, Eigen::Dynamic> {
+class VariableLengthSensorModel : public vortex::models::SensorModelEKFI<2, Eigen::Dynamic> {
 public:
-    using typename SensorModelI<2, Eigen::Dynamic>::Vec_z;
-    using typename SensorModelI<2, Eigen::Dynamic>::Vec_x;
-    using typename SensorModelI<2, Eigen::Dynamic>::Mat_xx;
-    using typename SensorModelI<2, Eigen::Dynamic>::Mat_zx;
-    using typename SensorModelI<2, Eigen::Dynamic>::Mat_zz;
-    using SensorModelI::N_DIM_z;
-    using SensorModelI::N_DIM_x;
+    using typename SensorModelEKFI<2, Eigen::Dynamic>::Vec_z;
+    using typename SensorModelEKFI<2, Eigen::Dynamic>::Vec_x;
+    using typename SensorModelEKFI<2, Eigen::Dynamic>::Mat_xx;
+    using typename SensorModelEKFI<2, Eigen::Dynamic>::Mat_zx;
+    using typename SensorModelEKFI<2, Eigen::Dynamic>::Mat_zz;
+    using SensorModelEKFI::N_DIM_z;
+    using SensorModelEKFI::N_DIM_x;
 
 
     VariableLengthSensorModel(int n_z) : N_z(n_z) {}
@@ -89,12 +89,12 @@ public:
     const int N_z;
 };
 
-class NonlinearModel1 : public vortex::models::DynamicModelBaseI<1,1,1> {
+class NonlinearModel1 : public vortex::models::DynamicModelI<1,1,1> {
 public:
-    using typename DynamicModelBaseI<1,1,1>::Vec_x;
-    using typename DynamicModelBaseI<1,1,1>::Mat_xx;
-    using typename DynamicModelBaseI<1,1,1>::Mat_xv;
-    using typename DynamicModelBaseI<1,1,1>::Vec_v;
+    using typename DynamicModelI<1,1,1>::Vec_x;
+    using typename DynamicModelI<1,1,1>::Mat_xx;
+    using typename DynamicModelI<1,1,1>::Mat_xv;
+    using typename DynamicModelI<1,1,1>::Vec_v;
 
     NonlinearModel1(double cov) : cov_(cov) {}
 

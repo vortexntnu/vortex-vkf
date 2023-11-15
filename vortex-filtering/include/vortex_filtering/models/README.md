@@ -4,7 +4,21 @@ They define the dynamics of the system and the sensor models used in the project
 
 All classes and functions are under the namespace `vortex::models`.
 
+
+
 ## DynamicModelI
+Static size dynamic model interface for other classes to derive from
+### Key Features
+
+- Static Constants for Dimensions: The base class defines static constants (N_DIM_x, N_DIM_u, N_DIM_v) for dimensions, allowing derived classes to reference these dimensions.
+- Type Definitions: It uses Eigen library types for vectors and matrices to represent states, inputs, and noise.
+- Virtual Destructor: Ensures proper cleanup of derived class objects when deleted through a base class pointer.
+- Pure Virtual Functions: Includes pure virtual functions like f_d (discrete time dynamics) and Q_d (discrete time process noise), enforcing derived classes to implement these functions.
+- Sampling Methods: Provides methods for sampling from the discrete time dynamics.
+
+## DynamicModelEKFI
+Static size dynamic model interface for other classes to derive from. The EKF class takes classes derived from this class.
+
 This interface defines the dynamics of the system. The methods `f_c`, `A_c` and `Q_c` define the continuous time dynamics of the system. The methods `f_d`, `A_d` and `Q_d` define the discrete time dynamics of the system. The methods `f_c` and `f_d` are the state transition functions. The methods `A_c` and `A_d` are the Jacobians of the state transition functions. The methods `Q_c` and `Q_d` are the process noise covariance matrices. The noise is assumed additive and Gaussian.
 
 ### Usage

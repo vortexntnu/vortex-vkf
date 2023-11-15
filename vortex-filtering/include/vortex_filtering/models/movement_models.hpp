@@ -7,10 +7,10 @@ namespace models {
 /** @brief Simple dynamic model with constant velocity
  * x = [x, y, x_dot, y_dot]
  */
-class CVModel : public DynamicModelI<4> {
+class CVModel : public DynamicModelEKFI<4> {
 public:
-    using typename DynamicModelI<4>::Vec_x;
-    using typename DynamicModelI<4>::Mat_xx;
+    using typename DynamicModelEKFI<4>::Vec_x;
+    using typename DynamicModelEKFI<4>::Mat_xx;
 
     /**
      * @brief Constant Velocity Model in 2D
@@ -51,10 +51,10 @@ private:
     double std_vel_;
 };
 
-class CTModel : public DynamicModelI<5> {
+class CTModel : public DynamicModelEKFI<5> {
 public:
-    using typename DynamicModelI<5>::Vec_x;
-    using typename DynamicModelI<5>::Mat_xx;
+    using typename DynamicModelEKFI<5>::Vec_x;
+    using typename DynamicModelEKFI<5>::Mat_xx;
 
     /**
      * @brief Coordinated Turn Model in 2D
@@ -108,10 +108,10 @@ private:
 };
 
 
-class CAModel : public DynamicModelI<6> {
+class CAModel : public DynamicModelEKFI<6> {
 public:
-    using typename DynamicModelI<6>::Vec_x;
-    using typename DynamicModelI<6>::Mat_xx;
+    using typename DynamicModelEKFI<6>::Vec_x;
+    using typename DynamicModelEKFI<6>::Mat_xx;
 
     /**
      * @brief Constant Acceleration Model in 2D

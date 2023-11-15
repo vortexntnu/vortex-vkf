@@ -16,15 +16,65 @@ namespace vortex {
 namespace models {
 
 /**
- * @brief Interface for dynamic models with 
+ * @brief Interface for dynamic models with dynamic size dimensions.
+ * The purpose of this class is to provide a common interface for dynamic models of any dimension so that they can be used in the same way.
+ * This class is not meant to be inherited from. Use DynamicModelI instead. 
+ * @tparam n_dim_x  State dimension
+ * @tparam n_dim_u  Input dimension
+ * @tparam n_dim_v  Process noise dimension
+ */
+class DynamicModelX {
+public:
+    // Using dynamic Eigen types
+    using VecX = Eigen::VectorXd;
+    using MatXX = Eigen::MatrixXd;
+    using GaussX = prob::MultiVarGauss<Eigen::Dynamic>;
+
+    // Constructor to initialize the dimensions
+    DynamicModelX(int dim_x, int dim_u, int dim_v)
+        : dim_x_(dim_x), dim_u_(dim_u), dim_v_(dim_v) {}
+
+    virtual ~DynamicModelX() = default;
+
+    // Discrete time dynamics (pure virtual function)
+    virtual VecX f_dX(const VecX& x, const VecX& u, const VecX& v, double dt) const = 0;
+
+    // Discrete time process noise (pure virtual function)
+    virtual MatXX Q_dX(const VecX& x, double dt) const = 0;
+
+    // Sample from the discrete time dynamics
+    VecX sample_f_d(const VecX& x, const VecX& u, double dt, std::mt19937& gen) const {
+        GaussX v = {VecX::Zero(dim_v_), Q_dX(x, dt)};
+        return f_dX(x, u, v.sample(gen), dt);
+    }
+
+    // Sample from the discrete time dynamics
+    VecX sample_f_d(const VecX& x, double dt) const {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        return sample_f_d(x, VecX::Zero(dim_u_), dt, gen);
+    }
+
+protected:
+    const int dim_x_;  // State dimension
+    const int dim_u_;  // Input dimension
+    const int dim_v_;  // Process noise dimension
+};
+
+
+
+
+/**
+ * @brief Interface for dynamic models with static size dimensions
  * 
  * @tparam n_dim_x  State dimension
  * @tparam n_dim_u  Input dimension
  * @tparam n_dim_v  Process noise dimension
  */
 template <int n_dim_x, int n_dim_u, int n_dim_v>
-class DynamicModelBaseI {
+class DynamicModelI : public DynamicModelX {
 public:
+    using BaseX = DynamicModelX;
     static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
     using Vec_x = Eigen::Vector<double, N_DIM_x>;
     using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
@@ -41,7 +91,8 @@ public:
     using Mat_xv = Eigen::Matrix<double, N_DIM_x, N_DIM_v>;
     using Gauss_v = prob::MultiVarGauss<N_DIM_v>;
 
-    virtual ~DynamicModelBaseI() = default;
+    DynamicModelI() : DynamicModelX(N_DIM_x, N_DIM_u, N_DIM_v) {}
+    virtual ~DynamicModelI() = default;
 
     /** Discrete time dynamics
      * @param x Vec_x State
@@ -82,6 +133,22 @@ public:
         return sample_f_d(x, Vec_u::Zero(), dt, gen);
     }
 
+    // Override dynamic size functions to use static size functions
+protected:
+    BaseX::VecX f_dX(const BaseX::VecX& x, const BaseX::VecX& u, const BaseX::VecX& v, double dt) const override
+    {
+        Vec_x x_fixed = x;
+        Vec_u u_fixed = u;
+        Vec_v v_fixed = v;
+        return f_d(x_fixed, u_fixed, v_fixed, dt);
+    }
+
+    BaseX::MatXX Q_dX(const BaseX::VecX& x, double dt) const override
+    {
+        Vec_x x_fixed = x;
+        return Q_d(x_fixed, dt);
+    }
+
 };
 
 
@@ -92,7 +159,7 @@ public:
  * @tparam n_dim_x  State dimension
  */
 template <int n_dim_x>
-class DynamicModelI : public DynamicModelBaseI<n_dim_x, n_dim_x, n_dim_x> {
+class DynamicModelEKFI : public DynamicModelI<n_dim_x, n_dim_x, n_dim_x> {
 public:
     static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
     static constexpr int N_DIM_u = n_dim_x; // Declare so that children of this class can reference it
@@ -102,7 +169,7 @@ public:
     using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
     using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
 
-    virtual ~DynamicModelI() = default;
+    virtual ~DynamicModelEKFI() = default;
 
     /** Continuos time dynamics.
      * @param x Vec_x
@@ -123,7 +190,7 @@ public:
     virtual Mat_xx Q_c(const Vec_x& x) const = 0;
 
     /** Discrete time dynamics.
-     * Overriding DynamicModelBaseI::f_d
+     * Overriding DynamicModelI::f_d
      * @param x Vec_x
      * @param u Vec_u
      * @param v Vec_v
@@ -156,7 +223,7 @@ public:
     }
 
     /** Discrete time process noise.
-     * Overriding DynamicModelBaseI::Q_d
+     * Overriding DynamicModelI::Q_d
      * @param x Vec_x
      * @param dt Time step
      * @return Matrix Process noise covariance

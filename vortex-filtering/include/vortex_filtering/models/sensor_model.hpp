@@ -16,13 +16,50 @@
 namespace vortex {
 namespace models {
 
+class SensorModelX {
+public:
+    // Using dynamic Eigen types
+    using VecX = Eigen::VectorXd;
+    using MatXX = Eigen::MatrixXd;
+    using GaussX = prob::MultiVarGauss<Eigen::Dynamic>;
+
+    // Constructor to initialize the dimensions
+    SensorModelX(int dim_x, int dim_z, int dim_w)
+        : dim_x_(dim_x), dim_z_(dim_z), dim_w_(dim_w) {}
+
+    virtual ~SensorModelX() = default;
+
+    // Discrete time dynamics (pure virtual function)
+    virtual VecX h_dX(const VecX& x, const VecX& w, double dt) const = 0;
+
+    // Discrete time process noise (pure virtual function)
+    virtual MatXX R_dX(const VecX& x) const = 0;
+
+    // Sample from the discrete time dynamics
+    VecX sample_h_d(const VecX& x, double dt) const {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        return sample_h_d(x, VecX::Zero(dim_w_), dt, gen);
+    }
+
+    // Sample from the discrete time dynamics
+    VecX sample_h_d(const VecX& x, const VecX& w, double dt, std::mt19937& gen) const {
+        GaussX w_gauss = {VecX::Zero(dim_w_), R_dX(x)};
+        return h_dX(x, w + w_gauss.sample(gen), dt);
+    }
+
+protected:
+    const int dim_x_;  // State dimension
+    const int dim_z_;  // Measurement dimension
+    const int dim_w_;  // Process noise dimension
+};
 
 template <int n_dim_x, int n_dim_z, int n_dim_w>
 /**
  * @brief Interface for sensor models.
  * 
  */
-class SensorModelBaseI {
+class SensorModelI : public SensorModelX {
 public:
     static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
     using Vec_x  = Eigen::Vector<double, N_DIM_x>;
@@ -43,7 +80,8 @@ public:
     using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
     using Gauss_w = prob::MultiVarGauss<N_DIM_w>;
 
-    virtual ~SensorModelBaseI() = default;
+    SensorModelI() : SensorModelX(N_DIM_x, N_DIM_z, N_DIM_w) {}
+    virtual ~SensorModelI() = default;
 
     /**
      * @brief Sensor Model
@@ -81,6 +119,20 @@ public:
         return sample_h(x, gen);
     }
 
+    // Override dynamic size functions to use static size functions
+protected:
+    // Discrete time dynamics (pure virtual function)
+    virtual VecX h_dX(const VecX& x, const VecX& w, double dt) const override
+    {
+        return h(x, w);
+    }
+
+    // Discrete time process noise (pure virtual function)
+    virtual MatXX R_dX(const VecX& x) const override
+    {
+        return R(x);
+    }
+
 };
 
 
@@ -90,7 +142,7 @@ template <int n_dim_x, int n_dim_z>
  * @brief Interface for sensor models.
  * 
  */
-class SensorModelI : public SensorModelBaseI<n_dim_x, n_dim_z, n_dim_z>{
+class SensorModelEKFI : public SensorModelI<n_dim_x, n_dim_z, n_dim_z>{
 public:
     static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
     static constexpr int N_DIM_z = n_dim_z; // Declare so that children of this class can reference it
@@ -104,9 +156,9 @@ public:
     using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
     using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
 
-    virtual ~SensorModelI() = default;
+    virtual ~SensorModelEKFI() = default;
     /** Sensor Model
-     * Overriding SensorModelBaseI::h
+     * Overriding SensorModelI::h
      * @param x State
      * @param w Noise
      * @return Vec_z
