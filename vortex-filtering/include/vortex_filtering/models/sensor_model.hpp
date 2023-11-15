@@ -30,23 +30,24 @@ public:
     virtual ~SensorModelX() = default;
 
     // Discrete time dynamics (pure virtual function)
-    virtual VecX h_dX(const VecX& x, const VecX& w, double dt) const = 0;
+    virtual VecX h_dX(const VecX& x, const VecX& w) const = 0;
 
     // Discrete time process noise (pure virtual function)
     virtual MatXX R_dX(const VecX& x) const = 0;
 
     // Sample from the discrete time dynamics
-    VecX sample_h_d(const VecX& x, double dt) const {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        return sample_h_d(x, VecX::Zero(dim_w_), dt, gen);
+    VecX sample_h_d(const VecX& x, std::mt19937& gen) const {
+        GaussX w = {VecX::Zero(dim_w_), R_dX(x)};
+        return h_dX(x, w.sample(gen));
     }
 
     // Sample from the discrete time dynamics
-    VecX sample_h_d(const VecX& x, const VecX& w, double dt, std::mt19937& gen) const {
-        GaussX w_gauss = {VecX::Zero(dim_w_), R_dX(x)};
-        return h_dX(x, w + w_gauss.sample(gen), dt);
+    VecX sample_h_d(const VecX& x) const {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        return sample_h_d(x, gen);
     }
+
 
 protected:
     const int dim_x_;  // State dimension
@@ -122,7 +123,7 @@ public:
     // Override dynamic size functions to use static size functions
 protected:
     // Discrete time dynamics (pure virtual function)
-    virtual VecX h_dX(const VecX& x, const VecX& w, double dt) const override
+    virtual VecX h_dX(const VecX& x, const VecX& w) const override
     {
         return h(x, w);
     }
