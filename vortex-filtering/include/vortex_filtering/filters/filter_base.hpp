@@ -30,11 +30,11 @@ public:
 
 	virtual ~KalmanFilterX() = default;
 
-	virtual std::pair<GaussX, GaussX> predict(const DynModXPtr& dyn_mod, const SensModXPtr& sens_mod, const GaussX& x_est_prev, const VecX& u, double dt) const = 0;
+	virtual std::pair<GaussX, GaussX> predictX(const DynModXPtr& dyn_mod, const SensModXPtr& sens_mod, const GaussX& x_est_prev, const VecX& u, double dt) const = 0;
 
-	virtual GaussX update(const DynModXPtr& dyn_mod, const SensModXPtr& sens_mod, const GaussX& x_est_pred, const GaussX& z_est_pred, const VecX& z_meas) const = 0;
+	virtual GaussX updateX(const DynModXPtr& dyn_mod, const SensModXPtr& sens_mod, const GaussX& x_est_pred, const GaussX& z_est_pred, const VecX& z_meas) const = 0;
 
-	virtual std::tuple<GaussX, GaussX, GaussX> step(const DynModXPtr& dyn_mod, const SensModXPtr& sens_mod, const GaussX& x_est_prev, const VecX& z_meas, const VecX& u, double dt) const = 0;
+	virtual std::tuple<GaussX, GaussX, GaussX> stepX(const DynModXPtr& dyn_mod, const SensModXPtr& sens_mod, const GaussX& x_est_prev, const VecX& z_meas, const VecX& u, double dt) const = 0;
 
 protected:
 	const int dim_x_;  // State dimension
@@ -44,8 +44,10 @@ protected:
 	const int dim_w_;  // Measurement noise dimension
 };
 
-/** @brief Interface for Kalman filters.
- * 
+
+
+
+/** @brief Interface for Kalman filters with static size dimensions.
  * @tparam DynModT Dynamic model type.
  * @tparam SensModT Sensor model type. 
  */
@@ -60,8 +62,8 @@ public:
 
 	using DynModI  = models::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
     using SensModI = models::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
-    using DynModIShared = std::shared_ptr<DynModI>;
-    using SensModIShared = std::shared_ptr<SensModI>;
+    using DynModIPtr = std::shared_ptr<DynModI>;
+    using SensModIPtr = std::shared_ptr<SensModI>;
 
 
 	using Vec_z = Eigen::Vector<double, N_DIM_z>;
@@ -72,43 +74,49 @@ public:
 	KalmanFilterI() : KalmanFilterX(N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w) {}
 	virtual ~KalmanFilterI() = default;
 
-	virtual std::pair<Gauss_x, Gauss_z> predict(DynModIShared dyn_mod, SensModIShared sens_mod, const Gauss_x& x_est_prev, const Vec_u& u, double dt) = 0;
+	virtual std::pair<Gauss_x, Gauss_z> predict(DynModIPtr dyn_mod, SensModIPtr sens_mod, const Gauss_x& x_est_prev, const Vec_u& u, double dt) const = 0;
 
-	virtual Gauss_x update(DynModIShared dyn_mod, SensModIShared sens_mod, const Gauss_x& x_est_pred, const Gauss_z& z_est_pred, const Vec_z& z_meas) = 0;
+	virtual Gauss_x update(DynModIPtr dyn_mod, SensModIPtr sens_mod, const Gauss_x& x_est_pred, const Gauss_z& z_est_pred, const Vec_z& z_meas) const = 0;
 
-	virtual std::tuple<Gauss_x, Gauss_x, Gauss_z> step(DynModIShared dyn_mod, SensModIShared sens_mod, const Gauss_x& x_est_prev, const Vec_z& z_meas, const Vec_u& u, double dt) = 0;
+	virtual std::tuple<Gauss_x, Gauss_x, Gauss_z> step(DynModIPtr dyn_mod, SensModIPtr sens_mod, const Gauss_x& x_est_prev, const Vec_z& z_meas, const Vec_u& u, double dt) const = 0;
+
+
+
+
 
 	// Override dynamic size functions to use static size functions
 protected:
-	std::pair<GaussX, GaussX> predict(const DynModXPtr& dyn_mod, const SensModXPtr& sens_mod, const GaussX& x_est_prev, const VecX& u, double dt) const override {
-		// cast to dynamic model type to access pred_from_est
-		auto dyn_model = std::dynamic_pointer_cast<DynModT>(dyn_mod);
-		// cast to sensor model type to access pred_from_est
-		auto sens_model = std::dynamic_pointer_cast<SensModT>(sens_mod);
+	std::pair<GaussX, GaussX> predictX(const DynModXPtr& dyn_mod, const SensModXPtr& sens_mod, const GaussX& x_est_prev, const VecX& u, double dt) const override 
+	{
+		DynModIPtr dyn_mod_   = std::static_pointer_cast<DynModI>(dyn_mod);
+		SensModIPtr sens_mod_ = std::static_pointer_cast<SensModI>(sens_mod);
+		Gauss_x x_est_prev_   = x_est_prev;
+		Vec_u u_              = u;
 
-		Gauss_x x_est_pred = dyn_model->pred_from_est(x_est_prev, u, dt);
-		Gauss_z z_est_pred = sens_model->pred_from_est(x_est_pred);
-		return {x_est_pred, z_est_pred};
+		return predict(dyn_mod_, sens_mod_, x_est_prev_, u_, dt);
 	}
 
-	GaussX update(const DynModXPtr& dyn_mod, const SensModXPtr& sens_mod, const GaussX& x_est_pred, const GaussX& z_est_pred, const VecX& z_meas) const override {
-		// cast to sensor model type
-		auto sens_model = std::dynamic_pointer_cast<SensModT>(sens_mod);
+	GaussX updateX(const DynModXPtr& dyn_mod, const SensModXPtr& sens_mod, const GaussX& x_est_pred, const GaussX& z_est_pred, const VecX& z_meas) const override 
+	{
+		DynModIPtr dyn_mod_   = std::static_pointer_cast<DynModI>(dyn_mod);
+		SensModIPtr sens_mod_ = std::static_pointer_cast<SensModI>(sens_mod);
+		Gauss_x x_est_pred_   = x_est_pred;
+		Gauss_z z_est_pred_   = z_est_pred;
+		Vec_z z_meas_         = z_meas;
 
-		Gauss_z z_meas_gauss = {z_meas, sens_model->R_dX(x_est_pred.mean())};
-		return z_est_pred.update(z_meas_gauss);
+		return update(dyn_mod_, sens_mod_, x_est_pred_, z_est_pred_, z_meas_);
 	}
 
-	std::tuple<GaussX, GaussX, GaussX> step(const DynModXPtr& dyn_mod, const SensModXPtr& sens_mod, const GaussX& x_est_prev, const VecX& z_meas, const VecX& u, double dt) const override {
-		// cast to dynamic model type to access pred_from_est
-		auto dyn_model = std::dynamic_pointer_cast<DynModT>(dyn_mod);
-		// cast to sensor model type to access pred_from_est
-		auto sens_model = std::dynamic_pointer_cast<SensModT>(sens_mod);
+	std::tuple<GaussX, GaussX, GaussX> stepX(const DynModXPtr& dyn_mod, const SensModXPtr& sens_mod, const GaussX& x_est_prev, const VecX& z_meas, const VecX& u, double dt) const override 
+	{
+		DynModIPtr dyn_mod_   = std::static_pointer_cast<DynModI>(dyn_mod);
+		SensModIPtr sens_mod_ = std::static_pointer_cast<SensModI>(sens_mod);
+		Gauss_x x_est_prev_   = x_est_prev;
+		Vec_z z_meas_         = z_meas;
+		Vec_u u_              = u;
 
-		Gauss_x x_est_pred = dyn_model->pred_from_est(x_est_prev, u, dt);
-		Gauss_z z_est_pred = sens_model->pred_from_est(x_est_pred);
-		Gauss_z z_meas_gauss = {z_meas, sens_model->R_dX(x_est_pred.mean())};
-		Gauss_x x_est = z_est
+		return step(dyn_mod_, sens_mod_, x_est_prev_, z_meas_, u_, dt);
+	}
 };
 
 }  // namespace filters

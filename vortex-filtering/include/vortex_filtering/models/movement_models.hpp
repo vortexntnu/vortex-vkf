@@ -4,7 +4,7 @@
 namespace vortex {
 namespace models {
 
-/** @brief Simple dynamic model with constant velocity
+/** @brief Simple dynamic model with constant velocity.
  * x = [x, y, x_dot, y_dot]
  */
 class CVModel : public DynamicModelEKFI<4> {
@@ -19,6 +19,11 @@ public:
      */
     CVModel(double std_vel) : std_vel_(std_vel) {}
 
+    /** Get the continuous-time state transition model.
+     * Overriding DynamicModelEKFI::f_c
+     * @param x State
+     * @return Vec_x 
+     */
     Vec_x f_c(const Vec_x& x) const override
     {
         Vec_x x_dot;
@@ -26,6 +31,11 @@ public:
         return x_dot;
     }
 
+    /** Get the Jacobian of the continuous state transition model with respect to the state.
+     * Overriding DynamicModelEKFI::A_c
+     * @param x State
+     * @return Mat_xx 
+     */
     Mat_xx A_c(const Vec_x& x) const override
     {
         (void)x; // unused
@@ -37,6 +47,11 @@ public:
         return A;
     }
 
+    /** Get the continuous time process noise covariance matrix.
+     * Overriding DynamicModelEKFI::Q_c
+     * @param x State
+     * @return Mat_xx Process noise covariance
+     */
     Mat_xx Q_c(const Vec_x& x) const override
     {
         (void)x; // unused

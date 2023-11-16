@@ -32,8 +32,8 @@ public:
 
     using DynModI  = models::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
     using SensModI = models::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
-    using DynModIShared = std::shared_ptr<DynModI>;
-    using SensModIShared = std::shared_ptr<SensModI>;
+    using DynModIPtr = std::shared_ptr<DynModI>;
+    using SensModIPtr = std::shared_ptr<SensModI>;
 
     using Vec_x    = Eigen::Vector<double, N_DIM_x>;
     using Mat_xx   = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
@@ -61,13 +61,12 @@ public:
     using Gauss_x  = prob::MultiVarGauss<N_DIM_x>;
     using Gauss_z  = prob::MultiVarGauss<N_DIM_z>;
 
-    // Augmented state dimension
-    static constexpr int N_DIM_a = N_DIM_x + N_DIM_v + N_DIM_w;
-    using Vec_a     = Eigen::Vector<double, N_DIM_a>;
-    using Mat_aa    = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;
-    using Mat_x2ap1 = Eigen::Matrix<double, N_DIM_x, 2*N_DIM_a + 1>;
-    using Mat_z2ap1 = Eigen::Matrix<double, N_DIM_z, 2*N_DIM_a + 1>;
-    using Mat_a2ap1 = Eigen::Matrix<double, N_DIM_a, 2*N_DIM_a + 1>;
+    static constexpr int N_DIM_a = N_DIM_x + N_DIM_v + N_DIM_w;         // Augmented state dimension
+    using Vec_a     = Eigen::Vector<double, N_DIM_a>;                   // Augmented state vector
+    using Mat_aa    = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;          // Augmented state covariance matrix
+    using Mat_x2ap1 = Eigen::Matrix<double, N_DIM_x, 2*N_DIM_a + 1>;    // Matrix for sigma points of x
+    using Mat_z2ap1 = Eigen::Matrix<double, N_DIM_z, 2*N_DIM_a + 1>;    // Matrix for sigma points of z
+    using Mat_a2ap1 = Eigen::Matrix<double, N_DIM_a, 2*N_DIM_a + 1>;    // Matrix for sigma points of a
 
 
     /** Unscented Kalman Filter
@@ -84,13 +83,13 @@ public:
      * @tparam DynamicModelT Dynamic model type. Can take any model that implements f_d and Q_d
      * @tparam SensorModelT Sensor model type. Can take any model that implements h and R
      */
-    UKF(DynModIShared dynamic_model, SensModIShared sensor_model) : UKF(dynamic_model, sensor_model, 1.0, 2.0, 0.0) {}
+    UKF(DynModIPtr dynamic_model, SensModIPtr sensor_model) : UKF(dynamic_model, sensor_model, 1.0, 2.0, 0.0) {}
         
     /** Unscented Kalman Filter
      * @param dynamic_model Dynamic model
      * @param sensor_model Sensor model
      */
-    UKF(DynModIShared dynamic_model, SensModIShared sensor_model, double alpha, double beta, double kappa)
+    UKF(DynModIPtr dynamic_model, SensModIPtr sensor_model, double alpha, double beta, double kappa)
         : dynamic_model_(dynamic_model), sensor_model_(sensor_model)
         , ALPHA_(alpha), BETA_(beta), KAPPA_(kappa)
     {
@@ -116,7 +115,7 @@ private:
      * @param x_est Gauss_x State estimate
      * @return Mat_a2ap1 sigma_points
     */
-    Mat_a2ap1 get_sigma_points(DynModIShared dyn_mod, SensModIShared sens_mod, const Gauss_x& x_est, double dt) 
+    Mat_a2ap1 get_sigma_points(DynModIPtr dyn_mod, SensModIPtr sens_mod, const Gauss_x& x_est, double dt) const
     {
         Mat_xx P = x_est.cov();
         Mat_vv Q = dyn_mod->Q_d(x_est.mean(), dt);
@@ -151,7 +150,7 @@ private:
      * @param dt Time step
      * @return Mat_x2ap1 sigma_x_pred
      */
-    Mat_x2ap1 propagate_sigma_points_f(DynModIShared dyn_mod, const Mat_a2ap1& sigma_points, const Vec_u& u, double dt) {
+    Mat_x2ap1 propagate_sigma_points_f(DynModIPtr dyn_mod, const Mat_a2ap1& sigma_points, const Vec_u& u, double dt) const {
         Eigen::Matrix<double, N_DIM_x, 2*N_DIM_a + 1> sigma_x_pred;
         for (int i = 0; i < 2*N_DIM_a + 1; i++) {
             Vec_x x_i = sigma_points.template block<N_DIM_x, 1>(0, i);
@@ -166,7 +165,7 @@ private:
      * @param sigma_points Mat_a2ap1 Sigma points
      * @return Mat_z2ap1 sigma_z_pred
      */
-    Mat_z2ap1 propagate_sigma_points_h(SensModIShared sens_mod, const Mat_a2ap1& sigma_points) {
+    Mat_z2ap1 propagate_sigma_points_h(SensModIPtr sens_mod, const Mat_a2ap1& sigma_points) const {
         Mat_z2ap1 sigma_z_pred;
         for (int i = 0; i < 2*N_DIM_a + 1; i++) {
             Vec_x x_i = sigma_points.template block<N_DIM_x, 1>(0, i);
@@ -183,7 +182,7 @@ private:
      * @note This function is templated to allow for different dimensions of the gaussian
      */
     template<int n_dims>
-    prob::MultiVarGauss<n_dims> estimate_gaussian(const Eigen::Matrix<double, n_dims, 2*N_DIM_a + 1>& sigma_points) {
+    prob::MultiVarGauss<n_dims> estimate_gaussian(const Eigen::Matrix<double, n_dims, 2*N_DIM_a + 1>& sigma_points) const {
         // Predicted State Estimate x_k-
         Eigen::Vector<double, n_dims> mean = Eigen::Vector<double, n_dims>::Zero();
         for (int i = 0; i < 2*N_DIM_a + 1; i++) {
@@ -205,7 +204,7 @@ public:
      * @param dt Time step
      * @return std::pair<Gauss_x, Gauss_z> Predicted state estimate, predicted measurement estimate
      */
-	std::pair<Gauss_x, Gauss_z> predict(DynModIShared dyn_mod, SensModIShared sens_mod, const Gauss_x& x_est_prev, const Vec_u& u, double dt) override
+	std::pair<Gauss_x, Gauss_z> predict(DynModIPtr dyn_mod, SensModIPtr sens_mod, const Gauss_x& x_est_prev, const Vec_u& u, double dt) const override
     {
         Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, x_est_prev, dt);
 
@@ -229,7 +228,7 @@ public:
      * @return Gauss_x Updated state estimate
      * @note This function is not implemented. It is here to allow for the same interface as the EKF.
      */
-    Gauss_x update(DynModIShared, SensModIShared, const Gauss_x& x_est_pred, const Gauss_z&, const Vec_z&) override
+    Gauss_x update(DynModIPtr, SensModIPtr, const Gauss_x& x_est_pred, const Gauss_z&, const Vec_z&) const override
     {
         // Not implemented, warn user
         // It is not implemented because the update step is not stand-alone in the UKF and depends on the prediction step.
@@ -246,7 +245,7 @@ public:
      * @param dt Time step
      * @return std::tuple<Gauss_x, Gauss_x, Gauss_z> Updated state estimate, predicted state estimate, predicted measurement estimate
      */
-    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(DynModIShared dyn_mod, SensModIShared sens_mod, const Gauss_x& x_est_prev, const Vec_z& z_meas, const Vec_u& u, double dt) override
+    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(DynModIPtr dyn_mod, SensModIPtr sens_mod, const Gauss_x& x_est_prev, const Vec_z& z_meas, const Vec_u& u, double dt) const override
     {
         Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, x_est_prev, dt);
 
@@ -282,7 +281,7 @@ public:
      * @param dt Time step
      * @return std::pair<Gauss_x, Gauss_z> Predicted state estimate, predicted measurement estimate
      */
-    std::pair<Gauss_x, Gauss_z> predict(const Gauss_x& x_est_prev, const Vec_u& u, double dt) {
+    std::pair<Gauss_x, Gauss_z> predict(const Gauss_x& x_est_prev, const Vec_u& u, double dt) const {
         // check if dynamic_model_ and sensor_model_ are set
         if (!dynamic_model_ || !sensor_model_) {
             throw std::runtime_error("UKF::predict() called without dynamic_model_ or sensor_model_ set.");
@@ -297,7 +296,7 @@ public:
      * @param dt Time step
      * @return std::tuple<Gauss_x, Gauss_x, Gauss_z> Updated state estimate, predicted state estimate, predicted measurement estimate
      */
-    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const Gauss_x& x_est_prev, const Vec_z& z_meas, const Vec_u& u, double dt) {
+    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const Gauss_x& x_est_prev, const Vec_z& z_meas, const Vec_u& u, double dt) const {
         // check if dynamic_model_ and sensor_model_ are set
         if (!dynamic_model_ || !sensor_model_) {
             throw std::runtime_error("UKF::step() called without dynamic_model_ or sensor_model_ set.");
@@ -306,8 +305,8 @@ public:
     }
 
 private:
-    const DynModIShared dynamic_model_;
-    const SensModIShared sensor_model_;
+    const DynModIPtr dynamic_model_;
+    const SensModIPtr sensor_model_;
 
     // Parameters for UKF
     double ALPHA_, BETA_, KAPPA_, LAMBDA_, GAMMA_;

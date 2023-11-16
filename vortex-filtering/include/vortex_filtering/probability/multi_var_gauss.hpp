@@ -32,9 +32,9 @@ public:
      * @return double
      */
     double pdf(const Vector& x) const {
-        const auto diff = x - mean_;
-        const auto exponent = -0.5 * diff.transpose() * cov_inv_ * diff;
-        return std::exp(exponent) / std::sqrt(std::pow(2 * M_PI, n_dims()) * cov_.determinant());
+        const auto diff = x - mean();
+        const auto exponent = -0.5 * diff.transpose() * cov_inv() * diff;
+        return std::exp(exponent) / std::sqrt(std::pow(2 * M_PI, n_dims()) * cov().determinant());
     }
 
     /** Calculate the log likelihood of x given the Gaussian.
@@ -43,9 +43,9 @@ public:
      * @return double 
      */
     double logpdf(const Vector& x) const {
-        const auto diff = x - mean_;
-        const auto exponent = -0.5 * diff.transpose() * cov_inv_ * diff;
-        return exponent - 0.5 * std::log(std::pow(2 * M_PI, n_dims()) * cov_.determinant());
+        const auto diff = x - mean();
+        const auto exponent = -0.5 * diff.transpose() * cov_inv() * diff;
+        return exponent - 0.5 * std::log(std::pow(2 * M_PI, n_dims()) * cov().determinant());
     }
     
 
@@ -58,8 +58,8 @@ public:
      * @return double 
      */
     double mahalanobis_distance(const Vector& x) const {
-        const auto diff = x - mean_;
-        return std::sqrt(diff.transpose() * cov_inv_ * diff);
+        const auto diff = x - mean();
+        return std::sqrt(diff.transpose() * cov_inv() * diff);
     }
 
     /** Sample from the Gaussian
@@ -72,7 +72,7 @@ public:
         for (int i = 0; i < n_dims(); ++i) {
             sample(i) = d(gen);
         }
-        return mean_ + cov_.llt().matrixL() * sample;
+        return mean() + cov().llt().matrixL() * sample;
     }
 
     /** Sample from the Gaussian
@@ -90,11 +90,28 @@ public:
     */
     int n_dims() const { return actual_n_dims_; }
     
-    private:
+private:
     Vector mean_;
     Matrix cov_;
     size_t actual_n_dims_;
     Matrix cov_inv_;
+
+public:
+    
+    // Conversion constructor
+    MultiVarGauss(const MultiVarGauss<-1>& other) {
+        assert(other.mean().size() == n_dims_);
+        assert(other.cov().rows() == n_dims_ && other.cov().cols() == n_dims_);
+
+        // Assign or transform other's data to this instance
+        this->mean_ = other.mean();
+        this->cov_ = other.cov();
+    }
+
+    // Conversion operator
+    operator MultiVarGauss<-1>() const {   
+        return {this->mean_, this->cov_};
+    }
 
 };
 
