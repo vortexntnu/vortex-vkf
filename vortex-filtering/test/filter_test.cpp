@@ -9,6 +9,7 @@
 #include <vortex_filtering/models/sensor_models.hpp>
 
 #include "test_models.hpp"
+#include "gtest_assertions.hpp"
 template <int N_DIM_x, int N_DIM_z>
 struct SimData 
 {
@@ -111,23 +112,7 @@ protected:
 
 };
 
-// TODO: Move to own file
-testing::AssertionResult isApproxEqual(const Eigen::VectorXd& a, const Eigen::VectorXd& b, double tol)
-{
-    if (a.size() != b.size()) {
-        return testing::AssertionFailure() << "Vectors are not the same size, "
-                                           << "a: " << a.transpose()
-                                           << ", b: " << b.transpose();
-    }
-    for (int i = 0; i < a.size(); ++i) {
-        if (std::abs(a(i) - b(i)) > tol) {
-            return testing::AssertionFailure() << "Vectors are not the same, "
-                                               << "a: " << a.transpose()
-                                               << ", b: " << b.transpose();
-        }
-    }
-    return testing::AssertionSuccess();
-}
+
 
 
 using DynModT = NonlinearModel1;
