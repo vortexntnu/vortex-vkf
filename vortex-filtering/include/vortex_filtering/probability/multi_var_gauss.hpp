@@ -26,6 +26,21 @@ public:
             throw std::invalid_argument("Covariance matrix is not positive definite");
         }
     }
+
+    // Conversion constructor to convert dynamic size Gaussians to static size Gaussians
+    MultiVarGauss(const MultiVarGauss<-1>& other) {
+        assert(other.mean().size() == n_dims_);
+        assert(other.cov().rows() == n_dims_ && other.cov().cols() == n_dims_);
+
+        // Assign or transform other's data to this instance
+        this->mean_ = other.mean();
+        this->cov_ = other.cov();
+    }
+
+    // Conversion operator to convert static size Gaussians to dynamic size Gaussians
+    operator MultiVarGauss<-1>() const {   
+        return {this->mean_, this->cov_};
+    }
     
     /** Calculate the probability density function of x given the Gaussian
      * @param x
@@ -95,23 +110,6 @@ private:
     Matrix cov_;
     size_t actual_n_dims_;
     Matrix cov_inv_;
-
-public:
-    
-    // Conversion constructor
-    MultiVarGauss(const MultiVarGauss<-1>& other) {
-        assert(other.mean().size() == n_dims_);
-        assert(other.cov().rows() == n_dims_ && other.cov().cols() == n_dims_);
-
-        // Assign or transform other's data to this instance
-        this->mean_ = other.mean();
-        this->cov_ = other.cov();
-    }
-
-    // Conversion operator
-    operator MultiVarGauss<-1>() const {   
-        return {this->mean_, this->cov_};
-    }
 
 };
 
