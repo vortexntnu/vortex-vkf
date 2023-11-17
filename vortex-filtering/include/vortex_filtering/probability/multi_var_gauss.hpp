@@ -9,14 +9,14 @@ namespace prob {
  * A class for representing a multivariate Gaussian distribution
  * @tparam N_DIMS dimentions of the Gaussian
  */
-template <int n_dims_>
+template <int n_dims>
 class MultiVarGauss {
 public:
-    using Vector = Eigen::Vector<double, n_dims_>;
-    using Matrix = Eigen::Matrix<double, n_dims_, n_dims_>;
+    using Vector = Eigen::Vector<double, n_dims>;
+    using Matrix = Eigen::Matrix<double, n_dims, n_dims>;
     
     MultiVarGauss(const Vector& mean = Vector::Zero(), const Matrix& cov = Matrix::Identity())
-        : mean_(mean), cov_(cov), actual_n_dims_(cov_.rows()), cov_inv_(cov_.llt().solve(Matrix::Identity(n_dims(), n_dims())))
+        : N_DIMS(mean.size()), mean_(mean), cov_(cov), cov_inv_(cov_.llt().solve(Matrix::Identity(size(), size())))
     {
         // Check that the covariance matrix is positive definite and symmetric
         if (!cov_.isApprox(cov_.transpose(), 1e-6)) {
@@ -27,29 +27,54 @@ public:
         }
     }
 
-    // Conversion constructor to convert dynamic size Gaussians to static size Gaussians
-    MultiVarGauss(const MultiVarGauss<-1>& other) {
-        assert(other.mean().size() == n_dims_);
-        assert(other.cov().rows() == n_dims_ && other.cov().cols() == n_dims_);
+    // Copy constructor
+    MultiVarGauss(const MultiVarGauss& other) : mean_(other.mean_), cov_(other.cov_), cov_inv_(other.cov_inv_) {}
 
-        // Assign or transform other's data to this instance
-        this->mean_ = other.mean();
-        this->cov_ = other.cov();
+    // Conversion constructor to convert dynamic size Gaussians to static size Gaussians
+    template <int N>
+    MultiVarGauss(const MultiVarGauss<N>& other)
+    {
+        if (other.mean().size() != n_dims) {
+            throw std::invalid_argument("Size of mean vector does not match");
+        }
+        if (other.cov().rows() != n_dims || other.cov().cols() != n_dims) {
+            throw std::invalid_argument("Size of covariance matrix does not match");
+        }
+
+        // N_DIMS = n_dims;
+        Vector mean = other.mean();
+        Matrix cov = other.cov();
+
+        // cov_inv_ = other.cov_inv();
+
+        *this = {mean, cov};
     }
 
     // Conversion operator to convert static size Gaussians to dynamic size Gaussians
-    operator MultiVarGauss<-1>() const {   
+    operator MultiVarGauss<Eigen::Dynamic>() const {   
         return {this->mean_, this->cov_};
     }
+
+    // Copy assignment operator
+    MultiVarGauss& operator=(const MultiVarGauss& other) {
+    if (&other != this) {
+        // Copy the data from 'other' to 'this'
+        this->mean_ = other.mean_;
+        this->cov_ = other.cov_;
+        this->cov_inv_ = other.cov_inv_;
+    }
+    return *this;
+    }
+
     
-    /** Calculate the probability density function of x given the Gaussian
+     /** Calculate the probability density function of x given the Gaussian
      * @param x
      * @return double
      */
     double pdf(const Vector& x) const {
-        const auto diff = x - mean();
-        const auto exponent = -0.5 * diff.transpose() * cov_inv() * diff;
-        return std::exp(exponent) / std::sqrt(std::pow(2 * M_PI, n_dims()) * cov().determinant());
+        const Vector diff = x - mean();
+        const double exponent = -0.5 * diff.transpose() * cov_inv() * diff;
+        return std::exp(exponent) / std::sqrt(std::pow(2 * M_PI, size()) * cov().determinant());
     }
 
     /** Calculate the log likelihood of x given the Gaussian.
@@ -58,9 +83,9 @@ public:
      * @return double 
      */
     double logpdf(const Vector& x) const {
-        const auto diff = x - mean();
-        const auto exponent = -0.5 * diff.transpose() * cov_inv() * diff;
-        return exponent - 0.5 * std::log(std::pow(2 * M_PI, n_dims()) * cov().determinant());
+        const Vector diff = x - mean();
+        const double exponent = - 0.5 * diff.transpose() * cov_inv() * diff;
+        return exponent - 0.5 * std::log(std::pow(2 * M_PI, size()) * cov().determinant());
     }
     
 
@@ -84,7 +109,7 @@ public:
     Vector sample(std::mt19937& gen) const {
         std::normal_distribution<> d{0, 1};
         Vector sample;
-        for (int i = 0; i < n_dims(); ++i) {
+        for (int i = 0; i < size(); ++i) {
             sample(i) = d(gen);
         }
         return mean() + cov().llt().matrixL() * sample;
@@ -99,18 +124,16 @@ public:
         return sample(gen);
     }
 
-
-    /** dimentions of the Gaussian
+    /** size of the Gaussian
      * @return int 
     */
-    int n_dims() const { return actual_n_dims_; }
-    
+    int size() const { return N_DIMS; }
+
 private:
+    size_t N_DIMS;
     Vector mean_;
     Matrix cov_;
-    size_t actual_n_dims_;
     Matrix cov_inv_;
-
 };
 
 }  // namespace probability

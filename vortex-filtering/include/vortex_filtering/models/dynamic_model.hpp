@@ -275,6 +275,30 @@ public:
         return x_est_pred;
     }
 
+    // Give access to the base class functions
+    using DynamicModelI<n_dim_x, n_dim_x, n_dim_x>::sample_f_d;
+
+    /** Sample from the discrete time dynamics
+     * @param x Vec_x State
+     * @param dt Time step
+     * @return Vec_x State
+     */
+    Vec_x sample_f_d(const Vec_x& x, double dt) const
+    {
+        return sample_f_d(x, Vec_x::Zero(), dt);
+    }
+
+    /** Sample from the discrete time dynamics
+     * @param x Vec_x State
+     * @param dt Time step
+     * @param gen Random number generator (For deterministic behaviour)
+     * @return Vec_x State
+     */
+    Vec_x sample_f_d(const Vec_x& x, double dt, std::mt19937& gen) const
+    {
+        return sample_f_d(x, Vec_x::Zero(), dt, gen);
+    }
+
 };
 
 }  // namespace models

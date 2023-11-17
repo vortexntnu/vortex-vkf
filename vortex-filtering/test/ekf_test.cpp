@@ -20,9 +20,9 @@ protected:
 
     void SetUp() override {
         // Create dynamic model
-        dynamic_model_ = std::make_shared<CVModel>(1.0);
+        dynamic_model_ = std::make_shared<CVModel>(1e-3);
         // Create sensor model
-        sensor_model_ = std::make_shared<PosMeasModel>(1.0);
+        sensor_model_ = std::make_shared<PosMeasModel>(1e-2);
         // Create EKF
         ekf_ = std::make_shared<vortex::filters::EKF<CVModel, PosMeasModel>>(dynamic_model_, sensor_model_);
     }
@@ -74,12 +74,8 @@ TEST_F(EKFTestCVModel, Convergence)
     for (int i = 0; i < 100; i++)
     {
         // Simulate
-        Vec_x v;
-        v << d_disturbance(gen), d_disturbance(gen), d_disturbance(gen), d_disturbance(gen);
-        Vec_z w = Vec_z::Zero(2);
-        w << d_noise(gen), d_noise(gen);
-        Vec_x x_true_i = dynamic_model_->f_d(x_true.back(), dt) + v;
-        Vec_z z_meas_i = sensor_model_->h(x_true_i) + w;
+        Vec_x x_true_i = dynamic_model_->sample_f_d(x_true.back(), dt, gen);
+        Vec_z z_meas_i = sensor_model_->sample_h(x_true_i, gen);
         x_true.push_back(x_true_i);
         z_meas.push_back(z_meas_i);
 

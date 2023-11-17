@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen/Dense>
 #include <tuple>
+#include <memory>
 
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 #include <vortex_filtering/models/dynamic_model.hpp>
