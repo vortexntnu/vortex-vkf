@@ -125,10 +125,7 @@ TEST_P(Nonlin1Test, ukf_convergence)
     auto params = GetParam();
     SimData<N_DIM_x, N_DIM_z> sim_data = simulate(params);
     // Check
-    for (size_t i = 0; i<N_DIM_x; i++) {
-        EXPECT_NEAR(sim_data.x_true.back()(i), sim_data.x_est.back().mean()(i), params.tolerance) << "i = " << i;
-    }
-   
+    EXPECT_TRUE(isApproxEqual(sim_data.x_true.back(), sim_data.x_est.back().mean(), params.tolerance));
 } 
 
 

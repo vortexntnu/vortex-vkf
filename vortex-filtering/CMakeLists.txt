@@ -111,7 +111,9 @@ if(BUILD_TESTING)
 
   find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(${PROJECT_NAME}_test 
-    test/main.cpp
+    test/gtest_main.cpp
+    test/gtest_assertions.cpp
+
     test/ekf_test.cpp
     test/ukf_test.cpp
     test/probability_test.cpp
