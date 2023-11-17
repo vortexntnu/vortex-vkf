@@ -8,8 +8,8 @@
  * @copyright Copyright (c) 2023
  * 
  */
-#include <vortex_filtering/models/dynamic_model.hpp>
-#include <vortex_filtering/models/sensor_model.hpp>
+#include <vortex_filtering/models/dynamic_model_interfaces.hpp>
+#include <vortex_filtering/models/sensor_model_interfaces.hpp>
 #include <vortex_filtering/models/imm_model.hpp>
 #include <vortex_filtering/probability/gaussian_mixture.hpp>
 #include <vortex_filtering/filters/ekf.hpp>

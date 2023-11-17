@@ -1,8 +1,26 @@
 #pragma once
-#include <vortex_filtering/models/dynamic_model.hpp>
+#include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 
 namespace vortex {
 namespace models {
+
+template <int n_dim_x>
+class IdentityDynamicModel : public DynamicModelEKFI<n_dim_x> {
+public: 
+    using Vec_x = Eigen::Vector<double, n_dim_x>;
+    using Mat_xx = Eigen::Matrix<double, n_dim_x, n_dim_x>;
+
+    IdentityDynamicModel(double std) : Q_(Mat_xx::Identity()*std*std) {}
+    IdentityDynamicModel(Mat_xx Q) : Q_(Q) {}
+
+    Vec_x f_c(const Vec_x& x) const override { return x; }
+    Mat_xx A_c(const Vec_x& x) const override { return Mat_xx::Identity(); }
+    Mat_xx Q_c(const Vec_x& x) const override { return Q_; }
+
+protected:
+    Mat_xx Q_;
+};
+
 
 /** @brief Simple dynamic model with constant velocity.
  * x = [x, y, x_dot, y_dot]

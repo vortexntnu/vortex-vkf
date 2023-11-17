@@ -3,14 +3,15 @@
 
 #include <vortex_filtering/filters/ekf.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
-#include <vortex_filtering/models/movement_models.hpp>
+#include <vortex_filtering/models/dynamic_models.hpp>
+#include <vortex_filtering/models/sensor_models.hpp>
 #include "test_models.hpp"
 #include <random>
 #include <gnuplot-iostream.h>
 
 class EKFTestCVModel : public ::testing::Test {
 protected:
-    using PosMeasModel = SimpleSensorModel<4,2>;
+    using PosMeasModel = vortex::models::IdentitySensorModel<4,2>;
     using CVModel = vortex::models::CVModel;
     using Vec_x = typename CVModel::Vec_x;
     using Mat_xx = typename CVModel::Mat_xx;

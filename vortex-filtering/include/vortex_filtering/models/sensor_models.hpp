@@ -1,11 +1,17 @@
 #pragma once
-#include <vortex_filtering/models/sensor_model.hpp>
+#include <vortex_filtering/models/sensor_model_interfaces.hpp>
 
 namespace vortex {
 namespace models {
 
+/** 
+ * A simple sensor model for testing purposes.
+ * The measurement model is simply the n_dim_z first elements of the state vector.
+ * @tparam n_dim_x Dimension of state
+ * @tparam n_dim_z Dimension of measurement
+ */
 template<int n_dim_x, int n_dim_z>
-class SimpleSensorModel : public vortex::models::SensorModelEKFI<n_dim_x, n_dim_z> {
+class IdentitySensorModel : public vortex::models::SensorModelEKFI<n_dim_x, n_dim_z> {
 public:
     using SensModI = vortex::models::SensorModelEKFI<n_dim_x, n_dim_z>;
 
@@ -23,13 +29,13 @@ public:
      * @tparam n_dim_x Dimension of state
      * @tparam n_dim_z Dimension of measurement
      */
-    SimpleSensorModel(double std) : R_(Mat_zz::Identity()*std*std) {}
+    IdentitySensorModel(double std) : R_(Mat_zz::Identity()*std*std) {}
 
     /** Construct a new Simple Sensor Model object.
      * The measurement model is simply the n_dim_z first elements of the state vector.
      * @param R Measurement covariance matrix
      */
-    SimpleSensorModel(Mat_zz R) : R_(R) {}
+    IdentitySensorModel(Mat_zz R) : R_(R) {}
 
     /** Get the predicted measurement given a state estimate.
      * Overriding SensorModelEKFI::h
@@ -63,7 +69,7 @@ private:
      * Overriding SensorModelEKFI::R 
      * @return Mat_zz 
      */
-    Mat_zz R(const Vec_x) const override { return R(); }
+    Mat_zz R(const Vec_x&) const override { return R(); }
 
     const Mat_zz R_; // Measurement covariance matrix
 };

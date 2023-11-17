@@ -7,6 +7,7 @@
 #include <gnuplot-iostream.h>
 
 #include <vortex_filtering/filters/ukf.hpp>
+#include <vortex_filtering/models/sensor_models.hpp>
 #include "test_models.hpp"
 
 class UKFtest : public ::testing::Test {
@@ -15,9 +16,11 @@ protected:
 	using Mat_xx = typename NonlinearModel1::Mat_xx;
 	using Gauss_x = typename NonlinearModel1::Gauss_x;
 
-	using Vec_z = typename SimpleSensorModel<1,1>::Vec_z;
-	using Mat_zz = typename SimpleSensorModel<1,1>::Mat_zz;
-	using Gauss_z = typename SimpleSensorModel<1,1>::Gauss_z;
+	using IdentitySensorModel = vortex::models::IdentitySensorModel<1,1>;
+
+	using Vec_z = typename IdentitySensorModel::Vec_z;
+	using Mat_zz = typename IdentitySensorModel::Mat_zz;
+	using Gauss_z = typename IdentitySensorModel::Gauss_z;
 
 	void SetUp() override
 	{
@@ -28,14 +31,14 @@ protected:
 		// Create dynamic model
 		dynamic_model_ = std::make_shared<NonlinearModel1>(Q);
 		// Create sensor model
-		sensor_model_ = std::make_shared<SimpleSensorModel<1,1>>(R);
+		sensor_model_ = std::make_shared<IdentitySensorModel>(R);
 		// Create UKF
-		ukf_ = std::make_shared<vortex::filters::UKF<NonlinearModel1, SimpleSensorModel<1,1>>>(dynamic_model_, sensor_model_);
+		ukf_ = std::make_shared<vortex::filters::UKF<NonlinearModel1, IdentitySensorModel>>(dynamic_model_, sensor_model_);
 	}
 
 	std::shared_ptr<NonlinearModel1> dynamic_model_;
-	std::shared_ptr<SimpleSensorModel<1,1>> sensor_model_;
-	std::shared_ptr<vortex::filters::UKF<NonlinearModel1, SimpleSensorModel<1,1>>> ukf_;
+	std::shared_ptr<IdentitySensorModel> sensor_model_;
+	std::shared_ptr<vortex::filters::UKF<NonlinearModel1, IdentitySensorModel>> ukf_;
 };
 
 TEST_F(UKFtest, Predict)
@@ -79,7 +82,7 @@ TEST_F(UKFtest, Convergence)
 	x_est.push_back(x0);
 	z_meas.push_back(sensor_model_->h(x0.mean()));
 	x_true.push_back(x0.mean());
-	z_est.push_back({sensor_model_->h(x0.mean()), sensor_model_->R(x0.mean())});
+	z_est.push_back({sensor_model_->h(x0.mean()), sensor_model_->R()});
 	for (int i = 0; i < n_steps-1; i++) {
         // Simulate
         Vec_x v;

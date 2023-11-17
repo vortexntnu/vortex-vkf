@@ -9,7 +9,7 @@
  * 
  */
 #pragma once
-#include <vortex_filtering/models/dynamic_model.hpp>
+#include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <Eigen/Dense>
 #include <memory>
 

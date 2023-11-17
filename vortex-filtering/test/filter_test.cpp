@@ -4,8 +4,9 @@
 #include <random>
 #include <vortex_filtering/filters/ekf.hpp>
 #include <vortex_filtering/filters/ukf.hpp>
-#include <vortex_filtering/models/movement_models.hpp>
-#include <vortex_filtering/models/sensor_model.hpp>
+#include <vortex_filtering/models/dynamic_models.hpp>
+#include <vortex_filtering/models/sensor_model_interfaces.hpp>
+#include <vortex_filtering/models/sensor_models.hpp>
 
 #include "test_models.hpp"
 template <int N_DIM_x, int N_DIM_z>
@@ -130,7 +131,7 @@ testing::AssertionResult isApproxEqual(const Eigen::VectorXd& a, const Eigen::Ve
 
 
 using DynModT = NonlinearModel1;
-using SensModT = SimpleSensorModel<1,1>;
+using SensModT = vortex::models::IdentitySensorModel<1,1>;
 using Nonlin1Test = KFTest<DynModT,SensModT>;
 TEST_P(Nonlin1Test, ukf_convergence)
 {

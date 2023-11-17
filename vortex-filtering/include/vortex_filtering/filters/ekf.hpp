@@ -13,8 +13,8 @@
 #include <tuple>
 #include <vortex_filtering/filters/filter_base.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
-#include <vortex_filtering/models/dynamic_model.hpp>
-#include <vortex_filtering/models/sensor_model.hpp>
+#include <vortex_filtering/models/dynamic_model_interfaces.hpp>
+#include <vortex_filtering/models/sensor_model_interfaces.hpp>
 
 namespace vortex {
 namespace filters {
@@ -38,6 +38,12 @@ public:
     using DynModIPtr = std::shared_ptr<DynModI>;
     using SensModIPtr = std::shared_ptr<SensModI>;
 
+    using DynModEKF  = models::DynamicModelEKFI<N_DIM_x>;
+    using SensModEKF = models::SensorModelEKFI<N_DIM_x, N_DIM_z>;
+    using DynModEKFPtr = std::shared_ptr<DynModEKF>;
+    using SensModEKFPtr = std::shared_ptr<SensModEKF>;
+
+    // TODO: Clean up typedefs
     using Vec_x    = typename Eigen::Vector<double, N_DIM_x>;
     using Mat_xx   = typename Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
     using Vec_z    = typename Eigen::Vector<double, N_DIM_z>;
@@ -61,9 +67,9 @@ public:
     std::pair<Gauss_x, Gauss_z> predict(DynModIPtr dyn_mod, SensModIPtr sens_mod, const Gauss_x& x_est_prev, const Vec_x&, double dt) const override
     {
         // cast to dynamic model type to access pred_from_est
-        auto dyn_model = std::dynamic_pointer_cast<DynModT>(dyn_mod);
+        auto dyn_model = std::dynamic_pointer_cast<DynModEKF>(dyn_mod);
         // cast to sensor model type to access pred_from_est
-        auto sens_model = std::dynamic_pointer_cast<SensModT>(sens_mod);
+        auto sens_model = std::dynamic_pointer_cast<SensModEKF>(sens_mod);
 
         Gauss_x x_est_pred = dyn_model->pred_from_est(x_est_prev, dt);
         Gauss_z z_est_pred = sens_model->pred_from_est(x_est_pred);
@@ -82,7 +88,7 @@ public:
     Gauss_x update(DynModIPtr, SensModIPtr sens_mod, const Gauss_x& x_est_pred, const Gauss_z& z_est_pred, const Vec_z& z_meas) const override
     {
         // cast to sensor model type
-        auto sens_model = std::dynamic_pointer_cast<SensModT>(sens_mod);
+        auto sens_model = std::dynamic_pointer_cast<SensModEKF>(sens_mod);
         Mat_zx H_mat = sens_model->H(x_est_pred.mean());
         Mat_zz R_mat = sens_model->R(x_est_pred.mean());
         Mat_xx P_mat = x_est_pred.cov();
@@ -156,8 +162,8 @@ public:
     }
 
 private:
-    const DynModIPtr dynamic_model_;
-    const SensModIPtr sensor_model_;
+    const DynModEKFPtr dynamic_model_;
+    const SensModEKFPtr sensor_model_;
 };
 
 }  // namespace filters

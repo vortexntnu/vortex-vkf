@@ -4,8 +4,8 @@
 #include <memory>
 
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
-#include <vortex_filtering/models/dynamic_model.hpp>
-#include <vortex_filtering/models/sensor_model.hpp>
+#include <vortex_filtering/models/dynamic_model_interfaces.hpp>
+#include <vortex_filtering/models/sensor_model_interfaces.hpp>
 
 namespace vortex {
 namespace filters {
