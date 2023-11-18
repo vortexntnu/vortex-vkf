@@ -67,7 +67,7 @@ TEST(MultiVarGauss, castToStaticSize)
     EXPECT_EQ(gaussian.cov(), (Eigen::Matrix2d{{1, 0}, {0, 1}}));
 
     // Expect fail when trying to cast to wrong size
-    vortex::prob::MultiVarGauss<3> gaussian3;
+    vortex::prob::MultiVarGauss3d gaussian3 = {Eigen::Vector3d::Zero(), Eigen::Matrix3d::Identity()};
     EXPECT_THROW(gaussian3 = dynamic_gaussian, std::invalid_argument);
 }
 

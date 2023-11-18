@@ -15,7 +15,11 @@ public:
     using Vector = Eigen::Vector<double, n_dims>;
     using Matrix = Eigen::Matrix<double, n_dims, n_dims>;
     
-    MultiVarGauss(const Vector& mean = Vector::Zero(), const Matrix& cov = Matrix::Identity())
+    /** Construct a Gaussian with a given mean and covariance matrix
+     * @param mean 
+     * @param cov Symmetric positive definite covariance matrix
+     */
+    MultiVarGauss(const Vector& mean, const Matrix& cov)
         : N_DIMS(mean.size()), mean_(mean), cov_(cov), cov_inv_(cov_.llt().solve(Matrix::Identity(size(), size())))
     {
         // Check that the covariance matrix is positive definite and symmetric
@@ -28,20 +32,22 @@ public:
     }
 
     // Copy constructor
-    MultiVarGauss(const MultiVarGauss& other) : mean_(other.mean_), cov_(other.cov_), cov_inv_(other.cov_inv_) {}
+    MultiVarGauss(const MultiVarGauss& other) : N_DIMS(other.N_DIMS), mean_(other.mean_), cov_(other.cov_), cov_inv_(other.cov_inv_) {}
 
     // Conversion constructor to convert dynamic size Gaussians to static size Gaussians
     template <int N>
     MultiVarGauss(const MultiVarGauss<N>& other)
     {
-        if (other.mean().size() != n_dims) {
-            throw std::invalid_argument("Size of mean vector does not match");
-        }
-        if (other.cov().rows() != n_dims || other.cov().cols() != n_dims) {
-            throw std::invalid_argument("Size of covariance matrix does not match");
+        if (n_dims != Eigen::Dynamic)
+        {
+            if (n_dims != other.size())
+            {
+                throw std::invalid_argument("Cannot convert Gaussians of different sizes");
+            }
         }
 
-        // N_DIMS = n_dims;
+        N_DIMS = other.size();
+
         Vector mean = other.mean();
         Matrix cov = other.cov();
 
@@ -108,7 +114,7 @@ public:
      */
     Vector sample(std::mt19937& gen) const {
         std::normal_distribution<> d{0, 1};
-        Vector sample;
+        Vector sample(size());
         for (int i = 0; i < size(); ++i) {
             sample(i) = d(gen);
         }
@@ -135,6 +141,11 @@ private:
     Matrix cov_;
     Matrix cov_inv_;
 };
+
+using MultiVarGaussXd = MultiVarGauss<Eigen::Dynamic>;
+using MultiVarGauss2d = MultiVarGauss<2>;
+using MultiVarGauss3d = MultiVarGauss<3>;
+using MultiVarGauss4d = MultiVarGauss<4>;
 
 }  // namespace probability
 } // namespace vortex

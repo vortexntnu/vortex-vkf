@@ -43,17 +43,21 @@ public:
     virtual MatXX Q_dX(const VecX& x, double dt) const = 0;
 
     // Sample from the discrete time dynamics
-    VecX sample_f_d(const VecX& x, const VecX& u, double dt, std::mt19937& gen) const {
+    VecX sample_f_dX(const VecX& x, const VecX& u, double dt, std::mt19937& gen) const {
         GaussX v = {VecX::Zero(dim_v_), Q_dX(x, dt)};
         return f_dX(x, u, v.sample(gen), dt);
     }
 
     // Sample from the discrete time dynamics
-    VecX sample_f_d(const VecX& x, double dt) const {
+    VecX sample_f_dX(const VecX& x, double dt) const {
         std::random_device rd;
         std::mt19937 gen(rd());
-        return sample_f_d(x, VecX::Zero(dim_u_), dt, gen);
+        return sample_f_dX(x, VecX::Zero(dim_u_), dt, gen);
     }
+
+    int get_dim_x() const { return dim_x_; }
+    int get_dim_u() const { return dim_u_; }
+    int get_dim_v() const { return dim_v_; }
 
 protected:
     const int dim_x_;  // State dimension
