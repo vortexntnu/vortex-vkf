@@ -147,5 +147,10 @@ using MultiVarGauss2d = MultiVarGauss<2>;
 using MultiVarGauss3d = MultiVarGauss<3>;
 using MultiVarGauss4d = MultiVarGauss<4>;
 
+using GaussXd = MultiVarGaussXd;
+using Gauss2d = MultiVarGauss2d;
+using Gauss3d = MultiVarGauss3d;
+using Gauss4d = MultiVarGauss4d;
+
 }  // namespace probability
 } // namespace vortex

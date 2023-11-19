@@ -66,6 +66,9 @@ set(lib_deps
   Eigen3
   OpenMP
 )
+set(lib_src
+  src/plotting/utils.cpp
+)
 
 # = Specify the dependencies to link against
 ament_target_dependencies(${PROJECT_NAME}_lib INTERFACE
@@ -113,6 +116,7 @@ if(BUILD_TESTING)
   ament_add_gtest(${PROJECT_NAME}_test 
     test/gtest_main.cpp
     test/gtest_assertions.cpp
+    ${lib_src}
 
     test/ekf_test.cpp
     test/ukf_test.cpp

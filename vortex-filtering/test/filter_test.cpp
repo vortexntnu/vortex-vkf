@@ -1,12 +1,20 @@
 #include <gtest/gtest.h>
+#include <gnuplot-iostream.h>
+#include <Eigen/Dense>
 
+#include <sstream>
 #include <memory>
 #include <random>
+#include <algorithm>
+#include <vector>
+#include <string>
+
 #include <vortex_filtering/filters/ekf.hpp>
 #include <vortex_filtering/filters/ukf.hpp>
 #include <vortex_filtering/models/dynamic_models.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_models.hpp>
+#include <vortex_filtering/plotting/utils.hpp>
 
 #include "test_models.hpp"
 #include "gtest_assertions.hpp"
@@ -20,7 +28,7 @@ struct SimData
     std::vector<vortex::prob::MultiVarGaussXd> z_est;
 }; 
 
-struct TestParams
+struct TestParamKF
 {
     std::shared_ptr<vortex::filter::interface::KalmanFilterX> kf;
     std::shared_ptr<vortex::models::DynamicModelX> dyn_mod_real;
@@ -34,7 +42,7 @@ struct TestParams
     double tolerance;
 };
 
-class KFTest : public ::testing::TestWithParam<TestParams> {
+class KFTest : public ::testing::TestWithParam<TestParamKF> {
 protected:
 
     using VecX = typename vortex::models::DynamicModelX::VecX;
@@ -48,10 +56,10 @@ protected:
      * 
      * @tparam DynamicModelT 
      * @tparam SensorModelT 
-     * @param tp TestParams Params for the test
+     * @param tp TestParamKF Params for the test
      * @return SimData<DynamicModelT::N_DIM_x, SensorModelT::N_DIM_z> 
      */
-    SimData simulate(TestParams tp)
+    SimData simulate(TestParamKF tp)
     {
         // Random number generator
         std::random_device rd;                            
@@ -114,29 +122,44 @@ TEST_P(KFTest, ukf_convergence)
     SimData sim_data = simulate(params);
     // Check
     EXPECT_TRUE(isApproxEqual(sim_data.x_true.back(), sim_data.x_est.back().mean(), params.tolerance));
+
+    // Plot results
+    std::vector<double> x_true_0 = vortex::plotting::extract_state_series(sim_data.x_true, 0);
+    std::vector<double> x_est_0 = vortex::plotting::extract_state_series(vortex::plotting::extract_mean_series(sim_data.x_est), 0);
+    std::vector<double> z_meas_0 = vortex::plotting::extract_state_series(sim_data.z_meas, 0);
+    Gnuplot gp;
+    gp << "set terminal wxt size 1200,800\n";
+    gp << "set title 'State'\n";
+    gp << "set xlabel 'Time'\n";
+    gp << "set ylabel 'State'\n";
+    gp << "plot '-' with lines title 'True', '-' with lines title 'Estimate', '-' with points title 'Measurements' ps 2\n";
+    gp.send1d(std::make_tuple(sim_data.time, x_true_0));
+    gp.send1d(std::make_tuple(sim_data.time, x_est_0));
+    gp.send1d(std::make_tuple(sim_data.time, z_meas_0));
+
 } 
 
 
-TestParams test1 = {
+TestParamKF test1 = {
     std::make_shared<vortex::filter::UKF_M<DynModT, SensModT>>(),
-    std::make_shared<DynModT>(0.1),
-    std::make_shared<DynModT>(0.1),
-    std::make_shared<SensModT>(0.1),
-    std::make_shared<SensModT>(0.1),
-    100,
+    std::make_shared<DynModT>(0.001),
+    std::make_shared<DynModT>(0.001),
+    std::make_shared<SensModT>(0.01),
+    std::make_shared<SensModT>(0.01),
+    1000,
     0.1,
     DynModT::Vec_x::Zero(),
     DynModT::Gauss_x{DynModT::Vec_x::Zero(), DynModT::Mat_xx::Identity()*0.1},
-    1e-2
+    1e-1
 };
 
-TestParams test2 = {
+TestParamKF test2 = {
     std::make_shared<vortex::filter::UKF_M<DynModT, SensModT>>(),
-    std::make_shared<DynModT>(0.01),
-    std::make_shared<DynModT>(0.01),
-    std::make_shared<SensModT>(0.01),
-    std::make_shared<SensModT>(0.01),
-    100,
+    std::make_shared<DynModT>(1e-3),
+    std::make_shared<DynModT>(1e-3),
+    std::make_shared<SensModT>(1e-2),
+    std::make_shared<SensModT>(1e-2),
+    1000,
     0.1,
     DynModT::Vec_x::Zero(),
     DynModT::Gauss_x{DynModT::Vec_x::Zero(), DynModT::Mat_xx::Identity()*0.1},
@@ -151,4 +174,4 @@ INSTANTIATE_TEST_SUITE_P(
         test2
     )
 );
-// // clang-format on
+// clang-format on

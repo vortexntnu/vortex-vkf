@@ -7,7 +7,7 @@ Ellipse gauss_to_ellipse(const vortex::prob::MultiVarGauss<2>& gauss)
 {
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(gauss.cov());
     Eigen::Vector2d eigenValues = eigenSolver.eigenvalues();
-    Eigen::Vector2d eigenVectors = eigenSolver.eigenvectors();
+    Eigen::Matrix2d eigenVectors = eigenSolver.eigenvectors();
 
     double majorAxisLength = sqrt(eigenValues(1)); 
     double minorAxisLength = sqrt(eigenValues(0));
@@ -54,6 +54,34 @@ std::vector<double> create_nees_series(const std::vector<Eigen::VectorXd>& error
     }
 
     return nees_series;
+}
+
+
+std::vector<Eigen::VectorXd> create_error_series(const std::vector<Eigen::VectorXd>& x_true, const std::vector<vortex::prob::GaussXd>& x_est)
+{
+    std::vector<Eigen::VectorXd> error_series;
+    for (size_t i = 0; i < x_true.size(); ++i) {
+        error_series.push_back(x_true[i] - x_est[i].mean());
+    }
+    return error_series;
+}
+
+std::vector<double> extract_state_series(const std::vector<Eigen::VectorXd>& x_series, size_t index)
+{
+    std::vector<double> state_series;
+    for (size_t i = 0; i < x_series.size(); ++i) {
+        state_series.push_back(x_series[i](index));
+    }
+    return state_series;
+}
+
+std::vector<Eigen::VectorXd> extract_mean_series(const std::vector<vortex::prob::GaussXd>& x_series)
+{
+    std::vector<Eigen::VectorXd> mean_series;
+    for (size_t i = 0; i < x_series.size(); ++i) {
+        mean_series.push_back(x_series[i].mean());
+    }
+    return mean_series;
 }
 
 }  // namespace plotting

@@ -45,33 +45,23 @@ public:
     Vec_z h(const Vec_x& x) const override { return H()*x; }
 
     /** Get the Jacobian of the measurement model with respect to the state.
-     * @param x State
-     * @return Mat_zx 
+     * @param x State (not used)
+     * @return Mat_zx
+     * @note Overriding SensorModelEKFI::H
      */
-    Mat_zx H() const { return Mat_zx::Identity(); }
+    Mat_zx H(const Vec_x& = Vec_x::Zero()) const override { return Mat_zx::Identity(); }
 
     /** Get the measurement covariance matrix.
+     * @param x State (not used)
      * @return Mat_zz 
+     * @note Overriding SensorModelEKFI::R
      */
-    Mat_zz R() const { return R_; }
-
+    Mat_zz R(const Vec_x& = Vec_x::Zero()) const override { return R_; }
 
 
 private:
-    /** Get the Jacobian of the measurement model with respect to the state
-     * Overriding SensorModelEKFI::H
-     * @param x State
-     * @return Mat_zx 
-     */
-    Mat_zx H(const Vec_x&) const override { return H(); }
-
-    /** Get the measurement covariance matrix
-     * Overriding SensorModelEKFI::R 
-     * @return Mat_zz 
-     */
-    Mat_zz R(const Vec_x&) const override { return R(); }
-
     const Mat_zz R_; // Measurement covariance matrix
+
 };
 
 } // namespace models

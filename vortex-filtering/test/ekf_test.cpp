@@ -116,9 +116,9 @@ TEST_F(EKFTestCVModel, Convergence)
     gp << "set xlabel 'x [m]'\n";
     gp << "set ylabel 'y [m]'\n";
     gp << "plot '-' with lines title 'True', '-' with lines title 'Estimate', '-' with points title 'Measurements' ps 2\n"; // Modified to make dots larger
-    gp.send1d(boost::make_tuple(x_true_x, x_true_y));
-    gp.send1d(boost::make_tuple(x_est_x, x_est_y));
-    gp.send1d(boost::make_tuple(z_meas_x, z_meas_y));
+    gp.send1d(std::make_tuple(x_true_x, x_true_y));
+    gp.send1d(std::make_tuple(x_est_x, x_est_y));
+    gp.send1d(std::make_tuple(z_meas_x, z_meas_y));
     gp << "set title 'Velocity'\n";
     gp << "set xlabel 't [s]'\n";
     gp << "set ylabel 'u,v [m/s]'\n";
@@ -126,10 +126,10 @@ TEST_F(EKFTestCVModel, Convergence)
        << "'-' with lines title 'Estimate v', " 
        << "'-' with lines title 'True u', "
        << "'-' with lines title 'Estimate u'\n";
-    gp.send1d(boost::make_tuple(time, x_true_v));
-    gp.send1d(boost::make_tuple(time, x_est_v));
-    gp.send1d(boost::make_tuple(time, x_true_u));
-    gp.send1d(boost::make_tuple(time, x_est_u));
+    gp.send1d(std::make_tuple(time, x_true_v));
+    gp.send1d(std::make_tuple(time, x_est_v));
+    gp.send1d(std::make_tuple(time, x_true_u));
+    gp.send1d(std::make_tuple(time, x_est_u));
     gp << "unset multiplot\n";
 
     // Test that the state converges to the true state

@@ -130,10 +130,10 @@ TEST_F(UKFtest, Convergence)
 	   << "'-' with lines title 'x_{true}', "
 	   << "'-' with lines title 'x_{est}', "
 	   << "'-' with lines title 'z_{meas}' \n";
-	gp.send1d(boost::make_tuple(time, x_est_mean, x_est_std));
-	gp.send1d(boost::make_tuple(time, x_true));
-	gp.send1d(boost::make_tuple(time, x_est_mean));
-	gp.send1d(boost::make_tuple(time, z_meas));
+	gp.send1d(std::make_tuple(time, x_est_mean, x_est_std));
+	gp.send1d(std::make_tuple(time, x_true));
+	gp.send1d(std::make_tuple(time, x_est_mean));
+	gp.send1d(std::make_tuple(time, z_meas));
 
 
 
