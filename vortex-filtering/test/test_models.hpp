@@ -11,18 +11,16 @@ public:
     // A stable state transition 
     Vec_x f_c(const Vec_x &x) const override
     {
-        return -x;
+        return - x;
     }
 
-    Mat_xx A_c(const Vec_x &x) const override
+    Mat_xx A_c(const Vec_x& = Vec_x::Zero()) const override
     {
-        (void)x; // unused
-        return -Mat_xx::Identity();
+        return - Mat_xx::Identity();
     }
 
-    Mat_xx Q_c(const Vec_x &x) const override
+    Mat_xx Q_c(const Vec_x& = Vec_x::Zero()) const override
     {
-        (void)x; // unused
         return Mat_xx::Identity();
     }
 };

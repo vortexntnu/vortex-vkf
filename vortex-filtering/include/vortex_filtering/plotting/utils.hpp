@@ -61,6 +61,12 @@ std::vector<double> extract_state_series(const std::vector<Eigen::VectorXd>& x_s
 std::vector<Eigen::VectorXd> extract_mean_series(const std::vector<vortex::prob::GaussXd>& x_series);
 
 
+/** Approximate Gaussian from samples.
+ * @param samples 
+ * @return vortex::prob::GaussXd 
+ */
+vortex::prob::GaussXd approximate_gaussian(const std::vector<Eigen::VectorXd>& samples);
+
 
 
 

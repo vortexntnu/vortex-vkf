@@ -43,17 +43,10 @@ public:
     virtual MatXX Q_dX(const VecX& x, double dt) const = 0;
 
     // Sample from the discrete time dynamics
-    VecX sample_f_dX(const VecX& x, const VecX& u, double dt, std::mt19937& gen) const {
-        GaussX v = {VecX::Zero(dim_v_), Q_dX(x, dt)};
-        return f_dX(x, u, v.sample(gen), dt);
-    }
+    virtual VecX sample_f_dX(const VecX& x, const VecX& u, double dt, std::mt19937& gen) const = 0;
 
     // Sample from the discrete time dynamics
-    VecX sample_f_dX(const VecX& x, double dt) const {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        return sample_f_dX(x, VecX::Zero(dim_u_), dt, gen);
-    }
+    virtual VecX sample_f_dX(const VecX& x, double dt) const = 0;
 
     int get_dim_x() const { return dim_x_; }
     int get_dim_u() const { return dim_u_; }
@@ -103,7 +96,7 @@ public:
      * @param u Vec_u Input
      * @param v Vec_v Process noise
      * @param dt Time step
-     * @return State_dot
+     * @return Vec_x Next state
      */
     virtual Vec_x f_d(const Vec_x& x, const Vec_u& u, const Vec_v& v, double dt) const = 0;
 
@@ -117,7 +110,7 @@ public:
      * @param u Vec_u Input
      * @param dt Time step
      * @param gen Random number generator (For deterministic behaviour)
-     * @return Vec_x State
+     * @return Vec_x Next state
      */
     Vec_x sample_f_d(const Vec_x& x, const Vec_u& u, double dt, std::mt19937& gen) const
     {
@@ -128,7 +121,7 @@ public:
     /** Sample from the discrete time dynamics
      * @param x Vec_x State
      * @param dt Time step
-     * @return Vec_x State
+     * @return Vec_x Next state
      */
     Vec_x sample_f_d(const Vec_x& x, double dt) const
     {
@@ -137,8 +130,8 @@ public:
         return sample_f_d(x, Vec_u::Zero(), dt, gen);
     }
 
-    // Override dynamic size functions to use static size functions
 protected:
+    // Override dynamic size functions to use static size functions
     BaseX::VecX f_dX(const BaseX::VecX& x, const BaseX::VecX& u, const BaseX::VecX& v, double dt) const override
     {
         Vec_x x_fixed = x;
@@ -151,6 +144,19 @@ protected:
     {
         Vec_x x_fixed = x;
         return Q_d(x_fixed, dt);
+    }
+
+    BaseX::VecX sample_f_dX(const BaseX::VecX& x, const BaseX::VecX& u, double dt, std::mt19937& gen) const override
+    {
+        Vec_x x_fixed = x;
+        Vec_u u_fixed = u;
+        return sample_f_d(x_fixed, u_fixed, dt, gen);
+    }
+
+    BaseX::VecX sample_f_dX(const BaseX::VecX& x, double dt) const override
+    {
+        Vec_x x_fixed = x;
+        return sample_f_d(x_fixed, dt);
     }
 
 };

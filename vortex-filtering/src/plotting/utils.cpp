@@ -84,5 +84,22 @@ std::vector<Eigen::VectorXd> extract_mean_series(const std::vector<vortex::prob:
     return mean_series;
 }
 
+vortex::prob::GaussXd approximate_gaussian(const std::vector<Eigen::VectorXd>& samples)
+{
+    Eigen::VectorXd mean = Eigen::VectorXd::Zero(samples[0].size());
+    for (const auto& sample : samples) {
+        mean += sample;
+    }
+    mean /= samples.size();
+
+    Eigen::MatrixXd cov = Eigen::MatrixXd::Zero(samples[0].size(), samples[0].size());
+    for (const auto& sample : samples) {
+        cov += (sample - mean) * (sample - mean).transpose();
+    }
+    cov /= samples.size();
+
+    return {mean, cov};
+}
+
 }  // namespace plotting
 }  // namespace vortex

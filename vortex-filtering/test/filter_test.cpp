@@ -132,7 +132,7 @@ TEST_P(KFTest, ukf_convergence)
     gp << "set title 'State'\n";
     gp << "set xlabel 'Time'\n";
     gp << "set ylabel 'State'\n";
-    gp << "plot '-' with lines title 'True', '-' with lines title 'Estimate', '-' with points title 'Measurements' ps 2\n";
+    gp << "plot '-' with lines title 'True', '-' with lines title 'Estimate', '-' with points title 'Measurements' ps 1\n";
     gp.send1d(std::make_tuple(sim_data.time, x_true_0));
     gp.send1d(std::make_tuple(sim_data.time, x_est_0));
     gp.send1d(std::make_tuple(sim_data.time, z_meas_0));
@@ -155,14 +155,14 @@ TestParamKF test1 = {
 
 TestParamKF test2 = {
     std::make_shared<vortex::filter::UKF_M<DynModT, SensModT>>(),
-    std::make_shared<DynModT>(1e-3),
-    std::make_shared<DynModT>(1e-3),
-    std::make_shared<SensModT>(1e-2),
-    std::make_shared<SensModT>(1e-2),
+    std::make_shared<DynModT>(1e-6),
+    std::make_shared<DynModT>(1e-6),
+    std::make_shared<SensModT>(1e-4),
+    std::make_shared<SensModT>(1e-4),
     1000,
     0.1,
-    DynModT::Vec_x::Zero(),
-    DynModT::Gauss_x{DynModT::Vec_x::Zero(), DynModT::Mat_xx::Identity()*0.1},
+    DynModT::Vec_x::Ones()*4,
+    DynModT::Gauss_x{DynModT::Vec_x::Ones()*4, DynModT::Mat_xx::Identity()},
     1e-2
 };
 

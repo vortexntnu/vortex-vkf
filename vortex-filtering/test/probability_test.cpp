@@ -119,7 +119,6 @@ TEST(MultiVarGauss, sample)
     gp << "set object 1 ellipse center " << true_mean(0) << "," << true_mean(1) 
        << " size " << majorAxisLength << "," << minorAxisLength 
        << " angle " << angle << "fs empty border lc rgb 'cyan'\n";
-
     gp << "replot\n";
 
 
