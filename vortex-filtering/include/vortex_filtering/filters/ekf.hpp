@@ -17,21 +17,24 @@
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 
 namespace vortex {
-namespace filters {
+namespace filter {
 
 /** @brief Extended Kalman Filter. (I stands for interface, T for Type)
  * 
- * @tparam DynamicModelEKFI Dynamic model type. Has to have function for Jacobian of state transition.
- * @tparam SensorModelI Sensor model type. Has to have function for Jacobian of measurement. (get_H)
+ * @tparam n_dim_x State dimension.
+ * @tparam n_dim_z Measurement dimension.
+ * @tparam n_dim_u Input dimension.
+ * @tparam n_dim_v Process noise dimension.
+ * @tparam n_dim_w Measurement noise dimension.
  */
-template <class DynModT, class SensModT>
-class EKF : public KalmanFilterI<DynModT, SensModT> {
+template <int n_dim_x, int n_dim_z, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x, int n_dim_w = n_dim_z>
+class EKF : public interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w> {
 public:
-    static constexpr int N_DIM_x = DynModT::N_DIM_x;
-    static constexpr int N_DIM_z = SensModT::N_DIM_z;
-    static constexpr int N_DIM_u = DynModT::N_DIM_u;
-    static constexpr int N_DIM_v = DynModT::N_DIM_v;
-    static constexpr int N_DIM_w = SensModT::N_DIM_w;
+    static constexpr int N_DIM_x = n_dim_x;
+    static constexpr int N_DIM_u = n_dim_u;
+    static constexpr int N_DIM_z = n_dim_z;
+    static constexpr int N_DIM_v = n_dim_v;
+    static constexpr int N_DIM_w = n_dim_w;
 
     using DynModI  = models::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
     using SensModI = models::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
@@ -44,27 +47,29 @@ public:
     using SensModEKFPtr = std::shared_ptr<SensModEKF>;
 
     // TODO: Clean up typedefs
-    using Vec_x    = typename Eigen::Vector<double, N_DIM_x>;
-    using Mat_xx   = typename Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-    using Vec_z    = typename Eigen::Vector<double, N_DIM_z>;
-    using Mat_zz   = typename Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
-    using Mat_zx   = typename Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
-    using Mat_xz   = typename Eigen::Matrix<double, N_DIM_x, N_DIM_z>;
-    using Gauss_x  = typename prob::MultiVarGauss<N_DIM_x>;
-    using Gauss_z  = typename prob::MultiVarGauss<N_DIM_z>;
+    using Vec_x    = Eigen::Vector<double, N_DIM_x>;
+    using Mat_xx   = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+    using Vec_z    = Eigen::Vector<double, N_DIM_z>;
+    using Mat_zz   = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
+    using Mat_zx   = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
+    using Mat_xz   = Eigen::Matrix<double, N_DIM_x, N_DIM_z>;
+    using Gauss_x  = prob::MultiVarGauss<N_DIM_x>;
+    using Gauss_z  = prob::MultiVarGauss<N_DIM_z>;
 
-    EKF(std::shared_ptr<DynModT> dynamic_model, std::shared_ptr<SensModT> sensor_model)
+    EKF(DynModEKFPtr dynamic_model, SensModEKFPtr sensor_model)
         : dynamic_model_(dynamic_model), sensor_model_(sensor_model) {}
 
     /** Perform one EKF prediction step
      * @param dyn_mod Dynamic model
      * @param sens_mod Sensor model
-     * @param x_est_prev Previous state estimate
      * @param dt Time step
+     * @param x_est_prev Previous state estimate
+     * @param u Vec_x Input. Not used, set to zero.
      * @return std::pair<Gauss_x, Gauss_z> Predicted state, predicted measurement
      * @throws std::runtime_error if dyn_mod or sens_mod are not of the DynamicModelT or SensorModelT type
+     * @note Overridden from interface::KalmanFilter
     */
-    std::pair<Gauss_x, Gauss_z> predict(DynModIPtr dyn_mod, SensModIPtr sens_mod, const Gauss_x& x_est_prev, const Vec_x&, double dt) const override
+    std::pair<Gauss_x, Gauss_z> predict(DynModIPtr dyn_mod, SensModIPtr sens_mod, double dt, const Gauss_x& x_est_prev, const Vec_x& = Vec_x::Zero()) const override
     {
         // cast to dynamic model type to access pred_from_est
         auto dyn_model = std::dynamic_pointer_cast<DynModEKF>(dyn_mod);
@@ -84,6 +89,7 @@ public:
      * @param z_meas Vec_z Measurement
      * @return MultivarGauss Updated state
      * @throws std::runtime_error ifsens_mod is not of the SensorModelT type
+     * @note Overridden from interface::KalmanFilter
     */
     Gauss_x update(DynModIPtr, SensModIPtr sens_mod, const Gauss_x& x_est_pred, const Gauss_z& z_est_pred, const Vec_z& z_meas) const override
     {
@@ -108,15 +114,16 @@ public:
     /** Perform one EKF prediction and update step
      * @param dyn_mod Dynamic model
      * @param sens_mod Sensor model
+     * @param dt Time step
      * @param x_est_prev Previous state estimate
      * @param z_meas Vec_z Measurement
      * @param u Vec_x Input
-     * @param dt Time step
      * @return Updated state, predicted state, predicted measurement
+     * @note Overridden from interface::KalmanFilter
      */
-    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(DynModIPtr dyn_mod, SensModIPtr sens_mod, const Gauss_x& x_est_prev, const Vec_z& z_meas, const Vec_x& u, double dt) const override
+    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(DynModIPtr dyn_mod, SensModIPtr sens_mod, double dt, const Gauss_x& x_est_prev, const Vec_z& z_meas, const Vec_x& u) const override
     {
-        std::pair<Gauss_x, Gauss_z> pred = predict(dyn_mod, sens_mod, x_est_prev, u, dt);
+        std::pair<Gauss_x, Gauss_z> pred = predict(dyn_mod, sens_mod, dt, x_est_prev, u);
         Gauss_x x_est_pred = pred.first;
         Gauss_z z_est_pred = pred.second;
         Gauss_x x_est_upd  = update(dyn_mod, sens_mod, x_est_pred, z_est_pred, z_meas);
@@ -124,15 +131,15 @@ public:
     }
 
     /** Perform one EKF prediction step
-     * @param x_est_prev Previous state estimate
      * @param dt Time step
+     * @param x_est_prev Previous state estimate
      * @return Predicted state, predicted measurement
     */
-    std::pair<Gauss_x, Gauss_z> predict(const Gauss_x& x_est_prev, double dt) const {
+    std::pair<Gauss_x, Gauss_z> predict(double dt, const Gauss_x& x_est_prev) const {
         if (!dynamic_model_ || !sensor_model_) {
             throw std::runtime_error("Dynamic model or sensor model not set");
         }
-        return predict(dynamic_model_, sensor_model_, x_est_prev, Vec_x::Zero(), dt);
+        return predict(dynamic_model_, sensor_model_, dt, x_est_prev, Vec_x::Zero());
     }
 
     /** Perform one EKF update step
@@ -149,16 +156,16 @@ public:
     }
 
     /** Perform one EKF prediction and update step
+     * @param dt Time step
      * @param x_est_prev Previous state estimate
      * @param z_meas Vec_z
-     * @param dt Time step
      * @return Updated state, predicted state, predicted measurement
      */
-    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const Gauss_x& x_est_prev, const Vec_z& z_meas, double dt) const {
+    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(double dt, const Gauss_x& x_est_prev, const Vec_z& z_meas) const {
         if (!dynamic_model_ || !sensor_model_) {
             throw std::runtime_error("Dynamic model or sensor model not set");
         }
-        return step(dynamic_model_, sensor_model_, x_est_prev, z_meas, Vec_x::Zero(), dt);
+        return step(dynamic_model_, sensor_model_, dt, x_est_prev, z_meas, Vec_x::Zero());
     }
 
 private:
@@ -166,5 +173,13 @@ private:
     const SensModEKFPtr sensor_model_;
 };
 
-}  // namespace filters
+/** @brief EKF with dimensions defined by the dynamic model and sensor model.
+ * 
+ * @tparam DynModT Dynamic model type.
+ * @tparam SensModT Sensor model type. 
+ */
+template <typename DynModT, typename SensModT>
+using EKF_M = EKF<DynModT::N_DIM_x, SensModT::N_DIM_z, DynModT::N_DIM_u, DynModT::N_DIM_v, SensModT::N_DIM_w>;
+
+}  // namespace filter
 }  // namespace vortex

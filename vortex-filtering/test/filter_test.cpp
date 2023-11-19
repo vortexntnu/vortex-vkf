@@ -22,7 +22,7 @@ struct SimData
 
 struct TestParams
 {
-    std::shared_ptr<vortex::filters::KalmanFilterX> kf;
+    std::shared_ptr<vortex::filter::interface::KalmanFilterX> kf;
     std::shared_ptr<vortex::models::DynamicModelX> dyn_mod_real;
     std::shared_ptr<vortex::models::DynamicModelX> dyn_mod_filter;
     std::shared_ptr<vortex::models::SensorModelX> sens_mod_real;
@@ -80,18 +80,18 @@ protected:
         for (size_t i = 0; i < tp.num_iters; ++i) {
             // Simulate
             VecX u = VecX::Zero(N_DIM_u);
-            VecX x_true_i = tp.dyn_mod_real->sample_f_dX(x_true.at(i), u, tp.dt, gen);
+            VecX x_true_ip1 = tp.dyn_mod_real->sample_f_dX(x_true.at(i), u, tp.dt, gen);
             VecX z_meas_i = tp.sens_mod_real->sample_hX(x_true.at(i), gen);
 
             // Predict
-            auto next_state = tp.kf->stepX(tp.dyn_mod_filter, tp.sens_mod_filter, x_est.at(i), z_meas_i, u, tp.dt);
+            auto next_state = tp.kf->stepX(tp.dyn_mod_filter, tp.sens_mod_filter, tp.dt, x_est.at(i), z_meas_i, u);
             GaussX x_est_upd = std::get<0>(next_state);
             GaussX z_est_pred = std::get<2>(next_state);
 
 
             // Save data
             time.push_back(time.back() + tp.dt);
-            x_true.push_back(x_true_i);
+            x_true.push_back(x_true_ip1);
             x_est.push_back(x_est_upd);
             z_meas.push_back(z_meas_i);
             z_est.push_back(z_est_pred);
@@ -118,7 +118,7 @@ TEST_P(KFTest, ukf_convergence)
 
 
 TestParams test1 = {
-    std::make_shared<vortex::filters::UKF<DynModT, SensModT>>(),
+    std::make_shared<vortex::filter::UKF_M<DynModT, SensModT>>(),
     std::make_shared<DynModT>(0.1),
     std::make_shared<DynModT>(0.1),
     std::make_shared<SensModT>(0.1),
@@ -131,7 +131,7 @@ TestParams test1 = {
 };
 
 TestParams test2 = {
-    std::make_shared<vortex::filters::UKF<DynModT, SensModT>>(),
+    std::make_shared<vortex::filter::UKF_M<DynModT, SensModT>>(),
     std::make_shared<DynModT>(0.01),
     std::make_shared<DynModT>(0.01),
     std::make_shared<SensModT>(0.01),

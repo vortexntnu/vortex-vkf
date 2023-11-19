@@ -25,12 +25,12 @@ protected:
         // Create sensor model
         sensor_model_ = std::make_shared<PosMeasModel>(1e-2);
         // Create EKF
-        ekf_ = std::make_shared<vortex::filters::EKF<CVModel, PosMeasModel>>(dynamic_model_, sensor_model_);
+        ekf_ = std::make_shared<vortex::filter::EKF_M<CVModel, PosMeasModel>>(dynamic_model_, sensor_model_);
     }
 
     std::shared_ptr<CVModel> dynamic_model_;
     std::shared_ptr<PosMeasModel> sensor_model_;
-    std::shared_ptr<vortex::filters::EKF<CVModel, PosMeasModel>> ekf_;
+    std::shared_ptr<vortex::filter::EKF_M<CVModel, PosMeasModel>> ekf_;
 };
 
 TEST_F(EKFTestCVModel, Predict) {
@@ -38,7 +38,7 @@ TEST_F(EKFTestCVModel, Predict) {
     Gauss_x x({0, 0, 1, 0}, Mat_xx::Identity());
     double dt = 0.1;
     // Predict
-    auto pred = ekf_->predict(x, dt);
+    auto pred = ekf_->predict(dt,x);
     Gauss_x x_est_pred = pred.first;
     Gauss_z z_est_pred = pred.second;
 
@@ -81,7 +81,7 @@ TEST_F(EKFTestCVModel, Convergence)
         z_meas.push_back(z_meas_i);
 
         // Predict and update
-        auto step = ekf_->step(x_est.back(), z_meas_i, dt);
+        auto step = ekf_->step(dt, x_est.back(), z_meas_i);
         Gauss_x x_est_upd = std::get<0>(step);
         Gauss_z z_est_pred = std::get<2>(step);
 

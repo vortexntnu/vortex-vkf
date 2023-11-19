@@ -33,12 +33,12 @@ protected:
 		// Create sensor model
 		sensor_model_ = std::make_shared<IdentitySensorModel>(R);
 		// Create UKF
-		ukf_ = std::make_shared<vortex::filters::UKF<NonlinearModel1, IdentitySensorModel>>(dynamic_model_, sensor_model_);
+		ukf_ = std::make_shared<vortex::filter::UKF_M<NonlinearModel1, IdentitySensorModel>>(dynamic_model_, sensor_model_);
 	}
 
 	std::shared_ptr<NonlinearModel1> dynamic_model_;
 	std::shared_ptr<IdentitySensorModel> sensor_model_;
-	std::shared_ptr<vortex::filters::UKF<NonlinearModel1, IdentitySensorModel>> ukf_;
+	std::shared_ptr<vortex::filter::UKF_M<NonlinearModel1, IdentitySensorModel>> ukf_;
 };
 
 TEST_F(UKFtest, Predict)
@@ -47,7 +47,7 @@ TEST_F(UKFtest, Predict)
 	Gauss_x x(Vec_x::Zero(), Mat_xx::Identity());
 	double dt = 0.1;
 	// Predict
-	auto pred = ukf_->predict(x, Vec_x::Zero(), dt);
+	auto pred = ukf_->predict(dt, x, Vec_x::Zero());
 	Gauss_x x_est_pred = pred.first;
 	Gauss_z z_est_pred = pred.second;
 
@@ -95,7 +95,7 @@ TEST_F(UKFtest, Convergence)
         z_meas.push_back(z_meas_i);
 
         // Predict and update
-        auto step = ukf_->step(x_est.back(), z_meas_i, Vec_x::Zero(), dt);
+        auto step = ukf_->step(dt, x_est.back(), z_meas_i, Vec_x::Zero());
         Gauss_x x_est_upd = std::get<0>(step);
         Gauss_z z_est_pred = std::get<2>(step);
 

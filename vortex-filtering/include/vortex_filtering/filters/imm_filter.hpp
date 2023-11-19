@@ -15,7 +15,7 @@
 #include <vortex_filtering/filters/ekf.hpp>
 
 namespace vortex {
-namespace filters {
+namespace filter {
 
 template <typename ImmModelT, class SensModT>
 class ImmFilter {
@@ -150,5 +150,5 @@ private:
     std::vector<std::unique_ptr<EKF<ImmModelT, SensModT>>> ekfs_;
 };
 
-} // namespace filters
+} // namespace filter
 } // namespace vortex
