@@ -142,10 +142,10 @@ TEST_P(KFTest, ukf_convergence)
 
 TestParamKF test1 = {
     std::make_shared<vortex::filter::UKF_M<DynModT, SensModT>>(),
-    std::make_shared<DynModT>(0.001),
-    std::make_shared<DynModT>(0.001),
-    std::make_shared<SensModT>(0.01),
-    std::make_shared<SensModT>(0.01),
+    std::make_shared<DynModT>(1e-3),
+    std::make_shared<DynModT>(1e-3),
+    std::make_shared<SensModT>(1e-2),
+    std::make_shared<SensModT>(1e-2),
     1000,
     0.1,
     DynModT::Vec_x::Zero(),
@@ -155,10 +155,10 @@ TestParamKF test1 = {
 
 TestParamKF test2 = {
     std::make_shared<vortex::filter::UKF_M<DynModT, SensModT>>(),
-    std::make_shared<DynModT>(1e-6),
-    std::make_shared<DynModT>(1e-6),
-    std::make_shared<SensModT>(1e-4),
-    std::make_shared<SensModT>(1e-4),
+    std::make_shared<DynModT>(1e-3),
+    std::make_shared<DynModT>(1e-3),
+    std::make_shared<SensModT>(1e-2),
+    std::make_shared<SensModT>(1e-2),
     1000,
     0.1,
     DynModT::Vec_x::Ones()*4,

@@ -63,7 +63,7 @@ public:
     using typename DynamicModelI<1,1,1>::Mat_xv;
     using typename DynamicModelI<1,1,1>::Vec_v;
 
-    NonlinearModel1(double cov) : cov_(cov) {}
+    NonlinearModel1(double std_dev) : cov_(std_dev*std_dev) {}
 
     Vec_x f_d(const Vec_x& x, const Vec_u& = Vec_u::Zero(), const Vec_v& v = Vec_v::Zero(), double = 0.0) const override
     {

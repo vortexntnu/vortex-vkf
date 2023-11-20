@@ -29,10 +29,11 @@ public:
 
 	static Vec_x integrate(Dyn_mod_func f, double dt, const Vec_x &x0, double t0 = 0.0)
 	{
-		return x0 + dt * f(x0);
+		Vec_x k1 = f(t0, x0);
+		return x0 + dt * k1;
 	}
 };
-template <typename DynModT> using Forward_Euler_M = Forward_Euler<DynModT::_n_x>;
+template <typename DynModT> using Forward_Euler_M = Forward_Euler<DynModT::N_DIM_x>;
 
 
 /**
@@ -120,8 +121,12 @@ private:
 	Vec_n _c;
 };
 
-template <int n_dim_x> class ODE45 {
+template <int n_dim_x> 
+class ODE45 {
 public:
+	static constexpr int n_stages = 7;
+	static constexpr size_t q     = 5; // Order of the method
+	
 	using Vec_x = Eigen::Vector<double, n_dim_x>;
 	using Dyn_mod_func = std::function<Vec_x(double t0, const Vec_x&x0)>;
 
@@ -242,8 +247,6 @@ public:
 	}
 
 private:
-	static constexpr int n_stages = 7;
-	static constexpr size_t q     = 5; // Order of the method
 
 	Eigen::Matrix<double, n_stages, n_stages> _A;
 	Eigen::Matrix<double, n_stages, 2> _b;
