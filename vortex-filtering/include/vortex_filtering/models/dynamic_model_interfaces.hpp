@@ -8,8 +8,10 @@
 #pragma once
 #include <Eigen/Dense>
 #include <random>
+#include <functional>
 #include <eigen3/unsupported/Eigen/MatrixFunctions> // For exp
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
+#include <vortex_filtering/numerical_integration/erk_methods.hpp>
 
 
 namespace vortex {
@@ -73,19 +75,21 @@ class DynamicModelI : public DynamicModelX {
 public:
     using BaseX = DynamicModelX;
     static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
-    using Vec_x = Eigen::Vector<double, N_DIM_x>;
-    using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-    using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
-
     static constexpr int N_DIM_u = n_dim_u; // Declare so that children of this class can reference it
-    using Vec_u = Eigen::Vector<double, N_DIM_u>;
-    using Mat_uu = Eigen::Matrix<double, N_DIM_u, N_DIM_u>;
-    using Mat_xu = Eigen::Matrix<double, N_DIM_x, N_DIM_u>;
-
     static constexpr int N_DIM_v = n_dim_v; // Declare so that children of this class can reference it
+
+    using Vec_x = Eigen::Vector<double, N_DIM_x>;
+    using Vec_u = Eigen::Vector<double, N_DIM_u>;
     using Vec_v = Eigen::Vector<double, N_DIM_v>;
-    using Mat_vv = Eigen::Matrix<double, N_DIM_v, N_DIM_v>;
+
+    using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+    using Mat_xu = Eigen::Matrix<double, N_DIM_x, N_DIM_u>;
     using Mat_xv = Eigen::Matrix<double, N_DIM_x, N_DIM_v>;
+
+    using Mat_uu = Eigen::Matrix<double, N_DIM_u, N_DIM_u>;
+    using Mat_vv = Eigen::Matrix<double, N_DIM_v, N_DIM_v>;
+
+    using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
     using Gauss_v = prob::MultiVarGauss<N_DIM_v>;
 
     DynamicModelI() : DynamicModelX(N_DIM_x, N_DIM_u, N_DIM_v) {}
@@ -100,7 +104,8 @@ public:
      */
     virtual Vec_x f_d(double dt, const Vec_x& x, const Vec_u& u, const Vec_v& v) const = 0;
 
-    /** Discrete time process noise
+    /** Discrete time process noise covariance matrix
+     * @param dt Time step
      * @param x Vec_x State
      */
     virtual Mat_vv Q_d(double dt, const Vec_x& x) const = 0;
@@ -162,42 +167,105 @@ protected:
 };
 
 
+
 /**
- * @brief Interface for dynamic models. It assumes additive noise and no input u.
- *  This is suitable for the EKF as it has built in functions for excact discretization of a linear model provided an A_c and Q_c.
- * 
+ * @brief Continuous Time Dynamic Model Interface.
  * @tparam n_dim_x  State dimension
+ * @tparam n_dim_u  Input dimension (Default: n_dim_x)
+ * @tparam n_dim_v  Process noise dimension (Default: n_dim_x)
  */
-template <int n_dim_x>
-class DynamicModelEKFI : public DynamicModelI<n_dim_x, n_dim_x, n_dim_x> {
+template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x>
+class DynamicModelCT : virtual public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
 public:
-    static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
-    static constexpr int N_DIM_u = n_dim_x; // Declare so that children of this class can reference it
-    static constexpr int N_DIM_v = n_dim_x; // Declare so that children of this class can reference it
+    using BaseI = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
+    static constexpr int N_DIM_x = n_dim_x;
+    static constexpr int N_DIM_u = n_dim_u;
+    static constexpr int N_DIM_v = n_dim_v;
 
-    using Vec_x = Eigen::Vector<double, N_DIM_x>;
-    using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+    using Vec_x = typename BaseI::Vec_x;
+    using Vec_u = typename BaseI::Vec_u;
+    using Vec_v = typename BaseI::Vec_v;
+
+    using Mat_xx = typename BaseI::Mat_xx;
+    using Mat_xu = typename BaseI::Mat_xu;
+    using Mat_xv = typename BaseI::Mat_xv;
+
+    using Mat_uu = typename BaseI::Mat_uu;
+    using Mat_vv = typename BaseI::Mat_vv;
+
+    using Dyn_mod_func = std::function<Vec_x(double t, const Vec_x& x)>;
+
+    /** Continuous Time Dynamic Model Interface
+     * @tparam n_dim_x  State dimension
+     * @tparam n_dim_u  Input dimension
+     * @tparam n_dim_v  Process noise dimension
+     */
+    DynamicModelCT() : BaseI() {}
+    virtual ~DynamicModelCT() = default;
+
+    /** Continuous time dynamics
+     * @param x Vec_x State
+     * @param u Vec_u Input
+     * @param v Vec_v Process noise
+     * @return Vec_x State_dot
+     */
+    virtual Vec_x f_c(const Vec_x& x, const Vec_u& u, const Vec_v& v) const = 0;
+
+    /** Discrete time process noise covariance matrix
+     * @param dt Time step
+     * @param x Vec_x State
+     */
+    virtual Mat_vv Q_d(double dt, const Vec_x& x) const override = 0;
+
+protected:
+    // Discrete time stuff
+
+    /** Discrete time dynamics. Uses RK4 integration. Assumes constant input and process noise during the time step.
+     * Overriding DynamicModelI::f_d
+     * @param dt Time step
+     * @param x Vec_x State
+     * @param u Vec_u Input
+     * @param v Vec_v Process noise
+     * @return Vec_x Next state
+     */
+    virtual Vec_x f_d(double dt, const Vec_x& x, const Vec_u& u, const Vec_v& v) const override
+    {
+        Dyn_mod_func f_c = [this, &u, &v](double, const Vec_x& x) { return this->f_c(x, u, v); };
+        return vortex::integrator::RK4<N_DIM_x>::integrate(f_c, dt, x);
+    }
+
+};
+
+
+/** Linear Time Variant Dynamic Model Interface.
+ * @tparam n_dim_x  State dimension
+ * @tparam n_dim_u  Input dimension
+ * @tparam n_dim_v  Process noise dimension
+ */
+template <int n_dim_x, int n_dim_u, int n_dim_v>
+class DynamicModelLTV : virtual public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
+public:
+    using BaseI = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
+    static constexpr int N_DIM_x = n_dim_x;
+    static constexpr int N_DIM_u = n_dim_u;
+    static constexpr int N_DIM_v = n_dim_v;
+
+    using Vec_x = typename BaseI::Vec_x;
+    using Vec_u = typename BaseI::Vec_u;
+    using Vec_v = typename BaseI::Vec_v;
+
+    using Mat_xx = typename BaseI::Mat_xx;
+    using Mat_xu = typename BaseI::Mat_xu;
+    using Mat_xv = typename BaseI::Mat_xv;
+
+    using Mat_uu = typename BaseI::Mat_uu;
+    using Mat_vv = typename BaseI::Mat_vv;
+
     using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
+    using Gauss_v = prob::MultiVarGauss<N_DIM_v>;
 
-    virtual ~DynamicModelEKFI() = default;
-
-    /** Continuos time dynamics.
-     * @param x Vec_x State
-     * @return State_dot
-     */
-    virtual Vec_x f_c(const Vec_x& x) const = 0;
-    
-    /** Jacobian of continuous time dynamics
-     * @param x Vec_x State
-     * @return State_jac
-     */
-    virtual Mat_xx A_c(const Vec_x& x) const = 0; 
-
-    /** Continuous time process noise
-     * @param x Vec_x
-     * @return Matrix Process noise covariance
-     */
-    virtual Mat_xx Q_c(const Vec_x& x) const = 0;
+    DynamicModelLTV() : BaseI() {}
+    virtual ~DynamicModelLTV() = default;
 
     /** Discrete time dynamics
      * @param dt Time step
@@ -205,48 +273,50 @@ public:
      * @param v Vec_v Process noise
      * @return Vec_x
      */
-    Vec_x f_d(double dt, const Vec_x& x, const Vec_x& v = Vec_x::Zero()) const
+    virtual Vec_x f_d(double dt, const Vec_x& x, const Vec_u& u = Vec_x::Zero(), const Vec_x& v = Vec_x::Zero()) const override
     {
-        return F_d(dt, x) * x + v;
+        Mat_xx A_d = this->A_d(dt, x);
+        Mat_xu B_d = this->B_d(dt, x);
+        Mat_xv G_d = this->G_d(dt, x);
+        return A_d * x + B_d * u + G_d * v;
     }
 
-
-
-    /** Jacobian of discrete time dynamics
+    /** System matrix (Jacobian of discrete time dynamics with respect to state)
      * @param dt Time step
      * @param x Vec_x
      * @return State_jac
      */
-    Mat_xx F_d(double dt, const Vec_x& x) const
-    {
-        // Use (4.58) from the book
-        return (A_c(x) * dt).exp();
-    }
+    virtual Mat_xx A_d(double dt, const Vec_x& x) const = 0;
 
-    /** Discrete time process noise.
-     * Overriding DynamicModelI::Q_d
+    /** Input matrix
      * @param dt Time step
      * @param x Vec_x
-     * @return Matrix Process noise covariance
+     * @return Input_jac
      */
-    Mat_xx Q_d(double dt, const Vec_x& x) const override
-    {
-        // See https://en.wikipedia.org/wiki/Discretization#Discretization_of_process_noise for more info
-
-        Mat_xx A_c = this->A_c(x);
-        Mat_xx Q_c = this->Q_c(x);
-
-        Eigen::Matrix<double, 2 * N_DIM_x, 2 * N_DIM_x> v_1;
-        v_1 << -A_c, Q_c, Mat_xx::Zero(), A_c.transpose();
-        v_1 *= dt;
-        v_1 = v_1.exp();
-        Mat_xx F_d = v_1.template block<N_DIM_x, N_DIM_x>(N_DIM_x, N_DIM_x).transpose();
-        Mat_xx F_d_inv_Q_d = v_1.template block<N_DIM_x, N_DIM_x>(0, N_DIM_x);
-        Mat_xx Q_d = F_d * F_d_inv_Q_d;
-
-        return Q_d;
+    virtual Mat_xu B_d(double dt, const Vec_x& x) const 
+    { 
+        (void)dt; // unused
+        (void)x; // unused
+        return Mat_xu::Zero(); 
     }
-    
+
+    /** Process noise matrix (Jacobian of discrete time dynamics with respect to process noise)
+     * @param dt Time step
+     * @param x Vec_x
+     * @return Process_noise_jac
+     */
+    virtual Mat_xv G_d(double dt, const Vec_x& x) const 
+    { 
+        (void)dt; // unused
+        (void)x; // unused
+        return Mat_xv::Identity(); 
+    }
+
+    /** Discrete time process noise covariance matrix
+     * @param dt Time step
+     * @param x Vec_x State
+     */
+    virtual Mat_vv Q_d(double dt, const Vec_x& x) const override = 0;
 
     /** Get the predicted state distribution given a state estimate
      * @param dt Time step
@@ -256,9 +326,11 @@ public:
     Gauss_x pred_from_est(double dt, const Gauss_x& x_est) const
     {
         Mat_xx P = x_est.cov();
-        Mat_xx F_d = this->F_d(dt, x_est.mean());
-        Mat_xx Q_d = this->Q_d(dt, x_est.mean());
-        Gauss_x x_est_pred(f_d(dt, x_est.mean()), F_d * P * F_d.transpose() + Q_d);
+        Mat_xx F_d = this->A_d(dt, x_est.mean());
+        Mat_vv Q_d = this->Q_d(dt, x_est.mean());
+        Mat_xv G_d = this->G_d(dt, x_est.mean());
+
+        Gauss_x x_est_pred(f_d(dt, x_est.mean()), F_d * P * F_d.transpose() + G_d * Q_d * G_d.transpose());
 
         return x_est_pred;
     }
@@ -271,47 +343,151 @@ public:
     Gauss_x pred_from_state(double dt, const Vec_x& x) const
     {
         Mat_xx Q_d = this->Q_d(dt, x);
-        Gauss_x x_est_pred(this->f_d(dt, x), Q_d);
+        Mat_xv G_d = this->G_d(dt, x);
+
+        Gauss_x x_est_pred(this->f_d(dt, x), G_d * Q_d * G_d.transpose());
 
         return x_est_pred;
     }
+};
 
-    // Give access to the base class functions
-    using DynamicModelI<n_dim_x, n_dim_x, n_dim_x>::sample_f_d;
+/** Continuous Time Linear Time Varying Dynamic Model Interface. It uses excact discretization for everything. So it might be slow.
+ * @tparam n_dim_x  State dimension
+ * @tparam n_dim_u  Input dimension (Default: n_dim_x)
+ * @tparam n_dim_v  Process noise dimension (Default: n_dim_x)
+ * @note See https://en.wikipedia.org/wiki/Discretization#Discretization_of_process_noise for more info
+ */
+template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x>
+class DynamicModelCTLTV : public DynamicModelCT<n_dim_x, n_dim_u, n_dim_v>, public DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v> {
+public:
+    using BaseI = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
+    static constexpr int N_DIM_x = n_dim_x;
+    static constexpr int N_DIM_u = n_dim_u;
+    static constexpr int N_DIM_v = n_dim_v;
 
-    /** Sample from the discrete time dynamics
-     * @param dt Time step
-     * @param x Vec_x State
-     * @return Vec_x State
+    using Vec_x = typename BaseI::Vec_x;
+    using Vec_u = typename BaseI::Vec_u;
+    using Vec_v = typename BaseI::Vec_v;
+
+    using Mat_xx = typename BaseI::Mat_xx;
+    using Mat_xu = typename BaseI::Mat_xu;
+    using Mat_xv = typename BaseI::Mat_xv;
+
+    using Mat_uu = typename BaseI::Mat_uu;
+    using Mat_vv = typename BaseI::Mat_vv;
+
+    /** Continuous Time Linear Time Varying Dynamic Model Interface
+     * @tparam n_dim_x  State dimension
+     * @tparam n_dim_u  Input dimension (Default: n_dim_x)
+     * @tparam n_dim_v  Process noise dimension (Default: n_dim_x)
      */
-    Vec_x sample_f_d(double dt, const Vec_x& x) const
-    {
-        return sample_f_d(dt, x, Vec_x::Zero());
+    DynamicModelCTLTV() : DynamicModelCT<n_dim_x, n_dim_u, n_dim_v>(), DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v>() {}
+    virtual ~DynamicModelCTLTV() = default;
+
+    /** Continuous time dynamics
+     * @param x Vec_x State
+     * @param u Vec_u Input
+     * @param v Vec_v Process noise
+     * @return Vec_x State_dot
+     */
+    virtual Vec_x f_c(const Vec_x& x, const Vec_u& u = Vec_u::Zero(), const Vec_v& v = Vec_v::Zero()) const override = 0;
+
+
+    /** System matrix (Jacobian of continuous time dynamics with respect to state)
+     * @param x Vec_x State
+     * @return State_jac
+     */
+    virtual Mat_xx A_c(const Vec_x& x) const = 0;
+
+    /** Input matrix
+     * @param x Vec_x State
+     * @return Input_jac
+     */
+    virtual Mat_xu B_c(const Vec_x& x) const 
+    { 
+        (void)x; // unused
+        return Mat_xu::Zero(); 
     }
 
-    /** Sample from the discrete time dynamics
+    /** Process noise matrix
+     * @return Process_noise_jac
+     */
+    virtual Mat_vv G_c() const { return Mat_vv::Identity(); }
+
+    /** Process noise covariance matrix
+     * @param x Vec_x State
+     */
+    virtual Mat_vv Q_c(const Vec_x& x) const = 0;
+
+
+
+    /** Discrete time dynamics
      * @param dt Time step
      * @param x Vec_x State
-     * @param gen Random number generator (For deterministic behaviour)
-     * @return Vec_x State
-     */
-    Vec_x sample_f_d(double dt, const Vec_x& x, std::mt19937& gen) const
-    {
-        return sample_f_d(dt, x, Vec_x::Zero(), gen);
-    }
-
-protected:
-    /** Discrete time dynamics.
-     * Overriding DynamicModelI::f_d
-     * @param dt Time step
-     * @param x Vec_x
-     * @param u Vec_u (Not used)
-     * @param v Vec_v
+     * @param v Vec_v Process noise
      * @return Vec_x
      */
-    Vec_x f_d(double dt, const Vec_x& x, const Vec_x&, const Vec_x& v) const override
+    Vec_x f_d(double dt, const Vec_x& x, const Vec_u& u = Vec_x::Zero(), const Vec_x& v = Vec_x::Zero()) const override
     {
-        return f_d(dt, x, v);
+        Mat_xx A_d = this->A_d(dt, x);
+        Mat_xu B_d = this->B_d(dt, x);
+        Mat_xv G_d = this->G_d(dt, x);
+        return A_d * x + B_d * u + G_d * v;
+    }
+
+
+    /** System dynamics (Jacobian of discrete time dynamics w.r.t. state). Using exact discretization.
+     * @param dt Time step
+     * @param x Vec_x
+     * @return State_jac
+     */
+    Mat_xx A_d(double dt, const Vec_x& x) const override
+    {
+        return (A_c(x) * dt).exp();
+    }
+
+    /** Input matrix (Jacobian of discrete time dynamics w.r.t. input). Using exact discretization.
+     * @param dt Time step
+     * @param x Vec_x
+     * @return Input_jac
+     */
+    Mat_xu B_d(double dt, const Vec_x& x) const override
+    {
+        return A_c(x).inverse() * (A_d(dt, x) - Mat_xx::Identity()) * B_c(x);
+    }
+
+    /** Process noise matrix (Jacobian of discrete time dynamics w.r.t. process noise). Using exact discretization.
+     * @param dt Time step
+     * @param x Vec_x
+     * @return Process_noise_jac
+     */
+    Mat_xv G_d(double dt, const Vec_x& x) const override
+    {
+        return A_c(x).inverse() * (A_d(dt, x) - Mat_xx::Identity()) * G_c();
+    }
+
+    /** Discrete time process noise covariance matrix
+     * Overriding DynamicModelI::Q_d
+     * @param dt Time step
+     * @param x Vec_x
+     * @return Matrix Process noise covariance
+     */
+    Mat_xx Q_d(double dt, const Vec_x& x) const override
+    {
+        // See https://en.wikipedia.org/wiki/Discretization#Discretization_of_process_noise for more info
+
+        Mat_xx A_c = this->A_c(x);
+        Mat_xx Q_c = this->Q_c(x);
+
+        Eigen::Matrix<double, 2 * N_DIM_x, 2 * N_DIM_x> van_loan_matrix;
+        van_loan_matrix << -A_c, Q_c, Mat_xx::Zero(), A_c.transpose();
+        van_loan_matrix *= dt;
+        van_loan_matrix = van_loan_matrix.exp();
+        Mat_xx F_d = van_loan_matrix.template block<N_DIM_x, N_DIM_x>(N_DIM_x, N_DIM_x).transpose();
+        Mat_xx F_d_inv_Q_d = van_loan_matrix.template block<N_DIM_x, N_DIM_x>(0, N_DIM_x);
+        Mat_xx Q_d = F_d * F_d_inv_Q_d;
+
+        return Q_d;
     }
 };
 

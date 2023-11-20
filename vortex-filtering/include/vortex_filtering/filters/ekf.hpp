@@ -23,9 +23,9 @@ namespace filter {
  * 
  * @tparam n_dim_x State dimension.
  * @tparam n_dim_z Measurement dimension.
- * @tparam n_dim_u Input dimension.
- * @tparam n_dim_v Process noise dimension.
- * @tparam n_dim_w Measurement noise dimension.
+ * @tparam n_dim_u Input dimension (Default: n_dim_x)
+ * @tparam n_dim_v Process noise dimension (Default: n_dim_x)
+ * @tparam n_dim_w Measurement noise dimension (Default: n_dim_z)
  */
 template <int n_dim_x, int n_dim_z, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x, int n_dim_w = n_dim_z>
 class EKF : public interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w> {
@@ -41,8 +41,8 @@ public:
     using DynModIPtr = std::shared_ptr<DynModI>;
     using SensModIPtr = std::shared_ptr<SensModI>;
 
-    using DynModEKF  = models::DynamicModelEKFI<N_DIM_x>;
-    using SensModEKF = models::SensorModelEKFI<N_DIM_x, N_DIM_z>;
+    using DynModEKF  = models::DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v>;
+    using SensModEKF = models::SensorModelLTV<N_DIM_x, N_DIM_z>;
     using DynModEKFPtr = std::shared_ptr<DynModEKF>;
     using SensModEKFPtr = std::shared_ptr<SensModEKF>;
 
@@ -95,18 +95,18 @@ public:
     {
         // cast to sensor model type
         auto sens_model = std::dynamic_pointer_cast<SensModEKF>(sens_mod);
-        Mat_zx H_mat = sens_model->H(x_est_pred.mean());
-        Mat_zz R_mat = sens_model->R(x_est_pred.mean());
-        Mat_xx P_mat = x_est_pred.cov();
-        Mat_zz S_mat_inv = z_est_pred.cov_inv();
+        Mat_zx C = sens_model->C(x_est_pred.mean());
+        Mat_zz R = sens_model->R(x_est_pred.mean());
+        Mat_xx P = x_est_pred.cov();
+        Mat_zz S_inv = z_est_pred.cov_inv();
         Mat_xx I = Mat_xx::Identity(N_DIM_x, N_DIM_x);
 
-        Mat_xz kalman_gain = P_mat * H_mat.transpose() * S_mat_inv;
+        Mat_xz kalman_gain = P * C.transpose() * S_inv;
         Vec_z innovation = z_meas - z_est_pred.mean();
 
         Vec_x state_upd_mean = x_est_pred.mean() + kalman_gain * innovation;
         // Use the Joseph form of the covariance update to ensure positive definiteness
-        Mat_xx state_upd_cov = (I - kalman_gain * H_mat) * P_mat * (I - kalman_gain * H_mat).transpose() + kalman_gain * R_mat * kalman_gain.transpose();
+        Mat_xx state_upd_cov = (I - kalman_gain * C) * P * (I - kalman_gain * C).transpose() + kalman_gain * R * kalman_gain.transpose();
 
         return {state_upd_mean, state_upd_cov};
     }

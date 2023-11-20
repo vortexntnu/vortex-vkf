@@ -83,20 +83,23 @@ template <int n_dim_x, int n_dim_z, int n_dim_w>
 class SensorModelI : public SensorModelX {
 public:
     static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
-    using Vec_x  = Eigen::Vector<double, N_DIM_x>;
-    using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-
     static constexpr int N_DIM_z = n_dim_z; // Declare so that children of this class can reference it
-    using Vec_z  = Eigen::Vector<double, N_DIM_z>;
-    using Mat_zx = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
-    using Mat_xz = Eigen::Matrix<double, N_DIM_x, N_DIM_z>;
-    using Mat_zz = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
-
     static constexpr int N_DIM_w = n_dim_w; // Declare so that children of this class can reference it
+
+    using Vec_x  = Eigen::Vector<double, N_DIM_x>;
+    using Vec_z  = Eigen::Vector<double, N_DIM_z>;
     using Vec_w  = Eigen::Vector<double, N_DIM_w>;
+
+    using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+    using Mat_xz = Eigen::Matrix<double, N_DIM_x, N_DIM_z>;
     using Mat_xw = Eigen::Matrix<double, N_DIM_x, N_DIM_w>;
+
+    using Mat_zx = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
+    using Mat_zz = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
     using Mat_zw = Eigen::Matrix<double, N_DIM_z, N_DIM_w>;
+
     using Mat_ww = Eigen::Matrix<double, N_DIM_w, N_DIM_w>;
+
     using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
     using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
     using Gauss_w = prob::MultiVarGauss<N_DIM_w>;
@@ -159,26 +162,34 @@ protected:
 
 
 
-template <int n_dim_x, int n_dim_z>
 /**
- * @brief Interface for sensor models.
- * 
+ * @brief Linear Time Varying Sensor Model Interface
+ * @tparam n_dim_x State dimension
+ * @tparam n_dim_z Measurement dimension
+ * @tparam n_dim_w Measurement noise dimension (Default: n_dim_z)
  */
-class SensorModelEKFI : public SensorModelI<n_dim_x, n_dim_z, n_dim_z>{
+template <int n_dim_x, int n_dim_z, int n_dim_w = n_dim_z>
+class SensorModelLTV : public SensorModelI<n_dim_x, n_dim_z, n_dim_z>{
 public:
+    using BaseI = SensorModelI<n_dim_x, n_dim_z, n_dim_w>;
     static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
     static constexpr int N_DIM_z = n_dim_z; // Declare so that children of this class can reference it
     static constexpr int N_DIM_w = n_dim_z; // Declare so that children of this class can reference it
+
     using Vec_z  = Eigen::Vector<double, N_DIM_z>;
     using Vec_x  = Eigen::Vector<double, N_DIM_x>;
+
     using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-    using Mat_zx = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
     using Mat_xz = Eigen::Matrix<double, N_DIM_x, N_DIM_z>;
+    
+    using Mat_zx = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
     using Mat_zz = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
+    using Mat_zw = Eigen::Matrix<double, N_DIM_z, N_DIM_w>;
+
     using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
     using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
 
-    virtual ~SensorModelEKFI() = default;
+    virtual ~SensorModelLTV() = default;
     /** Sensor Model
      * Overriding SensorModelI::h
      * @param x State
@@ -196,12 +207,25 @@ public:
      * @return Vec_z
      */
     virtual Vec_z h(const Vec_x& x) const = 0;
+
     /**
      * @brief Jacobian of sensor model with respect to state
      * @param x State
      * @return Mat_zx 
      */
-    virtual Mat_zx H(const Vec_x& x) const = 0;
+    virtual Mat_zx C(const Vec_x& x) const = 0;
+
+    /**
+     * @brief Noise matrix
+     * @param x State
+     * @return Mat_zz 
+     */
+    virtual Mat_zw H(const Vec_x& x = Vec_x::Zero()) const 
+    { 
+        (void)x; // unused
+        return Mat_zw::Identity(N_DIM_z, N_DIM_w); 
+    }
+
     /**
      * @brief Noise covariance matrix
      * @param x State
@@ -218,10 +242,11 @@ public:
     virtual Gauss_z pred_from_est(const Gauss_x& x_est) const 
     {
         Mat_xx P = x_est.cov();
-        Mat_zx H = this->H(x_est.mean());
+        Mat_zx C = this->C(x_est.mean());
         Mat_zz R = this->R(x_est.mean());
+        Mat_zw H = this->H(x_est.mean());
 
-        return {this->h(x_est.mean()), H * P * H.transpose() + R};
+        return {this->h(x_est.mean()), C * P * C.transpose() + H * R * H.transpose()};
     }
 
     /**

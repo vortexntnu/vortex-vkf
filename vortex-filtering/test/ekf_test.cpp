@@ -14,6 +14,7 @@ protected:
     using PosMeasModel = vortex::models::IdentitySensorModel<4,2>;
     using CVModel = vortex::models::CVModel;
     using Vec_x = typename CVModel::Vec_x;
+    using Vec_u = typename CVModel::Vec_u;
     using Mat_xx = typename CVModel::Mat_xx;
     using Gauss_x = typename CVModel::Gauss_x;
     using Gauss_z = typename PosMeasModel::Gauss_z;
@@ -75,7 +76,7 @@ TEST_F(EKFTestCVModel, Convergence)
     for (int i = 0; i < 100; i++)
     {
         // Simulate
-        Vec_x x_true_i = dynamic_model_->sample_f_d(dt, x_true.back(), gen);
+        Vec_x x_true_i = dynamic_model_->sample_f_d(dt, x_true.back(), Vec_u::Zero(), gen);
         Vec_z z_meas_i = sensor_model_->sample_h(x_true_i, gen);
         x_true.push_back(x_true_i);
         z_meas.push_back(z_meas_i);

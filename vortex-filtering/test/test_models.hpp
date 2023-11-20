@@ -2,15 +2,17 @@
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 
-class SimpleDynamicModel : public vortex::models::DynamicModelEKFI<2> {
+class SimpleDynamicModel : public vortex::models::DynamicModelCTLTV<2> {
 public:
-    using typename DynamicModelEKFI<2>::Vec_x;
-    using typename DynamicModelEKFI<2>::Mat_xx;
-    using DynamicModelEKFI<2>::N_DIM_x;
+    using typename DynamicModelCTLTV<2>::Vec_x;
+    using typename DynamicModelCTLTV<2>::Mat_xx;
+    using DynamicModelCTLTV<2>::N_DIM_x;
 
     // A stable state transition 
-    Vec_x f_c(const Vec_x &x) const override
+    Vec_x f_c(const Vec_x& x, const Vec_u& u = Vec_u::Zero(), const Vec_v& v = Vec_v::Zero()) const override
     {
+        (void)u; // unused
+        (void)v; // unused
         return - x;
     }
 
@@ -26,15 +28,15 @@ public:
 };
 
 
-class VariableLengthSensorModel : public vortex::models::SensorModelEKFI<2, Eigen::Dynamic> {
+class VariableLengthSensorModel : public vortex::models::SensorModelLTV<2, Eigen::Dynamic> {
 public:
-    using typename SensorModelEKFI<2, Eigen::Dynamic>::Vec_z;
-    using typename SensorModelEKFI<2, Eigen::Dynamic>::Vec_x;
-    using typename SensorModelEKFI<2, Eigen::Dynamic>::Mat_xx;
-    using typename SensorModelEKFI<2, Eigen::Dynamic>::Mat_zx;
-    using typename SensorModelEKFI<2, Eigen::Dynamic>::Mat_zz;
-    using SensorModelEKFI::N_DIM_z;
-    using SensorModelEKFI::N_DIM_x;
+    using typename SensorModelLTV<2, Eigen::Dynamic>::Vec_z;
+    using typename SensorModelLTV<2, Eigen::Dynamic>::Vec_x;
+    using typename SensorModelLTV<2, Eigen::Dynamic>::Mat_xx;
+    using typename SensorModelLTV<2, Eigen::Dynamic>::Mat_zx;
+    using typename SensorModelLTV<2, Eigen::Dynamic>::Mat_zz;
+    using SensorModelLTV::N_DIM_z;
+    using SensorModelLTV::N_DIM_x;
 
 
     VariableLengthSensorModel(int n_z) : N_z(n_z) {}
@@ -44,13 +46,13 @@ public:
         return H(x)*x;
     }
 
-    Mat_zx H(const Vec_x&) const override
+    Mat_zx C(const Vec_x&) const override
     {
-        return Mat_zx::Identity(N_DIM_x, N_DIM_x);
+        return Mat_zx::Identity(N_z, N_DIM_x);
     }
     Mat_zz R(const Vec_x&) const override
     {
-        return Mat_zz::Identity(N_DIM_x, N_DIM_x)*0.1;
+        return Mat_zz::Identity(N_z, N_z)*0.1;
     }
 
     const int N_z;

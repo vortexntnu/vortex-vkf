@@ -5,7 +5,7 @@ namespace vortex {
 namespace models {
 
 template <int n_dim_x>
-class IdentityDynamicModel : public DynamicModelEKFI<n_dim_x> {
+class IdentityDynamicModel : public DynamicModelCTLTV<n_dim_x> {
 public: 
     using Vec_x = Eigen::Vector<double, n_dim_x>;
     using Mat_xx = Eigen::Matrix<double, n_dim_x, n_dim_x>;
@@ -13,7 +13,7 @@ public:
     IdentityDynamicModel(double std) : Q_(Mat_xx::Identity()*std*std) {}
     IdentityDynamicModel(Mat_xx Q) : Q_(Q) {}
 
-    Vec_x f_c(const Vec_x& x) const override { return x; }
+    Vec_x f_c(const Vec_x& x, const Vec_x& = Vec_x::Zero(), const Vec_x& = Vec_x::Zero()) const override { return x; }
     Mat_xx A_c(const Vec_x& x) const override { return Mat_xx::Identity(); }
     Mat_xx Q_c(const Vec_x& x) const override { return Q_; }
 
@@ -25,10 +25,10 @@ protected:
 /** @brief Simple dynamic model with constant velocity.
  * x = [x, y, x_dot, y_dot]
  */
-class CVModel : public DynamicModelEKFI<4> {
+class CVModel : public DynamicModelCTLTV<4> {
 public:
-    using typename DynamicModelEKFI<4>::Vec_x;
-    using typename DynamicModelEKFI<4>::Mat_xx;
+    using typename DynamicModelCTLTV<4>::Vec_x;
+    using typename DynamicModelCTLTV<4>::Mat_xx;
 
     /**
      * @brief Constant Velocity Model in 2D
@@ -38,11 +38,11 @@ public:
     CVModel(double std_vel) : std_vel_(std_vel) {}
 
     /** Get the continuous-time state transition model.
-     * Overriding DynamicModelEKFI::f_c
+     * Overriding DynamicModelCTLTV::f_c
      * @param x State
      * @return Vec_x 
      */
-    Vec_x f_c(const Vec_x& x) const override
+    Vec_x f_c(const Vec_x& x, const Vec_x& = Vec_x::Zero(), const Vec_x& = Vec_x::Zero()) const override
     {
         Vec_x x_dot;
         x_dot << x(2), x(3), 0, 0;
@@ -50,7 +50,7 @@ public:
     }
 
     /** Get the Jacobian of the continuous state transition model with respect to the state.
-     * Overriding DynamicModelEKFI::A_c
+     * Overriding DynamicModelCTLTV::A_c
      * @param x State
      * @return Mat_xx 
      */
@@ -66,7 +66,7 @@ public:
     }
 
     /** Get the continuous time process noise covariance matrix.
-     * Overriding DynamicModelEKFI::Q_c
+     * Overriding DynamicModelCTLTV::Q_c
      * @param x State
      * @return Mat_xx Process noise covariance
      */
@@ -84,10 +84,10 @@ private:
     double std_vel_;
 };
 
-class CTModel : public DynamicModelEKFI<5> {
+class CTModel : public DynamicModelCTLTV<5> {
 public:
-    using typename DynamicModelEKFI<5>::Vec_x;
-    using typename DynamicModelEKFI<5>::Mat_xx;
+    using typename DynamicModelCTLTV<5>::Vec_x;
+    using typename DynamicModelCTLTV<5>::Mat_xx;
 
     /**
      * @brief Coordinated Turn Model in 2D
@@ -96,7 +96,12 @@ public:
      */
     CTModel(double std_acc, double std_turn) : std_acc_(std_acc), std_turn_(std_turn) {}
 
-    Vec_x f_c(const Vec_x& x) const override
+    /** Get the continuous-time state transition model.
+     * Overriding DynamicModelCTLTV::f_c
+     * @param x State
+     * @return Vec_x 
+     */
+    Vec_x f_c(const Vec_x& x, const Vec_x& = Vec_x::Zero(), const Vec_x& = Vec_x::Zero()) const override
     {
         // x_ddot = -v*omega
         // y_ddot = v*omega
@@ -105,6 +110,11 @@ public:
         return x_dot;
     }
 
+    /** Get the Jacobian of the continuous state transition model with respect to the state.
+     * Overriding DynamicModelCTLTV::A_c
+     * @param x State
+     * @return Mat_xx 
+     */
     Mat_xx A_c(const Vec_x& x) const override
     {
         Mat_xx A;
@@ -118,6 +128,11 @@ public:
         return A;
     }
 
+    /** Get the continuous time process noise covariance matrix.
+     * Overriding DynamicModelCTLTV::Q_c
+     * @param x State
+     * @return Mat_xx Process noise covariance
+     */
     Mat_xx Q_c(const Vec_x& x) const override
     {
         (void)x; // unused
@@ -141,10 +156,10 @@ private:
 };
 
 
-class CAModel : public DynamicModelEKFI<6> {
+class CAModel : public DynamicModelCTLTV<6> {
 public:
-    using typename DynamicModelEKFI<6>::Vec_x;
-    using typename DynamicModelEKFI<6>::Mat_xx;
+    using typename DynamicModelCTLTV<6>::Vec_x;
+    using typename DynamicModelCTLTV<6>::Mat_xx;
 
     /**
      * @brief Constant Acceleration Model in 2D
@@ -153,13 +168,23 @@ public:
      */
     CAModel(double std_vel, double std_acc) : std_vel_(std_vel), std_acc_(std_acc) {}
 
-    Vec_x f_c(const Vec_x& x) const override
+    /** Get the continuous-time state transition model.
+     * Overriding DynamicModelCTLTV::f_c
+     * @param x State
+     * @return Vec_x 
+     */
+    Vec_x f_c(const Vec_x& x, const Vec_x& = Vec_x::Zero(), const Vec_x& = Vec_x::Zero()) const override
     {
         Vec_x x_dot;
         x_dot << x(2), x(3), x(4), x(5), 0, 0;
         return x_dot;
     }
 
+    /** Get the Jacobian of the continuous state transition model with respect to the state.
+     * Overriding DynamicModelCTLTV::A_c
+     * @param x State
+     * @return Mat_xx 
+     */
     Mat_xx A_c(const Vec_x& x) const override
     {
         (void)x; // unused
@@ -175,6 +200,11 @@ public:
         return A;
     }
 
+    /** Get the continuous time process noise covariance matrix.
+     * Overriding DynamicModelCTLTV::Q_c
+     * @param x State
+     * @return Mat_xx Process noise covariance
+     */
     Mat_xx Q_c(const Vec_x& x) const override
     {
         assert(false); // Not implemented
@@ -184,6 +214,7 @@ public:
         Q << 0;
         return Q;
     }
+    
 private:
     double std_vel_;
     double std_acc_;

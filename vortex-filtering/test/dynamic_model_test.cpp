@@ -49,7 +49,7 @@ TEST(DynamicModel, sampleSimpleModel)
     std::vector<Eigen::VectorXd> samples;
     for (size_t i = 0; i < 10000; i++)
     {
-        samples.push_back(model.sample_f_d(dt, x, gen));
+        samples.push_back(model.sample_f_d(dt, x, Vec_x::Zero(), gen));
     }
 
     vortex::prob::Gauss2d approx_gauss = vortex::plotting::approximate_gaussian(samples);

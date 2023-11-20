@@ -11,9 +11,9 @@ namespace models {
  * @tparam n_dim_z Dimension of measurement
  */
 template<int n_dim_x, int n_dim_z>
-class IdentitySensorModel : public vortex::models::SensorModelEKFI<n_dim_x, n_dim_z> {
+class IdentitySensorModel : public vortex::models::SensorModelLTV<n_dim_x, n_dim_z> {
 public:
-    using SensModI = vortex::models::SensorModelEKFI<n_dim_x, n_dim_z>;
+    using SensModI = vortex::models::SensorModelLTV<n_dim_x, n_dim_z>;
 
     using typename SensModI::Vec_z;
     using typename SensModI::Vec_x;
@@ -38,23 +38,23 @@ public:
     IdentitySensorModel(Mat_zz R) : R_(R) {}
 
     /** Get the predicted measurement given a state estimate.
-     * Overriding SensorModelEKFI::h
      * @param x State
      * @return Vec_z 
+     * @note Overriding SensorModelLTV::h
      */
-    Vec_z h(const Vec_x& x) const override { return H()*x; }
+    Vec_z h(const Vec_x& x) const override { return C()*x; }
 
     /** Get the Jacobian of the measurement model with respect to the state.
      * @param x State (not used)
      * @return Mat_zx
-     * @note Overriding SensorModelEKFI::H
+     * @note Overriding SensorModelLTV::C
      */
-    Mat_zx H(const Vec_x& = Vec_x::Zero()) const override { return Mat_zx::Identity(); }
+    Mat_zx C(const Vec_x& = Vec_x::Zero()) const override { return Mat_zx::Identity(); }
 
     /** Get the measurement covariance matrix.
      * @param x State (not used)
      * @return Mat_zz 
-     * @note Overriding SensorModelEKFI::R
+     * @note Overriding SensorModelLTV::R
      */
     Mat_zz R(const Vec_x& = Vec_x::Zero()) const override { return R_; }
 

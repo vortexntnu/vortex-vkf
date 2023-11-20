@@ -22,6 +22,9 @@
 #include <vortex_filtering/models/dynamic_models.hpp>
 #include <vortex_filtering/models/sensor_models.hpp>
 
+// Numerical Integration
+#include <vortex_filtering/numerical_integration/erk_methods.hpp>
+
 // Plotting
 #include <vortex_filtering/plotting/utils.hpp>
 
