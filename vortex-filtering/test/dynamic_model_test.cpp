@@ -28,8 +28,8 @@ TEST(DynamicModel, iterateSimpleModel)
 
     for (size_t i = 0; i < 10; i++)
     {
-        EXPECT_EQ(model.f_d(x, dt), std::exp(-dt) * x);
-        x = model.f_d(x, dt);
+        EXPECT_EQ(model.f_d(dt, x), std::exp(-dt) * x);
+        x = model.f_d(dt, x);
     }
 
 }
@@ -41,7 +41,7 @@ TEST(DynamicModel, sampleSimpleModel)
     double dt = 1.0;
     Vec_x x = Vec_x::Ones();
 
-    vortex::prob::Gauss2d true_gauss = model.pred_from_state(x, dt);
+    vortex::prob::Gauss2d true_gauss = model.pred_from_state(dt, x);
 
     std::random_device rd;                            
     std::mt19937 gen(rd());   
@@ -49,7 +49,7 @@ TEST(DynamicModel, sampleSimpleModel)
     std::vector<Eigen::VectorXd> samples;
     for (size_t i = 0; i < 10000; i++)
     {
-        samples.push_back(model.sample_f_d(x, dt, gen));
+        samples.push_back(model.sample_f_d(dt, x, gen));
     }
 
     vortex::prob::Gauss2d approx_gauss = vortex::plotting::approximate_gaussian(samples);
@@ -98,8 +98,8 @@ TEST(DynamicModel, iterateCVModel)
     {
         Vec_x x_true;
         x_true << x(0) + dt, x(1) + dt, 1, 1;
-        EXPECT_EQ(model.f_d(x, dt), x_true);
-        x = model.f_d(x, dt);
+        EXPECT_EQ(model.f_d(dt, x), x_true);
+        x = model.f_d(dt, x);
     }
 
 }

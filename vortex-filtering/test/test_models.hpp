@@ -65,14 +65,14 @@ public:
 
     NonlinearModel1(double std_dev) : cov_(std_dev*std_dev) {}
 
-    Vec_x f_d(const Vec_x& x, const Vec_u& = Vec_u::Zero(), const Vec_v& v = Vec_v::Zero(), double = 0.0) const override
+    Vec_x f_d(double, const Vec_x& x, const Vec_u& = Vec_u::Zero(), const Vec_v& v = Vec_v::Zero()) const override
     {
         Vec_x x_next;
         x_next << std::sin(x(0)) + v(0);
         return x_next;
     }
 
-    Mat_xx Q_d(const Vec_x& = Vec_x::Zero(), double = 0.0) const override
+    Mat_xx Q_d(double = 0.0, const Vec_x& = Vec_x::Zero()) const override
     {
         return Mat_xx::Identity()*cov_;
     }

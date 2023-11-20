@@ -119,7 +119,7 @@ private:
     Mat_a2ap1 get_sigma_points(DynModIPtr dyn_mod, SensModIPtr sens_mod, double dt, const Gauss_x& x_est) const
     {
         Mat_xx P = x_est.cov();
-        Mat_vv Q = dyn_mod->Q_d(x_est.mean(), dt);
+        Mat_vv Q = dyn_mod->Q_d(dt, x_est.mean());
         Mat_ww R = sens_mod->R(x_est.mean());
         // Make augmented covariance matrix
         Mat_aa P_a;
@@ -156,7 +156,7 @@ private:
         for (int i = 0; i < 2*N_DIM_a + 1; i++) {
             Vec_x x_i = sigma_points.template block<N_DIM_x, 1>(0, i);
             Vec_v v_i = sigma_points.template block<N_DIM_v, 1>(N_DIM_x, i);
-            sigma_x_pred.col(i) = dyn_mod->f_d(x_i, u, v_i, dt);
+            sigma_x_pred.col(i) = dyn_mod->f_d(dt, x_i, u, v_i);
         }
         return sigma_x_pred;
     }

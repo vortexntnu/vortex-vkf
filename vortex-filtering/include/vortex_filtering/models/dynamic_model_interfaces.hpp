@@ -37,16 +37,16 @@ public:
     virtual ~DynamicModelX() = default;
 
     // Discrete time dynamics (pure virtual function)
-    virtual VecX f_dX(const VecX& x, const VecX& u, const VecX& v, double dt) const = 0;
+    virtual VecX f_dX(double dt, const VecX& x, const VecX& u, const VecX& v) const = 0;
 
     // Discrete time process noise (pure virtual function)
-    virtual MatXX Q_dX(const VecX& x, double dt) const = 0;
+    virtual MatXX Q_dX(double dt, const VecX& x) const = 0;
 
     // Sample from the discrete time dynamics
-    virtual VecX sample_f_dX(const VecX& x, const VecX& u, double dt, std::mt19937& gen) const = 0;
+    virtual VecX sample_f_dX(double dt, const VecX& x, const VecX& u, std::mt19937& gen) const = 0;
 
     // Sample from the discrete time dynamics
-    virtual VecX sample_f_dX(const VecX& x, double dt) const = 0;
+    virtual VecX sample_f_dX(double dt, const VecX& x) const = 0;
 
     int get_dim_x() const { return dim_x_; }
     int get_dim_u() const { return dim_u_; }
@@ -92,71 +92,71 @@ public:
     virtual ~DynamicModelI() = default;
 
     /** Discrete time dynamics
+     * @param dt Time step
      * @param x Vec_x State
      * @param u Vec_u Input
      * @param v Vec_v Process noise
-     * @param dt Time step
      * @return Vec_x Next state
      */
-    virtual Vec_x f_d(const Vec_x& x, const Vec_u& u, const Vec_v& v, double dt) const = 0;
+    virtual Vec_x f_d(double dt, const Vec_x& x, const Vec_u& u, const Vec_v& v) const = 0;
 
     /** Discrete time process noise
      * @param x Vec_x State
      */
-    virtual Mat_vv Q_d(const Vec_x& x, double dt) const = 0;
+    virtual Mat_vv Q_d(double dt, const Vec_x& x) const = 0;
 
     /** Sample from the discrete time dynamics
+     * @param dt Time step
      * @param x Vec_x State
      * @param u Vec_u Input
-     * @param dt Time step
      * @param gen Random number generator (For deterministic behaviour)
      * @return Vec_x Next state
      */
-    Vec_x sample_f_d(const Vec_x& x, const Vec_u& u, double dt, std::mt19937& gen) const
+    Vec_x sample_f_d(double dt, const Vec_x& x, const Vec_u& u, std::mt19937& gen) const
     {
-        Gauss_v v = {Vec_v::Zero(), Q_d(x, dt)};
-        return f_d(x, u, v.sample(gen), dt);
+        Gauss_v v = {Vec_v::Zero(), Q_d(dt, x)};
+        return f_d(dt, x, u, v.sample(gen));
     }
 
     /** Sample from the discrete time dynamics
-     * @param x Vec_x State
      * @param dt Time step
+     * @param x Vec_x State
      * @return Vec_x Next state
      */
-    Vec_x sample_f_d(const Vec_x& x, double dt) const
+    Vec_x sample_f_d(double dt, const Vec_x& x) const
     {
         std::random_device rd;
         std::mt19937 gen(rd());
-        return sample_f_d(x, Vec_u::Zero(), dt, gen);
+        return sample_f_d(dt, x, Vec_u::Zero(), gen);
     }
 
 protected:
     // Override dynamic size functions to use static size functions
-    BaseX::VecX f_dX(const BaseX::VecX& x, const BaseX::VecX& u, const BaseX::VecX& v, double dt) const override
+    BaseX::VecX f_dX(double dt, const BaseX::VecX& x, const BaseX::VecX& u, const BaseX::VecX& v) const override
     {
         Vec_x x_fixed = x;
         Vec_u u_fixed = u;
         Vec_v v_fixed = v;
-        return f_d(x_fixed, u_fixed, v_fixed, dt);
+        return f_d(dt, x_fixed, u_fixed, v_fixed);
     }
 
-    BaseX::MatXX Q_dX(const BaseX::VecX& x, double dt) const override
+    BaseX::MatXX Q_dX(double dt, const BaseX::VecX& x) const override
     {
         Vec_x x_fixed = x;
-        return Q_d(x_fixed, dt);
+        return Q_d(dt, x_fixed);
     }
 
-    BaseX::VecX sample_f_dX(const BaseX::VecX& x, const BaseX::VecX& u, double dt, std::mt19937& gen) const override
+    BaseX::VecX sample_f_dX(double dt, const BaseX::VecX& x, const BaseX::VecX& u, std::mt19937& gen) const override
     {
         Vec_x x_fixed = x;
         Vec_u u_fixed = u;
-        return sample_f_d(x_fixed, u_fixed, dt, gen);
+        return sample_f_d(dt, x_fixed, u_fixed, gen);
     }
 
-    BaseX::VecX sample_f_dX(const BaseX::VecX& x, double dt) const override
+    BaseX::VecX sample_f_dX(double dt, const BaseX::VecX& x) const override
     {
         Vec_x x_fixed = x;
-        return sample_f_d(x_fixed, dt);
+        return sample_f_d(dt, x_fixed);
     }
 
 };
@@ -182,13 +182,13 @@ public:
     virtual ~DynamicModelEKFI() = default;
 
     /** Continuos time dynamics.
-     * @param x Vec_x
+     * @param x Vec_x State
      * @return State_dot
      */
     virtual Vec_x f_c(const Vec_x& x) const = 0;
     
     /** Jacobian of continuous time dynamics
-     * @param x Vec_x
+     * @param x Vec_x State
      * @return State_jac
      */
     virtual Mat_xx A_c(const Vec_x& x) const = 0; 
@@ -199,34 +199,25 @@ public:
      */
     virtual Mat_xx Q_c(const Vec_x& x) const = 0;
 
-    /** Discrete time dynamics.
-     * Overriding DynamicModelI::f_d
-     * @param x Vec_x
-     * @param u Vec_u
-     * @param v Vec_v
-     * @param dt Time step
-     * @return Vec_x
-     */
-    Vec_x f_d(const Vec_x& x, const Vec_x&, const Vec_x& v, double dt) const override
-    {
-        return f_d(x, dt) + v;
-    }
     /** Discrete time dynamics
-     * @param x Vec_x
      * @param dt Time step
+     * @param x Vec_x State
+     * @param v Vec_v Process noise
      * @return Vec_x
      */
-    Vec_x f_d(const Vec_x& x, double dt) const
+    Vec_x f_d(double dt, const Vec_x& x, const Vec_x& v = Vec_x::Zero()) const
     {
-        return F_d(x, dt) * x;
+        return F_d(dt, x) * x + v;
     }
 
+
+
     /** Jacobian of discrete time dynamics
-     * @param x Vec_x
      * @param dt Time step
+     * @param x Vec_x
      * @return State_jac
      */
-    Mat_xx F_d(const Vec_x& x, double dt) const
+    Mat_xx F_d(double dt, const Vec_x& x) const
     {
         // Use (4.58) from the book
         return (A_c(x) * dt).exp();
@@ -234,11 +225,11 @@ public:
 
     /** Discrete time process noise.
      * Overriding DynamicModelI::Q_d
-     * @param x Vec_x
      * @param dt Time step
+     * @param x Vec_x
      * @return Matrix Process noise covariance
      */
-    Mat_xx Q_d(const Vec_x& x, double dt) const override
+    Mat_xx Q_d(double dt, const Vec_x& x) const override
     {
         // See https://en.wikipedia.org/wiki/Discretization#Discretization_of_process_noise for more info
 
@@ -258,29 +249,29 @@ public:
     
 
     /** Get the predicted state distribution given a state estimate
-     * @param x_est Vec_x estimate
      * @param dt Time step
+     * @param x_est Vec_x estimate
      * @return Vec_x
      */
-    Gauss_x pred_from_est(const Gauss_x& x_est, double dt) const
+    Gauss_x pred_from_est(double dt, const Gauss_x& x_est) const
     {
         Mat_xx P = x_est.cov();
-        Mat_xx F_d = this->F_d(x_est.mean(), dt);
-        Mat_xx Q_d = this->Q_d(x_est.mean(), dt);
-        Gauss_x x_est_pred(f_d(x_est.mean(), dt), F_d * P * F_d.transpose() + Q_d);
+        Mat_xx F_d = this->F_d(dt, x_est.mean());
+        Mat_xx Q_d = this->Q_d(dt, x_est.mean());
+        Gauss_x x_est_pred(f_d(dt, x_est.mean()), F_d * P * F_d.transpose() + Q_d);
 
         return x_est_pred;
     }
 
     /** Get the predicted state distribution given a state
-     * @param x Vec_x
      * @param dt Time step
+     * @param x Vec_x
      * @return Vec_x
      */
-    Gauss_x pred_from_state(const Vec_x& x, double dt) const
+    Gauss_x pred_from_state(double dt, const Vec_x& x) const
     {
-        Mat_xx Q_d = this->Q_d(x, dt);
-        Gauss_x x_est_pred(this->f_d(x, dt), Q_d);
+        Mat_xx Q_d = this->Q_d(dt, x);
+        Gauss_x x_est_pred(this->f_d(dt, x), Q_d);
 
         return x_est_pred;
     }
@@ -289,26 +280,39 @@ public:
     using DynamicModelI<n_dim_x, n_dim_x, n_dim_x>::sample_f_d;
 
     /** Sample from the discrete time dynamics
-     * @param x Vec_x State
      * @param dt Time step
+     * @param x Vec_x State
      * @return Vec_x State
      */
-    Vec_x sample_f_d(const Vec_x& x, double dt) const
+    Vec_x sample_f_d(double dt, const Vec_x& x) const
     {
-        return sample_f_d(x, Vec_x::Zero(), dt);
+        return sample_f_d(dt, x, Vec_x::Zero());
     }
 
     /** Sample from the discrete time dynamics
-     * @param x Vec_x State
      * @param dt Time step
+     * @param x Vec_x State
      * @param gen Random number generator (For deterministic behaviour)
      * @return Vec_x State
      */
-    Vec_x sample_f_d(const Vec_x& x, double dt, std::mt19937& gen) const
+    Vec_x sample_f_d(double dt, const Vec_x& x, std::mt19937& gen) const
     {
-        return sample_f_d(x, Vec_x::Zero(), dt, gen);
+        return sample_f_d(dt, x, Vec_x::Zero(), gen);
     }
 
+protected:
+    /** Discrete time dynamics.
+     * Overriding DynamicModelI::f_d
+     * @param dt Time step
+     * @param x Vec_x
+     * @param u Vec_u (Not used)
+     * @param v Vec_v
+     * @return Vec_x
+     */
+    Vec_x f_d(double dt, const Vec_x& x, const Vec_x&, const Vec_x& v) const override
+    {
+        return f_d(dt, x, v);
+    }
 };
 
 }  // namespace models

@@ -88,7 +88,7 @@ protected:
         for (size_t i = 0; i < tp.num_iters; ++i) {
             // Simulate
             VecX u = VecX::Zero(N_DIM_u);
-            VecX x_true_ip1 = tp.dyn_mod_real->sample_f_dX(x_true.at(i), u, tp.dt, gen);
+            VecX x_true_ip1 = tp.dyn_mod_real->sample_f_dX(tp.dt, x_true.at(i), u, gen);
             VecX z_meas_i = tp.sens_mod_real->sample_hX(x_true.at(i), gen);
 
             // Predict

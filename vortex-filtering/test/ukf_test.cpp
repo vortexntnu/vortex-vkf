@@ -51,7 +51,7 @@ TEST_F(UKFtest, Predict)
 	Gauss_x x_est_pred = pred.first;
 	Gauss_z z_est_pred = pred.second;
 
-	Vec_x x_true = dynamic_model_->f_d(x.mean(), Vec_x::Zero(), Vec_x::Zero(), dt);
+	Vec_x x_true = dynamic_model_->f_d(dt, x.mean(), Vec_x::Zero(), Vec_x::Zero());
 	Vec_z z_true = x_true.head(1);
 	ASSERT_EQ(x_est_pred.mean(), x_true);
 	ASSERT_EQ(z_est_pred.mean(), z_true);
@@ -89,7 +89,7 @@ TEST_F(UKFtest, Convergence)
         v << d_disturbance(gen);
         Vec_z w = Vec_z::Zero();
         w << d_noise(gen);
-        Vec_x x_true_i = dynamic_model_->f_d(x_true.back(), Vec_x::Zero(), v, dt);
+        Vec_x x_true_i = dynamic_model_->f_d(dt, x_true.back(), Vec_x::Zero(), v);
         Vec_z z_meas_i = sensor_model_->h(x_true_i) + w;
         x_true.push_back(x_true_i);
         z_meas.push_back(z_meas_i);

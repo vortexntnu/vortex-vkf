@@ -75,7 +75,7 @@ TEST_F(EKFTestCVModel, Convergence)
     for (int i = 0; i < 100; i++)
     {
         // Simulate
-        Vec_x x_true_i = dynamic_model_->sample_f_d(x_true.back(), dt, gen);
+        Vec_x x_true_i = dynamic_model_->sample_f_d(dt, x_true.back(), gen);
         Vec_z z_meas_i = sensor_model_->sample_h(x_true_i, gen);
         x_true.push_back(x_true_i);
         z_meas.push_back(z_meas_i);

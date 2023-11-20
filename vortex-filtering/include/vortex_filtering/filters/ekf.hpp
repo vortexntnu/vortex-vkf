@@ -76,7 +76,7 @@ public:
         // cast to sensor model type to access pred_from_est
         auto sens_model = std::dynamic_pointer_cast<SensModEKF>(sens_mod);
 
-        Gauss_x x_est_pred = dyn_model->pred_from_est(x_est_prev, dt);
+        Gauss_x x_est_pred = dyn_model->pred_from_est(dt, x_est_prev);
         Gauss_z z_est_pred = sens_model->pred_from_est(x_est_pred);
         return {x_est_pred, z_est_pred};
     }
