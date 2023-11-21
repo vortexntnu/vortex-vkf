@@ -22,8 +22,8 @@ public:
 	using VecX = Eigen::VectorXd;
 	using MatXX = Eigen::MatrixXd;
 	using GaussX = prob::MultiVarGauss<Eigen::Dynamic>;
-	using DynModX = models::DynamicModelX;
-	using SensModX = models::SensorModelX;
+	using DynModX = models::interface::DynamicModelX;
+	using SensModX = models::interface::SensorModelX;
 	using DynModXPtr = std::shared_ptr<DynModX>;
 	using SensModXPtr = std::shared_ptr<SensModX>;
 
@@ -73,17 +73,39 @@ public:
 	static constexpr int N_DIM_v = n_dim_v;
 	static constexpr int N_DIM_w = n_dim_w;
 
-	using DynModI  = models::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
-    using SensModI = models::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
-    using DynModIPtr = std::shared_ptr<DynModI>;
-    using SensModIPtr = std::shared_ptr<SensModI>;
+    using Vec_x = Eigen::Vector<double, N_DIM_x>;
+    using Vec_z = Eigen::Vector<double, N_DIM_z>;
+    using Vec_u = Eigen::Vector<double, N_DIM_u>;
+    using Vec_v = Eigen::Vector<double, N_DIM_v>;
+    using Vec_w = Eigen::Vector<double, N_DIM_w>;
 
+    using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+    using Mat_xz = Eigen::Matrix<double, N_DIM_x, N_DIM_z>;
+    using Mat_xv = Eigen::Matrix<double, N_DIM_x, N_DIM_v>;
+    using Mat_xw = Eigen::Matrix<double, N_DIM_x, N_DIM_w>;
 
-	using Vec_z = Eigen::Vector<double, N_DIM_z>;
-	using Vec_u = Eigen::Vector<double, N_DIM_u>;
+    using Mat_zx = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
+    using Mat_zz = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
+    using Mat_zw = Eigen::Matrix<double, N_DIM_z, N_DIM_w>;
+
+    using Mat_vx = Eigen::Matrix<double, N_DIM_v, N_DIM_x>;
+    using Mat_vv = Eigen::Matrix<double, N_DIM_v, N_DIM_v>;
+    using Mat_vw = Eigen::Matrix<double, N_DIM_v, N_DIM_w>;
+
+    using Mat_wx = Eigen::Matrix<double, N_DIM_w, N_DIM_x>;
+    using Mat_wv = Eigen::Matrix<double, N_DIM_w, N_DIM_v>;
+    using Mat_ww = Eigen::Matrix<double, N_DIM_w, N_DIM_w>;
+
 	using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
 	using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
+	using Gauss_v = prob::MultiVarGauss<N_DIM_v>;
+	using Gauss_w = prob::MultiVarGauss<N_DIM_w>;
 	
+	using DynModI     = models::interface::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
+    using SensModI    = models::interface::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
+    using DynModIPtr  = std::shared_ptr<DynModI>;
+    using SensModIPtr = std::shared_ptr<SensModI>;
+
 	/** @brief Static size dimension Kalman filter constructor.
 	 * @tparam n_dim_x State dimension.
 	 * @tparam n_dim_z Measurement dimension.

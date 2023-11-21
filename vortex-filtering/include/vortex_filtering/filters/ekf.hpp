@@ -30,31 +30,38 @@ namespace filter {
 template <int n_dim_x, int n_dim_z, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x, int n_dim_w = n_dim_z>
 class EKF : public interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w> {
 public:
-    static constexpr int N_DIM_x = n_dim_x;
-    static constexpr int N_DIM_u = n_dim_u;
-    static constexpr int N_DIM_z = n_dim_z;
-    static constexpr int N_DIM_v = n_dim_v;
-    static constexpr int N_DIM_w = n_dim_w;
+    using BaseI = interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w>;
+    static constexpr int N_DIM_x = BaseI::N_DIM_x;
+    static constexpr int N_DIM_u = BaseI::N_DIM_u;
+    static constexpr int N_DIM_z = BaseI::N_DIM_z;
+    static constexpr int N_DIM_v = BaseI::N_DIM_v;
+    static constexpr int N_DIM_w = BaseI::N_DIM_w;
 
-    using DynModI  = models::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
-    using SensModI = models::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
-    using DynModIPtr = std::shared_ptr<DynModI>;
-    using SensModIPtr = std::shared_ptr<SensModI>;
+    using DynModI     = typename BaseI::DynModI;
+    using SensModI    = typename BaseI::SensModI;
+    using DynModIPtr  = typename BaseI::DynModIPtr;
+    using SensModIPtr = typename BaseI::SensModIPtr;
 
-    using DynModEKF  = models::DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v>;
-    using SensModEKF = models::SensorModelLTV<N_DIM_x, N_DIM_z>;
-    using DynModEKFPtr = std::shared_ptr<DynModEKF>;
+    using DynModEKF     = models::interface::DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v>;
+    using SensModEKF    = models::interface::SensorModelLTV<N_DIM_x, N_DIM_z>;
+    using DynModEKFPtr  = std::shared_ptr<DynModEKF>;
     using SensModEKFPtr = std::shared_ptr<SensModEKF>;
 
-    // TODO: Clean up typedefs
-    using Vec_x    = Eigen::Vector<double, N_DIM_x>;
-    using Mat_xx   = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-    using Vec_z    = Eigen::Vector<double, N_DIM_z>;
-    using Mat_zz   = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
-    using Mat_zx   = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
-    using Mat_xz   = Eigen::Matrix<double, N_DIM_x, N_DIM_z>;
-    using Gauss_x  = prob::MultiVarGauss<N_DIM_x>;
-    using Gauss_z  = prob::MultiVarGauss<N_DIM_z>;
+    using Vec_x = typename BaseI::Vec_x;
+    using Vec_z = typename BaseI::Vec_z;
+    using Vec_u = typename BaseI::Vec_u;
+
+    using Mat_xx = typename BaseI::Mat_xx;
+    using Mat_xz = typename BaseI::Mat_xz;
+
+    using Mat_zx = typename BaseI::Mat_zx;
+    using Mat_zz = typename BaseI::Mat_zz;
+    using Mat_zw = typename BaseI::Mat_zw;
+
+    using Mat_ww = typename BaseI::Mat_ww;
+
+    using Gauss_x = typename BaseI::Gauss_x;
+    using Gauss_z = typename BaseI::Gauss_z;
 
     EKF(DynModEKFPtr dynamic_model, SensModEKFPtr sensor_model)
         : dynamic_model_(dynamic_model), sensor_model_(sensor_model) {}
@@ -69,14 +76,14 @@ public:
      * @throws std::runtime_error if dyn_mod or sens_mod are not of the DynamicModelT or SensorModelT type
      * @note Overridden from interface::KalmanFilter
     */
-    std::pair<Gauss_x, Gauss_z> predict(DynModIPtr dyn_mod, SensModIPtr sens_mod, double dt, const Gauss_x& x_est_prev, const Vec_x& = Vec_x::Zero()) const override
+    std::pair<Gauss_x, Gauss_z> predict(DynModIPtr dyn_mod, SensModIPtr sens_mod, double dt, const Gauss_x& x_est_prev, const Vec_u& u = Vec_u::Zero()) const override
     {
         // cast to dynamic model type to access pred_from_est
         auto dyn_model = std::dynamic_pointer_cast<DynModEKF>(dyn_mod);
         // cast to sensor model type to access pred_from_est
         auto sens_model = std::dynamic_pointer_cast<SensModEKF>(sens_mod);
 
-        Gauss_x x_est_pred = dyn_model->pred_from_est(dt, x_est_prev);
+        Gauss_x x_est_pred = dyn_model->pred_from_est(dt, x_est_prev, u);
         Gauss_z z_est_pred = sens_model->pred_from_est(x_est_pred);
         return {x_est_pred, z_est_pred};
     }
@@ -96,17 +103,18 @@ public:
         // cast to sensor model type
         auto sens_model = std::dynamic_pointer_cast<SensModEKF>(sens_mod);
         Mat_zx C = sens_model->C(x_est_pred.mean());
-        Mat_zz R = sens_model->R(x_est_pred.mean());
+        Mat_ww R = sens_model->R(x_est_pred.mean());
+        Mat_zw H = sens_model->H(x_est_pred.mean());
         Mat_xx P = x_est_pred.cov();
         Mat_zz S_inv = z_est_pred.cov_inv();
         Mat_xx I = Mat_xx::Identity(N_DIM_x, N_DIM_x);
 
-        Mat_xz kalman_gain = P * C.transpose() * S_inv;
+        Mat_xz W = P * C.transpose() * S_inv; // Kalman gain
         Vec_z innovation = z_meas - z_est_pred.mean();
 
-        Vec_x state_upd_mean = x_est_pred.mean() + kalman_gain * innovation;
+        Vec_x state_upd_mean = x_est_pred.mean() + W * innovation;
         // Use the Joseph form of the covariance update to ensure positive definiteness
-        Mat_xx state_upd_cov = (I - kalman_gain * C) * P * (I - kalman_gain * C).transpose() + kalman_gain * R * kalman_gain.transpose();
+        Mat_xx state_upd_cov = (I - W * C) * P * (I - W * C).transpose() + W * H * R * H.transpose() * W.transpose();
 
         return {state_upd_mean, state_upd_cov};
     }
@@ -121,7 +129,7 @@ public:
      * @return Updated state, predicted state, predicted measurement
      * @note Overridden from interface::KalmanFilter
      */
-    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(DynModIPtr dyn_mod, SensModIPtr sens_mod, double dt, const Gauss_x& x_est_prev, const Vec_z& z_meas, const Vec_x& u) const override
+    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(DynModIPtr dyn_mod, SensModIPtr sens_mod, double dt, const Gauss_x& x_est_prev, const Vec_z& z_meas, const Vec_u& u = Vec_u::Zero()) const override
     {
         std::pair<Gauss_x, Gauss_z> pred = predict(dyn_mod, sens_mod, dt, x_est_prev, u);
         Gauss_x x_est_pred = pred.first;
@@ -135,11 +143,11 @@ public:
      * @param x_est_prev Previous state estimate
      * @return Predicted state, predicted measurement
     */
-    std::pair<Gauss_x, Gauss_z> predict(double dt, const Gauss_x& x_est_prev) const {
+    std::pair<Gauss_x, Gauss_z> predict(double dt, const Gauss_x& x_est_prev, const Vec_u u = Vec_u::Zero()) const {
         if (!dynamic_model_ || !sensor_model_) {
             throw std::runtime_error("Dynamic model or sensor model not set");
         }
-        return predict(dynamic_model_, sensor_model_, dt, x_est_prev, Vec_x::Zero());
+        return predict(dynamic_model_, sensor_model_, dt, x_est_prev, u);
     }
 
     /** Perform one EKF update step
@@ -161,11 +169,11 @@ public:
      * @param z_meas Vec_z
      * @return Updated state, predicted state, predicted measurement
      */
-    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(double dt, const Gauss_x& x_est_prev, const Vec_z& z_meas) const {
+    std::tuple<Gauss_x, Gauss_x, Gauss_z> step(double dt, const Gauss_x& x_est_prev, const Vec_z& z_meas, const Vec_u& u = Vec_u::Zero()) const {
         if (!dynamic_model_ || !sensor_model_) {
             throw std::runtime_error("Dynamic model or sensor model not set");
         }
-        return step(dynamic_model_, sensor_model_, dt, x_est_prev, z_meas, Vec_x::Zero());
+        return step(dynamic_model_, sensor_model_, dt, x_est_prev, z_meas, u);
     }
 
 private:

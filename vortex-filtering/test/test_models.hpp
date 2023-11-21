@@ -2,63 +2,28 @@
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 
-class SimpleDynamicModel : public vortex::models::DynamicModelCTLTV<2> {
+class SimpleDynamicModel : public vortex::models::interface::DynamicModelCTLTV<2> {
 public:
-    using typename DynamicModelCTLTV<2>::Vec_x;
-    using typename DynamicModelCTLTV<2>::Mat_xx;
-    using DynamicModelCTLTV<2>::N_DIM_x;
+    using BaseI = vortex::models::interface::DynamicModelI<2>;
+    using typename BaseI::Vec_x;
+    using typename BaseI::Mat_xx;
+    constexpr static int N_DIM_x = BaseI::N_DIM_x;
 
-    // A stable state transition 
-    Vec_x f_c(const Vec_x& x, const Vec_u& u = Vec_u::Zero(), const Vec_v& v = Vec_v::Zero()) const override
-    {
-        (void)u; // unused
-        (void)v; // unused
-        return - x;
-    }
 
     Mat_xx A_c(const Vec_x& = Vec_x::Zero()) const override
     {
         return - Mat_xx::Identity();
     }
 
-    Mat_xx Q_c(const Vec_x& = Vec_x::Zero()) const override
+    Mat_vv Q_c(const Vec_x& = Vec_x::Zero()) const override
     {
         return Mat_xx::Identity();
     }
 };
 
 
-class VariableLengthSensorModel : public vortex::models::SensorModelLTV<2, Eigen::Dynamic> {
-public:
-    using typename SensorModelLTV<2, Eigen::Dynamic>::Vec_z;
-    using typename SensorModelLTV<2, Eigen::Dynamic>::Vec_x;
-    using typename SensorModelLTV<2, Eigen::Dynamic>::Mat_xx;
-    using typename SensorModelLTV<2, Eigen::Dynamic>::Mat_zx;
-    using typename SensorModelLTV<2, Eigen::Dynamic>::Mat_zz;
-    using SensorModelLTV::N_DIM_z;
-    using SensorModelLTV::N_DIM_x;
 
-
-    VariableLengthSensorModel(int n_z) : N_z(n_z) {}
-
-    Vec_z h(const Vec_x& x) const override
-    {
-        return H(x)*x;
-    }
-
-    Mat_zx C(const Vec_x&) const override
-    {
-        return Mat_zx::Identity(N_z, N_DIM_x);
-    }
-    Mat_zz R(const Vec_x&) const override
-    {
-        return Mat_zz::Identity(N_z, N_z)*0.1;
-    }
-
-    const int N_z;
-};
-
-class NonlinearModel1 : public vortex::models::DynamicModelI<1,1,1> {
+class NonlinearModel1 : public vortex::models::interface::DynamicModelI<1,1,1> {
 public:
     using typename DynamicModelI<1,1,1>::Vec_x;
     using typename DynamicModelI<1,1,1>::Mat_xx;
@@ -74,7 +39,7 @@ public:
         return x_next;
     }
 
-    Mat_xx Q_d(double = 0.0, const Vec_x& = Vec_x::Zero()) const override
+    Mat_vv Q_d(double = 0.0, const Vec_x& = Vec_x::Zero()) const override
     {
         return Mat_xx::Identity()*cov_;
     }

@@ -42,22 +42,3 @@ TEST(SensorModel, predictSimpleModel)
 
 
 } // simple_sensor_model_test
-
-namespace variable_length_sensor_model_test {
-
-using Measurement = typename VariableLengthSensorModel::Vec_z;
-using Vec_x = typename VariableLengthSensorModel::Vec_x;
-using Mat_xx = typename VariableLengthSensorModel::Mat_xx;
-
-TEST(SensorModel, initVariableLengthModel)
-{   
-    const int N_DIMS_z = 3;
-    VariableLengthSensorModel model(N_DIMS_z);
-    EXPECT_EQ(model.h(Vec_x::Zero()), Vec_x::Zero());
-
-    Vec_x x{1,2};
-    EXPECT_EQ(model.h(x), x);
-}
-
-
-} // variable_length_sensor_model_test

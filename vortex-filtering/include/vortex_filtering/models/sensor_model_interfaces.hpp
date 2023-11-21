@@ -15,6 +15,7 @@
 
 namespace vortex {
 namespace models {
+namespace interface {
 
 class SensorModelX {
 public:
@@ -75,11 +76,13 @@ protected:
     const int dim_w_;  // Process noise dimension
 };
 
-template <int n_dim_x, int n_dim_z, int n_dim_w>
 /**
  * @brief Interface for sensor models.
- * 
+ * @tparam n_dim_x State dimension
+ * @tparam n_dim_z Measurement dimension
+ * @tparam n_dim_w Measurement noise dimension (Default: n_dim_z)
  */
+template <int n_dim_x, int n_dim_z, int n_dim_w = n_dim_z>
 class SensorModelI : public SensorModelX {
 public:
     static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
@@ -145,15 +148,15 @@ public:
     }
 
     // Override dynamic size functions to use static size functions
-protected:
+private:
     // Discrete time dynamics (pure virtual function)
-    virtual VecX hX(const VecX& x, const VecX& w) const override
+    VecX hX(const VecX& x, const VecX& w) const override
     {
         return h(x, w);
     }
 
     // Discrete time process noise (pure virtual function)
-    virtual MatXX RX(const VecX& x) const override
+    MatXX RX(const VecX& x) const override
     {
         return R(x);
     }
@@ -163,7 +166,7 @@ protected:
 
 
 /**
- * @brief Linear Time Varying Sensor Model Interface
+ * @brief Linear Time Varying Sensor Model Interface. [z = Cx + Hw]
  * @tparam n_dim_x State dimension
  * @tparam n_dim_z Measurement dimension
  * @tparam n_dim_w Measurement noise dimension (Default: n_dim_z)
@@ -172,22 +175,23 @@ template <int n_dim_x, int n_dim_z, int n_dim_w = n_dim_z>
 class SensorModelLTV : public SensorModelI<n_dim_x, n_dim_z, n_dim_z>{
 public:
     using BaseI = SensorModelI<n_dim_x, n_dim_z, n_dim_w>;
-    static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
-    static constexpr int N_DIM_z = n_dim_z; // Declare so that children of this class can reference it
-    static constexpr int N_DIM_w = n_dim_z; // Declare so that children of this class can reference it
+    static constexpr int N_DIM_x = BaseI::N_DIM_x; // Declare so that children of this class can reference it
+    static constexpr int N_DIM_z = BaseI::N_DIM_z; // Declare so that children of this class can reference it
+    static constexpr int N_DIM_w = BaseI::N_DIM_w; // Declare so that children of this class can reference it
 
-    using Vec_z  = Eigen::Vector<double, N_DIM_z>;
-    using Vec_x  = Eigen::Vector<double, N_DIM_x>;
+    using Vec_z   = typename BaseI::Vec_z;
+    using Vec_x   = typename BaseI::Vec_x;
+    using Vec_w   = typename BaseI::Vec_w;
 
-    using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-    using Mat_xz = Eigen::Matrix<double, N_DIM_x, N_DIM_z>;
-    
-    using Mat_zx = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
-    using Mat_zz = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
-    using Mat_zw = Eigen::Matrix<double, N_DIM_z, N_DIM_w>;
+    using Mat_xx  = typename BaseI::Mat_xx;
+    using Mat_zx  = typename BaseI::Mat_zx;
+    using Mat_zz  = typename BaseI::Mat_zz;
+    using Mat_zw  = typename BaseI::Mat_zw;
 
-    using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
-    using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
+    using Mat_ww  = typename BaseI::Mat_ww;
+
+    using Gauss_x = typename BaseI::Gauss_x;
+    using Gauss_z = typename BaseI::Gauss_z;
 
     virtual ~SensorModelLTV() = default;
     /** Sensor Model
@@ -196,17 +200,13 @@ public:
      * @param w Noise
      * @return Vec_z
      */
-    Vec_z h(const Vec_x& x, const Vec_z& w) const override
+    Vec_z h(const Vec_x& x, const Vec_w& w = Vec_w::Zero()) const override
     {
-        return this->h(x) + w;
+        Mat_zx C = this->C(x);
+        Mat_zw H = this->H(x);
+        return C*x + H*w;
     }
-    
-    /**
-     * @brief Sensor Model
-     * @param x State
-     * @return Vec_z
-     */
-    virtual Vec_z h(const Vec_x& x) const = 0;
+
 
     /**
      * @brief Jacobian of sensor model with respect to state
@@ -223,7 +223,7 @@ public:
     virtual Mat_zw H(const Vec_x& x = Vec_x::Zero()) const 
     { 
         (void)x; // unused
-        return Mat_zw::Identity(N_DIM_z, N_DIM_w); 
+        return Mat_zw::Identity(); 
     }
 
     /**
@@ -231,7 +231,7 @@ public:
      * @param x State
      * @return Mat_zz 
      */
-    virtual Mat_zz R(const Vec_x& x) const override = 0;
+    virtual Mat_ww R(const Vec_x& x) const override = 0;
 
     /**
      * @brief Get the predicted measurement distribution given a state estimate. Updates the covariance
@@ -239,11 +239,11 @@ public:
      * @param x_est Vec_x estimate
      * @return prob::MultiVarGauss 
      */
-    virtual Gauss_z pred_from_est(const Gauss_x& x_est) const 
+    Gauss_z pred_from_est(const Gauss_x& x_est) const 
     {
         Mat_xx P = x_est.cov();
         Mat_zx C = this->C(x_est.mean());
-        Mat_zz R = this->R(x_est.mean());
+        Mat_ww R = this->R(x_est.mean());
         Mat_zw H = this->H(x_est.mean());
 
         return {this->h(x_est.mean()), C * P * C.transpose() + H * R * H.transpose()};
@@ -254,13 +254,15 @@ public:
      * @param x Vec_x
      * @return prob::MultiVarGauss 
      */
-    virtual Gauss_z pred_from_state(const Vec_x& x) const 
+    Gauss_z pred_from_state(const Vec_x& x) const 
     {
-        return {this->h(x), this->R(x)};
+        Mat_ww R = this->R(x);
+        Mat_zw H = this->H(x);
+        return {this->h(x), H * R * H.transpose()};
     }
 
 };
 
-
+}  // namespace interface
 }  // namespace models
 }  // namespace vortex

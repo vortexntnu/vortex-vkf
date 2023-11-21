@@ -31,23 +31,23 @@ struct SimData
 struct TestParamKF
 {
     std::shared_ptr<vortex::filter::interface::KalmanFilterX> kf;
-    std::shared_ptr<vortex::models::DynamicModelX> dyn_mod_real;
-    std::shared_ptr<vortex::models::DynamicModelX> dyn_mod_filter;
-    std::shared_ptr<vortex::models::SensorModelX> sens_mod_real;
-    std::shared_ptr<vortex::models::SensorModelX> sens_mod_filter;
+    std::shared_ptr<vortex::models::interface::DynamicModelX> dyn_mod_real;
+    std::shared_ptr<vortex::models::interface::DynamicModelX> dyn_mod_filter;
+    std::shared_ptr<vortex::models::interface::SensorModelX> sens_mod_real;
+    std::shared_ptr<vortex::models::interface::SensorModelX> sens_mod_filter;
     size_t num_iters;
     double dt;
-    typename vortex::models::DynamicModelX::VecX x0;
-    typename vortex::models::DynamicModelX::GaussX x0_est;
+    typename vortex::models::interface::DynamicModelX::VecX x0;
+    typename vortex::models::interface::DynamicModelX::GaussX x0_est;
     double tolerance;
 };
 
 class KFTest : public ::testing::TestWithParam<TestParamKF> {
 protected:
 
-    using VecX = typename vortex::models::DynamicModelX::VecX;
-    using MatXX = typename vortex::models::DynamicModelX::MatXX;
-    using GaussX = typename vortex::models::DynamicModelX::GaussX;
+    using VecX   = typename vortex::models::interface::DynamicModelX::VecX;
+    using MatXX  = typename vortex::models::interface::DynamicModelX::MatXX;
+    using GaussX = typename vortex::models::interface::DynamicModelX::GaussX;
 
 
 

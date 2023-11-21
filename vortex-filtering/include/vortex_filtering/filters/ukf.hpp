@@ -30,8 +30,8 @@ public:
     static constexpr int N_DIM_v = n_dim_v;
     static constexpr int N_DIM_w = n_dim_w;
 
-    using DynModI  = models::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
-    using SensModI = models::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
+    using DynModI  = models::interface::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
+    using SensModI = models::interface::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
     using DynModIPtr = std::shared_ptr<DynModI>;
     using SensModIPtr = std::shared_ptr<SensModI>;
 
@@ -138,7 +138,7 @@ private:
         Mat_a2ap1 sigma_points;
         sigma_points.col(0) = x_a;
         for (int i = 1; i <= N_DIM_a; i++) {
-            sigma_points.col(i)       = x_a + GAMMA_ * sqrt_P_a.col(i - 1);
+            sigma_points.col(i)           = x_a + GAMMA_ * sqrt_P_a.col(i - 1);
             sigma_points.col(i + N_DIM_a) = x_a - GAMMA_ * sqrt_P_a.col(i - 1);
         }
         return sigma_points;
@@ -151,7 +151,7 @@ private:
      * @param u Vec_u Control input
      * @return Mat_x2ap1 sigma_x_pred
      */
-    Mat_x2ap1 propagate_sigma_points_f(DynModIPtr dyn_mod, double dt, const Mat_a2ap1& sigma_points, const Vec_u& u=Vec_u::Zero()) const {
+    Mat_x2ap1 propagate_sigma_points_f(DynModIPtr dyn_mod, double dt, const Mat_a2ap1& sigma_points, const Vec_u& u = Vec_u::Zero()) const {
         Eigen::Matrix<double, N_DIM_x, 2*N_DIM_a + 1> sigma_x_pred;
         for (int i = 0; i < 2*N_DIM_a + 1; i++) {
             Vec_x x_i = sigma_points.template block<N_DIM_x, 1>(0, i);
