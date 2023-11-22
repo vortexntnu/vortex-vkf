@@ -323,6 +323,7 @@ public:
             throw std::runtime_error("UKF::update() called without dynamic_model_ or sensor_model_ set.");
         }
         return update(dynamic_model_, sensor_model_, x_est_pred, z_est_pred, z_meas);
+    }
 
     /** Perform one UKF prediction and update step
      * @param dt Time step
