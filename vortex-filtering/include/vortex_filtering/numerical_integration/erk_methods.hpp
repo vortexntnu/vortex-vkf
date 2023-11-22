@@ -4,28 +4,26 @@
  * @brief File contains a collection of explicit Runge-Kutta methods
  * @version 0.1
  * @date 2023-11-20
- * 
+ *
  * @copyright Copyright (c) 2023
- * 
+ *
  */
 #pragma once
 #include <cmath>
 #include <eigen3/Eigen/Eigen>
 #include <functional>
 
-
 namespace vortex {
 namespace integrator {
 
-/** 
+/**
  * @brief Forward Euler method
  * @tparam n_dim_x Dimension of the state vector
  */
-template <int n_dim_x> 
-class Forward_Euler {
+template <int n_dim_x> class Forward_Euler {
 public:
-	using Vec_x = Eigen::Vector<double, n_dim_x>;
-	using Dyn_mod_func = std::function<Vec_x(double t0, const Vec_x&x0)>;
+	using Vec_x        = Eigen::Vector<double, n_dim_x>;
+	using Dyn_mod_func = std::function<Vec_x(double t0, const Vec_x &x0)>;
 
 	static Vec_x integrate(Dyn_mod_func f, double dt, const Vec_x &x0, double t0 = 0.0)
 	{
@@ -35,20 +33,18 @@ public:
 };
 template <typename DynModT> using Forward_Euler_M = Forward_Euler<DynModT::N_DIM_x>;
 
-
 /**
  * @brief Runge-Kutta 4th order method
  * @tparam n_dim_x Dimension of the state vector
  */
-template <int n_dim_x> 
-class RK4 {
+template <int n_dim_x> class RK4 {
 public:
-	using Vec_x = Eigen::Vector<double, n_dim_x>;
-	using Dyn_mod_func = std::function<Vec_x(double t0, const Vec_x&x0)>;
+	using Vec_x        = Eigen::Vector<double, n_dim_x>;
+	using Dyn_mod_func = std::function<Vec_x(double t0, const Vec_x &x0)>;
 
 	/**
 	 * @brief Integrate the function f over one step dt
-	 * 
+	 *
 	 * @param f Function to integrate, must be of the form Vec_x(double dt, const Vec_x&x_k, double t_k=0)
 	 * @param dt Time step
 	 * @param x0 Start state
@@ -67,18 +63,17 @@ public:
 };
 template <typename DynModT> using RK4_M = RK4<DynModT::N_DIM_x>;
 
-
-/** 
+/**
  * @brief Create an arbitrary explicit Runge-Kutta method from a Butcher table
  * @tparam n_x Dimension of the state vector
  * @tparam n_stages Number of stages in the method
  */
 template <int n_dim_x, int n_stages> class Butcher {
 public:
-	using Vec_x = Eigen::Vector<double, n_dim_x>;
-	using Dyn_mod_func = std::function<Vec_x(double t0, const Vec_x&x0)>;
+	using Vec_x        = Eigen::Vector<double, n_dim_x>;
+	using Dyn_mod_func = std::function<Vec_x(double t0, const Vec_x &x0)>;
 
-	using Vec_n = Eigen::Vector<double, n_stages>;
+	using Vec_n  = Eigen::Vector<double, n_stages>;
 	using Mat_nn = Eigen::Matrix<double, n_stages, n_stages>;
 	using Mat_xn = Eigen::Matrix<double, n_dim_x, n_stages>;
 	/**
@@ -121,16 +116,15 @@ private:
 	Vec_n _c;
 };
 
-template <int n_dim_x> 
-class ODE45 {
+template <int n_dim_x> class ODE45 {
 public:
 	static constexpr int n_stages = 7;
 	static constexpr size_t q     = 5; // Order of the method
-	
-	using Vec_x = Eigen::Vector<double, n_dim_x>;
-	using Dyn_mod_func = std::function<Vec_x(double t0, const Vec_x&x0)>;
 
-	using Vec_n = Eigen::Vector<double, n_stages>;
+	using Vec_x        = Eigen::Vector<double, n_dim_x>;
+	using Dyn_mod_func = std::function<Vec_x(double t0, const Vec_x &x0)>;
+
+	using Vec_n  = Eigen::Vector<double, n_stages>;
 	using Mat_nn = Eigen::Matrix<double, n_stages, n_stages>;
 	using Mat_xn = Eigen::Matrix<double, n_dim_x, n_stages>;
 
@@ -247,7 +241,6 @@ public:
 	}
 
 private:
-
 	Eigen::Matrix<double, n_stages, n_stages> _A;
 	Eigen::Matrix<double, n_stages, 2> _b;
 	Eigen::Vector<double, n_stages> _c;

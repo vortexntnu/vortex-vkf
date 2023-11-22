@@ -1,8 +1,8 @@
-#include <gtest/gtest.h>
 #include <eigen3/Eigen/Core>
+#include <gtest/gtest.h>
 
 int main(int argc, char **argv)
-{	
+{
 	Eigen::initParallel();
 	Eigen::setNbThreads(8);
 

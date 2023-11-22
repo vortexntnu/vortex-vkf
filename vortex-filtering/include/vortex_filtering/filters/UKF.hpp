@@ -1,7 +1,7 @@
 #pragma once
 #include <cmath>
-#include <vortex_filtering/filters/Kalman_filter_base.hpp>
 #include <memory>
+#include <vortex_filtering/filters/Kalman_filter_base.hpp>
 // #include <vortex_filtering/models/Model_base.hpp>
 
 namespace Filters {
@@ -11,11 +11,13 @@ template <class Model> class UKF : public Kalman_filter_base<Model> {
 public:
 	// These type definitions are needed because of the stupid two-phase lookup for dependent names in templates in C++
 	using Base = Kalman_filter_base<Model>;
-	using Base::_n_x; using Base::_n_y; using Base::_n_u; using Base::_n_v; using Base::_n_w; // can be comma separated in C++17
+	using Base::_n_u;
+	using Base::_n_v;
+	using Base::_n_w; // can be comma separated in C++17 using Base::_n_x; using Base::_n_y;
 	DEFINE_MODEL_TYPES(_n_x, _n_y, _n_u, _n_v, _n_w)
 	static constexpr int _n_a = _n_x + _n_v + _n_w; // Size of augmented state
-	using Mat_aa             = Matrix<double, _n_a, _n_a>;
-	using State_a            = Vector<double, _n_a>;
+	using Mat_aa              = Matrix<double, _n_a, _n_a>;
+	using State_a             = Vector<double, _n_a>;
 
 	UKF(std::shared_ptr<Model> model, State x0, Mat_xx P0) : Kalman_filter_base<Model>(x0, P0), model{model} {}
 	~UKF() {}
@@ -43,7 +45,7 @@ private:
 		// clang-format off
 		P_a << 	P			  , Mat_xv::Zero(), Mat_xw::Zero(),
 			  	Mat_vx::Zero(), Q			  , Mat_vw::Zero(),
-			  	Mat_wx::Zero(), Mat_wv::Zero(), R;	
+			  	Mat_wx::Zero(), Mat_wv::Zero(), R;
 		// clang-format on
 		Mat_aa sqrt_P_a = P_a.llt().matrixLLT();
 
@@ -57,7 +59,7 @@ private:
 		// Use the symmetric sigma point set
 		sigma_points.col(0) = x_a;
 		for (size_t i = 1; i <= _n_a; i++) {
-			sigma_points.col(i)       = x_a + _GAMMA * sqrt_P_a.col(i - 1);
+			sigma_points.col(i)        = x_a + _GAMMA * sqrt_P_a.col(i - 1);
 			sigma_points.col(i + _n_a) = x_a - _GAMMA * sqrt_P_a.col(i - 1);
 		}
 		return sigma_points;
@@ -66,8 +68,8 @@ private:
 public:
 	State iterate(Time t, const Measurement &y, const Input &u = Input::Zero()) override final
 	{
-		Mat_vv Q                                     = model->Q(t, this->_x);
-		Mat_ww R                                     = model->R(t, this->_x);
+		Mat_vv Q = model->Q(t, this->_x);
+		Mat_ww R = model->R(t, this->_x);
 
 		Matrix<double, _n_a, 2 *_n_a + 1> sigma_points = get_sigma_points(this->_x, this->_P_xx, Q, R);
 
@@ -141,9 +143,8 @@ public:
 	}
 };
 
-
 // required namespace-scope declarations to avoid linker errors
-template <class Model> constexpr int    UKF<Model>::_n_a;
+template <class Model> constexpr int UKF<Model>::_n_a;
 template <class Model> constexpr double UKF<Model>::_ALPHA_SQUARED;
 template <class Model> constexpr double UKF<Model>::_BETA;
 template <class Model> constexpr double UKF<Model>::_KAPPA;
