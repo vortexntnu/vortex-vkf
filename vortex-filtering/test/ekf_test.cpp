@@ -12,7 +12,7 @@
 class EKFTestCVModel : public ::testing::Test {
 protected:
     using PosMeasModel = vortex::models::IdentitySensorModel<4,2>;
-    using CVModel = vortex::models::CVModel;
+    using CVModel = vortex::models::ConstantVelocity;
     using Vec_x = typename CVModel::Vec_x;
     using Vec_u = typename CVModel::Vec_u;
     using Mat_xx = typename CVModel::Mat_xx;
@@ -92,6 +92,11 @@ TEST_F(EKFTestCVModel, Convergence)
         z_est.push_back(z_est_pred);
     }
 
+    // Test that the state converges to the true state
+    ASSERT_NEAR(x_est.back().mean()(0), x_true.back()(0), 1e-1);
+    ASSERT_NEAR(x_est.back().mean()(1), x_true.back()(1), 1e-1);
+    ASSERT_NEAR(x_est.back().mean()(2), x_true.back()(2), 1e-1);
+    ASSERT_NEAR(x_est.back().mean()(3), x_true.back()(3), 1e-1);
 
     // Plot the results
     std::vector<double> x_true_x, x_true_y, x_true_u, x_true_v, x_est_x, x_est_y, x_est_u, x_est_v, z_meas_x, z_meas_y;
@@ -132,11 +137,5 @@ TEST_F(EKFTestCVModel, Convergence)
     gp.send1d(std::make_tuple(time, x_true_u));
     gp.send1d(std::make_tuple(time, x_est_u));
     gp << "unset multiplot\n";
-
-    // Test that the state converges to the true state
-    ASSERT_NEAR(x_est.back().mean()(0), x_true.back()(0), 1e-1);
-    ASSERT_NEAR(x_est.back().mean()(1), x_true.back()(1), 1e-1);
-    ASSERT_NEAR(x_est.back().mean()(2), x_true.back()(2), 1e-1);
-    ASSERT_NEAR(x_est.back().mean()(3), x_true.back()(3), 1e-1);
 
 }

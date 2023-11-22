@@ -231,7 +231,7 @@ public:
     Gauss_x update(DynModIPtr dyn_mod, SensModIPtr sens_mod, const Gauss_x& x_est_pred, const Gauss_z& z_est_pred, const Vec_z& z_meas) const override
     {
         // Generate sigma points from the predicted state estimate
-        Mat_a2ap1 sigma_points = get_sigma_points(dyn_m, sensor_model_, 0.0, x_est_pred);
+        Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, 0.0, x_est_pred);
 
         // Extract the sigma points for the state
         Mat_x2ap1 sigma_x_pred = sigma_points.template block<N_DIM_x, 2*N_DIM_a + 1>(0, 0);

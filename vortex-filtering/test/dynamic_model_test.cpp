@@ -79,17 +79,17 @@ TEST(DynamicModel, sampleSimpleModel)
 
 namespace cv_model_test {
 
-using Vec_x  = typename vortex::models::CVModel::Vec_x;
-using Mat_xx = typename vortex::models::CVModel::Mat_xx;
+using Vec_x  = typename vortex::models::ConstantVelocity::Vec_x;
+using Mat_xx = typename vortex::models::ConstantVelocity::Mat_xx;
 
 TEST(DynamicModel, initCVModel)
 {   
-    vortex::models::CVModel model(1.0);
+    vortex::models::ConstantVelocity model(1.0);
 }
 
 TEST(DynamicModel, iterateCVModel)
 {
-    vortex::models::CVModel model(1.0);
+    vortex::models::ConstantVelocity model(1.0);
     double dt = 1.0;
     Vec_x x;
     x << 0, 0, 1, 1;

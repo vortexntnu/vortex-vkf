@@ -247,6 +247,11 @@ protected:
  * @tparam n_dim_x  State dimension
  * @tparam n_dim_u  Input dimension
  * @tparam n_dim_v  Process noise dimension
+ * @note To derive from this class, you must override the following virtual functions:
+ * @note - A_d
+ * @note - B_d (optional)
+ * @note - Q_d
+ * @note - G_d (optional if n_dim_x == n_dim_v)
  */
 template <int n_dim_x, int n_dim_u, int n_dim_v>
 class DynamicModelLTV : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
@@ -322,7 +327,15 @@ public:
      * @param dt Time step
      * @param x Vec_x State
      */
-    virtual Mat_xv G_d(double dt, const Vec_x& x) const = 0;
+    virtual Mat_xv G_d(double dt, const Vec_x& x) const 
+    { 
+        if (N_DIM_x != N_DIM_v) {
+            throw std::runtime_error("G_d not implemented");
+        }
+        (void)dt; // unused
+        (void)x; // unused
+        return Mat_xv::Identity(); 
+    }
 
 
     /** Get the predicted state distribution given a state estimate
@@ -366,12 +379,17 @@ protected:
     }
 };
 
-/** Continuous Time Linear Time Varying Dynamic Model Interface. It uses excact discretization for everything. So it might be slow.
+/** Continuous Time Linear Time Varying Dynamic Model Interface. It uses exact discretization for everything. So it might be slow.
  * [x_dot = A_c*x + B_c*u + G_c*v]
  * @tparam n_dim_x  State dimension
  * @tparam n_dim_u  Input dimension (Default: n_dim_x)
  * @tparam n_dim_v  Process noise dimension (Default: n_dim_x)
- * @note See https://en.wikipedia.org/wiki/Discretization for more info
+ * @note See https://en.wikipedia.org/wiki/Discretization for more info on how the discretization is done.
+ * @note To derive from this class, you must override the following functions:
+ * @note - A_c
+ * @note - B_c (optional)
+ * @note - Q_c
+ * @note - G_c (optional if n_dim_x == n_dim_v)
  */
 template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x>
 class DynamicModelCTLTV : public DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v> {
@@ -439,6 +457,9 @@ public:
      */
     virtual Mat_xv G_c(const Vec_x& x) const 
     { 
+        if (N_DIM_x != N_DIM_v) {
+            throw std::runtime_error("G_c not implemented");
+        }
         (void)x; // unused
         return Mat_xv::Identity(); 
     }
