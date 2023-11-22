@@ -17,6 +17,12 @@ namespace vortex {
 namespace models {
 namespace interface {
 
+/** Interface for sensor models with dynamic size dimensions.
+ * The purpose of this interface is to provide a common interface for sensor models of any dimension.
+ * @note To derive from this class, you must override the following functions:
+ * @note - hX
+ * @note - RX
+ */
 class SensorModelX {
 public:
 	// Using dynamic Eigen types
@@ -82,6 +88,9 @@ protected:
  * @tparam n_dim_x State dimension
  * @tparam n_dim_z Measurement dimension
  * @tparam n_dim_w Measurement noise dimension (Default: n_dim_z)
+ * @note To derive from this class, you must override the following functions:
+ * @note - h
+ * @note - R
  */
 template <int n_dim_x, int n_dim_z, int n_dim_w = n_dim_z> class SensorModelI : public SensorModelX {
 public:
@@ -161,6 +170,11 @@ private:
  * @tparam n_dim_x State dimension
  * @tparam n_dim_z Measurement dimension
  * @tparam n_dim_w Measurement noise dimension (Default: n_dim_z)
+ * @note To derive from this class, you must override the following functions:
+ * @note - h (optional)
+ * @note - C
+ * @note - R
+ * @note - H (optional if N_DIM_x == N_DIM_z)
  */
 template <int n_dim_x, int n_dim_z, int n_dim_w = n_dim_z> class SensorModelLTV : public SensorModelI<n_dim_x, n_dim_z, n_dim_z> {
 public:
@@ -190,7 +204,7 @@ public:
 	 * @param w Noise
 	 * @return Vec_z
 	 */
-	Vec_z h(const Vec_x &x, const Vec_w &w = Vec_w::Zero()) const override
+	virtual Vec_z h(const Vec_x &x, const Vec_w &w = Vec_w::Zero()) const override
 	{
 		Mat_zx C = this->C(x);
 		Mat_zw H = this->H(x);
@@ -211,6 +225,9 @@ public:
 	 */
 	virtual Mat_zw H(const Vec_x &x = Vec_x::Zero()) const
 	{
+		if (N_DIM_x != N_DIM_z) {
+			throw std::runtime_error("SensorModelLTV::H not implemented");
+		}
 		(void)x; // unused
 		return Mat_zw::Identity();
 	}

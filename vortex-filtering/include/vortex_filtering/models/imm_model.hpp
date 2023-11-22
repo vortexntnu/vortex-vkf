@@ -16,9 +16,12 @@
 namespace vortex {
 namespace models {
 
-template <int n_dim_x, int n_models> class ImmModel : public DynamicModelEKFI<n_dim_x> { // TODO: Should NOT inherit from DynamicModelEKFI
+template <int n_dim_x, int n_models> class ImmModel {
 public:
 	static constexpr size_t N_MODELS_ = n_models;
+
+	using DynModI = interface::DynamicModelI<n_dim_x>;
+
 	using typename DynamicModelEKFI<n_dim_x>::Vec_x;
 	using typename DynamicModelEKFI<n_dim_x>::Mat_xx;
 	using Vec_n  = Eigen::Vector<double, n_models>;

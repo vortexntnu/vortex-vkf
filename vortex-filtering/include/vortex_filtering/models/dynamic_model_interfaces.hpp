@@ -17,13 +17,15 @@ namespace vortex {
 namespace models {
 namespace interface {
 
-/**
- * @brief Interface for dynamic models with dynamic size dimensions.
+/** Interface for dynamic models with dynamic size dimensions.
  * The purpose of this class is to provide a common interface for dynamic models of any dimension so that they can be used in the same way.
- * This class is not meant to be inherited from. Use DynamicModelI instead.
+ * This class is not meant to be inherited from. Use DynamicModelI unless you need dynamic size dimensions.
  * @tparam n_dim_x  State dimension
  * @tparam n_dim_u  Input dimension
  * @tparam n_dim_v  Process noise dimension
+ * @note To derive from this class, you must override the following virtual functions:
+ * @note - f_dX
+ * @note - Q_dX
  */
 class DynamicModelX {
 public:
@@ -65,6 +67,9 @@ protected:
  * @tparam n_dim_x  State dimension
  * @tparam n_dim_u  Input dimension
  * @tparam n_dim_v  Process noise dimension
+ * @note To derive from this class, you must override the following virtual functions:
+ * @note - f_d
+ * @note - Q_d
  */
 template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelI : public DynamicModelX {
 public:
@@ -170,6 +175,10 @@ private:
  * @tparam n_dim_x  State dimension
  * @tparam n_dim_u  Input dimension (Default: n_dim_x)
  * @tparam n_dim_v  Process noise dimension (Default: n_dim_x)
+ * @note To derive from this class, you must override the following virtual functions:
+ * @note - f_c
+ * @note - f_d (optional. Does a RK4 integration of f_c by default)
+ * @note - Q_d
  */
 template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelCT : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
 public:
@@ -231,11 +240,12 @@ protected:
 	}
 };
 
-/** Linear Time Variant Dynamic Model Interface. [x_k+1 = A_k*x_k + B_k*u_k + G_k*v_k]
+/** Linear Time Variant Dynamic Model Interface. [x_k+1 = f_d = A_k*x_k + B_k*u_k + G_k*v_k]
  * @tparam n_dim_x  State dimension
  * @tparam n_dim_u  Input dimension
  * @tparam n_dim_v  Process noise dimension
  * @note To derive from this class, you must override the following virtual functions:
+ * @note - f_d (optional)
  * @note - A_d
  * @note - B_d (optional)
  * @note - Q_d
@@ -262,10 +272,16 @@ public:
 	using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
 	using Gauss_v = prob::MultiVarGauss<N_DIM_v>;
 
-	/** Linear Time Variant Dynamic Model Interface. [x_k+1 = A_k*x_k + B_k*u_k + G_k*v_k]
+	/** Linear Time Variant Dynamic Model Interface. [x_k+1 = f_d = A_k*x_k + B_k*u_k + G_k*v_k]
 	 * @tparam n_dim_x  State dimension
 	 * @tparam n_dim_u  Input dimension
 	 * @tparam n_dim_v  Process noise dimension
+	 * @note To derive from this class, you must override the following virtual functions:
+	 * @note - f_d (optional)
+	 * @note - A_d
+	 * @note - B_d (optional)
+	 * @note - Q_d
+	 * @note - G_d (optional if n_dim_x == n_dim_v)
 	 */
 	DynamicModelLTV() : BaseI() {}
 	virtual ~DynamicModelLTV() = default;
@@ -277,7 +293,7 @@ public:
 	 * @param v Vec_v Process noise
 	 * @return Vec_x
 	 */
-	Vec_x f_d(double dt, const Vec_x &x, const Vec_u &u = Vec_u::Zero(), const Vec_v &v = Vec_v::Zero()) const override
+	virtual Vec_x f_d(double dt, const Vec_x &x, const Vec_u &u = Vec_u::Zero(), const Vec_v &v = Vec_v::Zero()) const override
 	{
 		Mat_xx A_d = this->A_d(dt, x);
 		Mat_xu B_d = this->B_d(dt, x);
@@ -489,7 +505,7 @@ public:
 		return G_d;
 	}
 
-	/** Discrete time process noise covariance matrix. This is super scuffed, but it works.
+	/** Discrete time process noise covariance matrix. This is super scuffed, but it works... (As long as G_d^T*G_d is invertible)
 	 * Overriding DynamicModelI::Q_d
 	 * @param dt Time step
 	 * @param x Vec_x

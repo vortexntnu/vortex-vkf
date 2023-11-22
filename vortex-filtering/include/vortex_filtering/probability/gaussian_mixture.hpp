@@ -26,10 +26,12 @@ public:
 	using Vec = Eigen::Vector<double, N_DIM_x>;
 	using Mat = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
 
-	GaussianMixture(std::vector<double> weights, std::vector<MultiVarGauss<N_DIM_x>> gaussians) : weights_(std::move(weights)), gaussians_(std::move(gaussians))
-	{
-		assert(weights_.size() == gaussians_.size());
-	}
+	/** Construct a new Gaussian Mixture object
+	 * @param weights Weights of the Gaussians
+	 * @param gaussians Gaussians
+	 * @note The weights are automatically normalized, so they do not need to sum to 1.
+	 */
+	GaussianMixture(std::vector<double> weights, std::vector<MultiVarGauss<N_DIM_x>> gaussians) : weights_(std::move(weights)), gaussians_(std::move(gaussians)) {}
 
 	/** Calculate the probability density function of x given the Gaussian mixture
 	 * @param x
@@ -41,6 +43,7 @@ public:
 		for (int i = 0; i < gaussians_.size(); i++) {
 			pdf += weights_[i] * gaussians_[i].pdf(x);
 		}
+		pdf /= sum_weights();
 		return pdf;
 	}
 
@@ -53,6 +56,7 @@ public:
 		for (int i = 0; i < gaussians_.size(); i++) {
 			mean += weights_[i] * gaussians_[i].mean();
 		}
+		mean /= sum_weights();
 		return mean;
 	}
 
@@ -66,6 +70,7 @@ public:
 		for (int i = 0; i < gaussians_.size(); i++) {
 			P_bar += weights_[i] * gaussians_[i].mean() * gaussians_[i].mean().transpose();
 		}
+		P_bar /= sum_weights();
 		P_bar -= mean() * mean().transpose();
 
 		// Spread of Gaussians
@@ -73,6 +78,7 @@ public:
 		for (int i = 0; i < gaussians_.size(); i++) {
 			P += weights_[i] * gaussians_[i].cov();
 		}
+		P /= sum_weights();
 		return P + P_bar;
 	}
 
@@ -100,7 +106,53 @@ private:
 	const std::vector<double> weights_;
 	const std::vector<MultiVarGauss<N_DIM_x>> gaussians_;
 
-}; // class GaussianMixture
+	double sum_weights() const
+	{
+		double sum = 0;
+		for (auto weight : weights_) {
+			sum += weight;
+		}
+		return sum;
+	}
+};
+
+template <int N_DIM_x>
+GaussianMixture<N_DIM_x> operator+(const GaussianMixture<N_DIM_x> &lhs, const GaussianMixture<N_DIM_x> &rhs)
+{
+	std::vector<double> weights = lhs.weights();
+	weights.insert(weights.end(), rhs.weights().begin(), rhs.weights().end());
+	std::vector<MultiVarGauss<N_DIM_x>> gaussians = lhs.gaussians();
+	gaussians.insert(gaussians.end(), rhs.gaussians().begin(), rhs.gaussians().end());
+	return GaussianMixture<N_DIM_x>(weights, gaussians);
+}
+
+template <int N_DIM_x>
+GaussianMixture<N_DIM_x> operator*(double weight, const GaussianMixture<N_DIM_x> &rhs)
+{
+	std::vector<double> weights = rhs.weights();
+	for (int i = 0; i < weights.size(); i++) {
+		weights[i] *= weight;
+	}
+	return GaussianMixture<N_DIM_x>(weights, rhs.gaussians());
+}
+
+template <int N_DIM_x>
+GaussianMixture<N_DIM_x> operator*(const GaussianMixture<N_DIM_x> &lhs, double weight)
+{
+	return weight * lhs;
+}
+
+template <int N_DIM_x>
+GaussianMixture<N_DIM_x> operator*(double weight, const MultiVarGauss<N_DIM_x> &rhs)
+{
+	return weight * GaussianMixture<N_DIM_x>({1}, {rhs});
+}
+
+template <int N_DIM_x>
+GaussianMixture<N_DIM_x> operator*(const MultiVarGauss<N_DIM_x> &lhs, double weight)
+{
+	return weight * lhs;
+}
 
 } // namespace prob
 } // namespace vortex
