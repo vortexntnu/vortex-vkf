@@ -99,7 +99,7 @@ private:
 };
 
 /** Coordinated Turn Model in 2D.
- * x = [x, y, x_dot, y_dot, omega]
+ * x = [x_pos, y_pos, x_vel, y_vel, turn_rate]
  */
 class CoordinatedTurn : public interface::DynamicModelCTLTV<5,X,3> {
 public:
@@ -172,6 +172,7 @@ private:
 };
 
 /** (Nearly) Constant Acceleration Model in 2D
+ * x = [x_pos, y_pos, x_vel, y_vel, x_acc, y_acc]
  */
 class ConstantAcceleration : public interface::DynamicModelLTV<6,X,4> {
 public:
