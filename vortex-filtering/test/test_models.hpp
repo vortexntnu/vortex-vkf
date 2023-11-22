@@ -47,3 +47,73 @@ private:
     const double cov_;
 
 };
+
+// https://en.wikipedia.org/wiki/Lorenz_system
+class LorenzAttractorCT : public vortex::models::interface::DynamicModelCT<3> {
+public:
+    using BaseI = vortex::models::interface::DynamicModelI<3>;
+    using typename BaseI::Vec_x;
+    using typename BaseI::Vec_u;
+    using typename BaseI::Vec_v;
+
+    using typename BaseI::Mat_xx;
+    using typename BaseI::Mat_vv;
+
+    LorenzAttractorCT(double std_dev) : cov_(std_dev*std_dev), sigma_(10.0), beta_(8.0/3.0), rho_(28.0) {}
+
+    Vec_x f_c(const Vec_x& x, const Vec_u& = Vec_u::Zero(), const Vec_v& v = Vec_v::Zero()) const override
+    {
+        Vec_x x_next;
+        x_next << sigma_*(x(1) - x(0)), x(0)*(rho_ - x(2)) - x(1), x(0)*x(1) - beta_*x(2);
+        x_next += v;
+        return x_next;
+    }
+
+    Mat_vv Q_d(double dt, const Vec_x& = Vec_x::Zero()) const override
+    {
+        return Mat_xx::Identity() * cov_ * dt;
+    }
+
+private:
+    const double cov_;
+    const double sigma_;
+    const double beta_;
+    const double rho_;
+};
+
+class LorenzAttractorCTLTV : public vortex::models::interface::DynamicModelCTLTV<3> {
+public:
+    using BaseI = vortex::models::interface::DynamicModelI<3>;
+    using typename BaseI::Vec_x;
+    using typename BaseI::Vec_u;
+    using typename BaseI::Vec_v;
+
+    using typename BaseI::Mat_xx;
+    using typename BaseI::Mat_xv;
+    using typename BaseI::Mat_vv;
+
+    LorenzAttractorCTLTV(double std_dev) : cov_(std_dev*std_dev), sigma_(10.0), beta_(8.0/3.0), rho_(28.0) {}
+
+    Mat_xx A_c(const Vec_x& x) const override
+    {
+        Mat_xx A;
+        // clang-format off
+        A << -sigma_  , sigma_, 0.0   ,
+             rho_-x(2), -1.0  , -x(0) ,
+             x(1)     , x(0)  , -beta_;
+        // clang-format on
+        return A;
+    }
+
+    Mat_vv Q_c(const Vec_x& = Vec_x::Zero()) const override
+    {
+        return Mat_xx::Identity() * cov_;
+    }
+
+private:
+    const double cov_;
+    const double sigma_;
+    const double beta_;
+    const double rho_;
+};
+

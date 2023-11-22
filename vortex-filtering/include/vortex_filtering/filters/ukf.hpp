@@ -21,6 +21,13 @@
 namespace vortex {
 namespace filter {
 
+    /** Unscented Kalman Filter
+     * @tparam n_dim_x Dimension of state vector
+     * @tparam n_dim_z Dimension of measurement vector
+     * @tparam n_dim_u Dimension of control input vector (default n_dim_x)
+     * @tparam n_dim_v Dimension of process noise vector (default n_dim_x)
+     * @tparam n_dim_w Dimension of measurement noise vector (default n_dim_z)
+     */
 template<int n_dim_x, int n_dim_z, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x, int n_dim_w = n_dim_z>
 class UKF : public interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w> {
 public:
@@ -68,28 +75,20 @@ public:
     using Mat_z2ap1 = Eigen::Matrix<double, N_DIM_z, 2*N_DIM_a + 1>;    // Matrix for sigma points of z
     using Mat_a2ap1 = Eigen::Matrix<double, N_DIM_a, 2*N_DIM_a + 1>;    // Matrix for sigma points of a
 
-
+      
     /** Unscented Kalman Filter
-     * @param dynamic_model Dynamic model
-     * @param sensor_model Sensor model
-     * @tparam DynamicModelT Dynamic model type. Can take any model that implements f_d and Q_d
-     * @tparam SensorModelT Sensor model type. Can take any model that implements h and R
-     * @note Will not work without providing models to the predict and step functions.
+     * @param dynamic_model Dynamic model (default nullptr)
+     * @param sensor_model Sensor model (default nullptr)
+     * @param alpha Parameter for spread of sigma points (default 1.0)
+     * @param beta Parameter for weighting of mean in covariance calculation (default 2.0)
+     * @param kappa Parameter for adding additional spread to sigma points (default 0.0)
+     * @tparam n_dim_x Dimension of state vector
+     * @tparam n_dim_z Dimension of measurement vector
+     * @tparam n_dim_u Dimension of control input vector (default n_dim_x)
+     * @tparam n_dim_v Dimension of process noise vector (default n_dim_x)
+     * @tparam n_dim_w Dimension of measurement noise vector (default n_dim_z)
      */
-    UKF() : UKF(nullptr, nullptr, 1.0, 2.0, 0.0) {}
-    /** Unscented Kalman Filter
-     * @param dynamic_model Dynamic model
-     * @param sensor_model Sensor model
-     * @tparam DynamicModelT Dynamic model type. Can take any model that implements f_d and Q_d
-     * @tparam SensorModelT Sensor model type. Can take any model that implements h and R
-     */
-    UKF(DynModIPtr dynamic_model, SensModIPtr sensor_model) : UKF(dynamic_model, sensor_model, 1.0, 2.0, 0.0) {}
-        
-    /** Unscented Kalman Filter
-     * @param dynamic_model Dynamic model
-     * @param sensor_model Sensor model
-     */
-    UKF(DynModIPtr dynamic_model, SensModIPtr sensor_model, double alpha, double beta, double kappa)
+    UKF(DynModIPtr dynamic_model = nullptr, SensModIPtr sensor_model = nullptr, double alpha = 1.0, double beta = 2.0, double kappa = 0.0)
         : dynamic_model_(dynamic_model), sensor_model_(sensor_model)
         , ALPHA_(alpha), BETA_(beta), KAPPA_(kappa)
     {
@@ -227,14 +226,36 @@ public:
      * @param z_est_pred Predicted measurement estimate
      * @param z_meas Measurement
      * @return Gauss_x Updated state estimate
-     * @note This function is not implemented. It is here to allow for the same interface as the EKF.
+     * @note Sigma points are generated from the predicted state estimate instead of the previous state estimate as is done in the 'step' method.
      */
-    Gauss_x update(DynModIPtr, SensModIPtr, const Gauss_x& x_est_pred, const Gauss_z&, const Vec_z&) const override
+    Gauss_x update(DynModIPtr dyn_mod, SensModIPtr sens_mod, const Gauss_x& x_est_pred, const Gauss_z& z_est_pred, const Vec_z& z_meas) const override
     {
-        // Not implemented, warn user
-        // It is not implemented because the update step is not stand-alone in the UKF and depends on the prediction step.
-        std::cout << "UKF::update() not implemented. Returning predicted state estimate." << std::endl;
-        return x_est_pred;
+        // Generate sigma points from the predicted state estimate
+        Mat_a2ap1 sigma_points = get_sigma_points(dyn_m, sensor_model_, 0.0, x_est_pred);
+
+        // Extract the sigma points for the state
+        Mat_x2ap1 sigma_x_pred = sigma_points.template block<N_DIM_x, 2*N_DIM_a + 1>(0, 0);
+
+        // Predict measurement
+        Mat_z2ap1 sigma_z_pred = propagate_sigma_points_h(sens_mod, sigma_points);
+
+        // Calculate cross-covariance
+        Mat_xz P_xz = Mat_xz::Zero();
+        for (int i = 0; i < 2*N_DIM_a + 1; i++) {
+            P_xz += W_c_[i] * (sigma_x_pred.col(i) - x_est_pred.mean()) * (sigma_z_pred.col(i) - z_est_pred.mean()).transpose();
+        }
+
+        // Calculate Kalman gain
+        Mat_zz P_zz = z_est_pred.cov();
+        Mat_xz K = P_xz * P_zz.llt().solve(Mat_zz::Identity());
+
+        // Update state estimate
+        Vec_x x_upd_mean = x_est_pred.mean() + K * (z_meas - z_est_pred.mean());
+        Mat_xx x_upd_cov = x_est_pred.cov() - K * P_zz * K.transpose();
+        Gauss_x x_est_upd = {x_upd_mean, x_upd_cov};
+
+        return x_est_upd;
+        
     }
 
     /** Perform one UKF prediction and update step
@@ -290,6 +311,19 @@ public:
         return predict(dynamic_model_, sensor_model_, dt, x_est_prev, u);
     }
 
+    /** Perform one UKF update step
+     * @param x_est_pred Predicted state estimate
+     * @param z_est_pred Predicted measurement estimate
+     * @param z_meas Measurement
+     * @return Gauss_x Updated state estimate
+     */
+    Gauss_x update(const Gauss_x& x_est_pred, const Gauss_z& z_est_pred, const Vec_z& z_meas) const {
+        // check if dynamic_model_ and sensor_model_ are set
+        if (!dynamic_model_ || !sensor_model_) {
+            throw std::runtime_error("UKF::update() called without dynamic_model_ or sensor_model_ set.");
+        }
+        return update(dynamic_model_, sensor_model_, x_est_pred, z_est_pred, z_meas);
+
     /** Perform one UKF prediction and update step
      * @param dt Time step
      * @param x_est_prev Previous state estimate
@@ -310,9 +344,12 @@ private:
     const SensModIPtr sensor_model_;
 
     // Parameters for UKF
-    double ALPHA_, BETA_, KAPPA_, LAMBDA_, GAMMA_;
-    // Scaling factors
-    std::vector<double> W_x_, W_c_;
+    double ALPHA_;
+    double BETA_; 
+    double KAPPA_; 
+    double LAMBDA_; // Parameter for spread of sigma points
+    double GAMMA_; // Scaling factor for spread of sigma points
+    std::vector<double> W_x_, W_c_; // Weighting factors for sigma points
 
 };
 

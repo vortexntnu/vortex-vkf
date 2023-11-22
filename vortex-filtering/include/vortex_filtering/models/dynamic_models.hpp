@@ -27,6 +27,8 @@ protected:
 };
 
 
+// TODO: Update these models to use discrete time instead of continuous time.
+
 /** Simple dynamic model with constant velocity.
  * x = [x, y, x_dot, y_dot]
  */

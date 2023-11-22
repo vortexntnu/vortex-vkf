@@ -63,7 +63,7 @@ public:
     using Gauss_x = typename BaseI::Gauss_x;
     using Gauss_z = typename BaseI::Gauss_z;
 
-    EKF(DynModEKFPtr dynamic_model, SensModEKFPtr sensor_model)
+    EKF(DynModEKFPtr dynamic_model = nullptr, SensModEKFPtr sensor_model = nullptr)
         : dynamic_model_(dynamic_model), sensor_model_(sensor_model) {}
 
     /** Perform one EKF prediction step
