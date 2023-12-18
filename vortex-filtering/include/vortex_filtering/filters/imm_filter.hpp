@@ -144,7 +144,7 @@ public:
 	}
 
 private:
-	ImmModel imm_model_;
+	models::ImmModel imm_model_;
 	SensModT sensor_model_;
 	std::vector<std::unique_ptr<EKF<ImmModelT, SensModT>>> ekfs_;
 };

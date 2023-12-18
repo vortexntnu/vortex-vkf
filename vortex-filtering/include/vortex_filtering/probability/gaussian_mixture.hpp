@@ -12,6 +12,7 @@
 #pragma once
 #include <eigen3/Eigen/Dense>
 #include <vector>
+#include <numeric> // std::accumulate
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
 namespace vortex {
@@ -102,18 +103,32 @@ public:
 	 */
 	std::vector<MultiVarGauss<N_DIM_x>> gaussians() const { return gaussians_; }
 
+
+	/** Sample from the Gaussian mixture
+	 * @param gen Random number generator
+	 * @return Vec
+	 */
+	Vec sample(std::mt19937 &gen) const
+	{
+		std::discrete_distribution<int> dist(weights_.begin(), weights_.end());
+		return gaussians_[dist(gen)].sample(gen);
+	}
+
+	/** Sample from the Gaussian mixture
+	 * @return Vec
+	 */
+	Vec sample() const
+	{
+		std::random_device rd;
+		std::mt19937       gen(rd());
+		return sample(gen);
+	}
+
 private:
 	const std::vector<double> weights_;
 	const std::vector<MultiVarGauss<N_DIM_x>> gaussians_;
 
-	double sum_weights() const
-	{
-		double sum = 0;
-		for (auto weight : weights_) {
-			sum += weight;
-		}
-		return sum;
-	}
+	double sum_weights() const { return std::accumulate(weights_.begin(), weights_.end(), 0.0); }
 };
 
 template <int N_DIM_x>

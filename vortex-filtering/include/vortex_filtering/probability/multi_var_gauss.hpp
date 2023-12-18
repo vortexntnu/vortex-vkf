@@ -11,15 +11,15 @@ namespace prob {
  */
 template <int n_dims> class MultiVarGauss {
 public:
-	using Vector = Eigen::Vector<double, n_dims>;
-	using Matrix = Eigen::Matrix<double, n_dims, n_dims>;
+	using Vec_n = Eigen::Vector<double, n_dims>;
+	using Mat_nn = Eigen::Matrix<double, n_dims, n_dims>;
 
 	/** Construct a Gaussian with a given mean and covariance matrix
 	 * @param mean
 	 * @param cov Symmetric positive definite covariance matrix
 	 */
-	MultiVarGauss(const Vector &mean, const Matrix &cov)
-	    : N_DIMS(mean.size()), mean_(mean), cov_(cov), cov_inv_(cov_.llt().solve(Matrix::Identity(size(), size())))
+	MultiVarGauss(const Vec_n &mean, const Mat_nn &cov)
+	    : N_DIMS(mean.size()), mean_(mean), cov_(cov), cov_inv_(cov_.llt().solve(Mat_nn::Identity(size(), size())))
 	{
 		// Check that the covariance matrix is positive definite and symmetric
 		if (!cov_.isApprox(cov_.transpose(), 1e-6)) {
@@ -44,8 +44,8 @@ public:
 
 		N_DIMS = other.size();
 
-		Vector mean = other.mean();
-		Matrix cov  = other.cov();
+		Vec_n mean = other.mean();
+		Mat_nn cov  = other.cov();
 
 		// cov_inv_ = other.cov_inv();
 
@@ -71,9 +71,9 @@ public:
 	 * @param x
 	 * @return double
 	 */
-	double pdf(const Vector &x) const
+	double pdf(const Vec_n &x) const
 	{
-		const Vector diff     = x - mean();
+		const Vec_n diff     = x - mean();
 		const double exponent = -0.5 * diff.transpose() * cov_inv() * diff;
 		return std::exp(exponent) / std::sqrt(std::pow(2 * M_PI, size()) * cov().determinant());
 	}
@@ -83,24 +83,24 @@ public:
 	 * @param x
 	 * @return double
 	 */
-	double logpdf(const Vector &x) const
+	double logpdf(const Vec_n &x) const
 	{
-		const Vector diff     = x - mean();
+		const Vec_n diff     = x - mean();
 		const double exponent = -0.5 * diff.transpose() * cov_inv() * diff;
 		return exponent - 0.5 * std::log(std::pow(2 * M_PI, size()) * cov().determinant());
 	}
 
-	Vector mean() const { return mean_; }
-	Matrix cov() const { return cov_; }
-	Matrix cov_inv() const { return cov_inv_; }
+	Vec_n mean() const { return mean_; }
+	Mat_nn cov() const { return cov_; }
+	Mat_nn cov_inv() const { return cov_inv_; }
 
 	/** Calculate the Mahalanobis distance of x given the Gaussian
 	 * @param x
 	 * @return double
 	 */
-	double mahalanobis_distance(const Vector &x) const
+	double mahalanobis_distance(const Vec_n &x) const
 	{
-		const auto diff = x - mean();
+		const Vec_n diff = x - mean();
 		return std::sqrt(diff.transpose() * cov_inv() * diff);
 	}
 
@@ -108,10 +108,10 @@ public:
 	 * @param gen Random number generator
 	 * @return Vector
 	 */
-	Vector sample(std::mt19937 &gen) const
+	Vec_n sample(std::mt19937 &gen) const
 	{
 		std::normal_distribution<> d{0, 1};
-		Vector sample(size());
+		Vec_n sample(size());
 		for (int i = 0; i < size(); ++i) {
 			sample(i) = d(gen);
 		}
@@ -121,7 +121,7 @@ public:
 	/** Sample from the Gaussian
 	 * @return Vector
 	 */
-	Vector sample() const
+	Vec_n sample() const
 	{
 		std::random_device rd;
 		std::mt19937 gen(rd());
@@ -135,9 +135,9 @@ public:
 
 private:
 	size_t N_DIMS;
-	Vector mean_;
-	Matrix cov_;
-	Matrix cov_inv_;
+	Vec_n mean_;
+	Mat_nn cov_;
+	Mat_nn cov_inv_;
 };
 
 using MultiVarGaussXd = MultiVarGauss<Eigen::Dynamic>;

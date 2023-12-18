@@ -16,9 +16,8 @@ public:
 	IdentityDynamicModel(double std) : Q_(Mat_xx::Identity() * std * std) {}
 	IdentityDynamicModel(Mat_vv Q) : Q_(Q) {}
 
-	Vec_x f_c(const Vec_x &x, const Vec_x & = Vec_x::Zero(), const Vec_x & = Vec_x::Zero()) const override { return x; }
-	Mat_xx A_c(const Vec_x &x) const override { return Mat_xx::Identity(); }
-	Mat_vv Q_c(const Vec_x &x) const override { return Q_; }
+	Mat_xx A_c(const Vec_x &) const override { return Mat_xx::Identity(); }
+	Mat_vv Q_c(const Vec_x &) const override { return Q_; }
 
 protected:
 	Mat_vv Q_;
@@ -156,7 +155,9 @@ public:
 	Mat_vv Q_c(const Vec_x & = Vec_x::Zero()) const override
 	{
 		Vec_v D;
-		D << std_vel_ * std_vel_, std_vel_ * std_vel_, std_turn_ * std_turn_;
+		double var_vel  = std_vel_ * std_vel_;
+		double var_turn = std_turn_ * std_turn_;
+		D << var_vel, var_vel, var_turn;
 		return D.asDiagonal();
 	}
 
@@ -227,7 +228,9 @@ public:
 	Mat_vv Q_d(double = 0.0, const Vec_x & = Vec_x::Zero()) const override
 	{
 		Vec_v D;
-		D << std_vel_ * std_vel_, std_vel_ * std_vel_, std_acc_ * std_acc_, std_acc_ * std_acc_;
+		double var_vel  = std_vel_ * std_vel_;
+		double var_acc  = std_acc_ * std_acc_;
+		D << var_vel, var_vel, var_acc, var_acc;
 		return D.asDiagonal();
 	}
 

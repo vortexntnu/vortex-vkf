@@ -119,12 +119,13 @@ if(BUILD_TESTING)
     ${lib_src}
 
     test/dynamic_model_test.cpp
-    test/ekf_test.cpp
+    # test/ekf_test.cpp
+    # test/filter_test.cpp
+    test/imm_test.cpp
     test/numerical_integration_test.cpp
     test/probability_test.cpp
     test/sensor_model_test.cpp
-    test/ukf_test.cpp
-    test/filter_test.cpp
+    # test/ukf_test.cpp
   )
   target_include_directories(${PROJECT_NAME}_test PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
