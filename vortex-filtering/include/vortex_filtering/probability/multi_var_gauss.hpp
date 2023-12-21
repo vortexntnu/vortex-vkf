@@ -133,6 +133,14 @@ public:
 	 */
 	int size() const { return N_DIMS; }
 
+	/** Construct a Standard Gaussian
+	 * @return MultiVarGauss
+	 */
+	static MultiVarGauss<n_dims> Standard()
+	{
+		return MultiVarGauss<n_dims>(Vec_n::Zero(), Mat_nn::Identity());
+	}
+
 private:
 	size_t N_DIMS;
 	Vec_n mean_;

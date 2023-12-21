@@ -27,14 +27,19 @@ protected:
 
 /** (Nearly) Constant Velocity Model in 2D.
  * State x = [x_pos, y_pos, x_vel, y_vel]
+ * @tparam n_spatial_dim Number of spatial dimensions
  */
-class ConstantVelocity : public interface::DynamicModelLTV<4, X, 2> {
+template <int n_spatial_dim> 
+class ConstantVelocity : public interface::DynamicModelLTV<2*n_spatial_dim, X, n_spatial_dim> {
 public:
-	using BaseI = interface::DynamicModelI<4, X, 2>;
+	using BaseI = interface::DynamicModelI<2*n_spatial_dim, X, n_spatial_dim>;
 	using typename BaseI::Mat_vv;
 	using typename BaseI::Mat_xv;
 	using typename BaseI::Mat_xx;
 	using typename BaseI::Vec_x;
+
+	using Vec_s = Eigen::Matrix<double, n_spatial_dim, 1>;
+	using Mat_ss = Eigen::Matrix<double, n_spatial_dim, n_spatial_dim>;
 
 	/**
 	 * @brief Constant Velocity Model in 2D
@@ -53,10 +58,8 @@ public:
 	{
 		Mat_xx A;
 		// clang-format off
-        A << 1, 0, dt,  0,
-             0, 1,  0, dt,
-             0, 0,  1,  0,
-             0, 0,  0,  1;
+        A << Mat_ss::Identity(), Mat_ss::Identity()*dt,
+			 Mat_ss::Zero()    , Mat_ss::Identity()   ;
 		// clang-format on
 		return A;
 	}
@@ -71,10 +74,8 @@ public:
 	{
 		Mat_xv G;
 		// clang-format off
-        G << 0.5*dt*dt, 0        ,
-             0        , 0.5*dt*dt,
-             dt       , 0        ,
-             0        , dt       ;
+        G << 0.5*dt*dt*Mat_ss::Identity(),
+			 dt*Mat_ss::Identity();
 		// clang-format on
 		return G;
 	}
@@ -89,6 +90,79 @@ public:
 
 private:
 	double std_vel_;
+};
+
+
+/** (Nearly) Constant Acceleration Model in 2D
+ * x = [x_pos, y_pos, x_vel, y_vel, x_acc, y_acc]
+ * @tparam n_spatial_dim Number of spatial dimensions
+ */
+template <int n_spatial_dim>
+class ConstantAcceleration : public interface::DynamicModelLTV<3*n_spatial_dim, X, 2*n_spatial_dim> {
+public:
+	using BaseI = interface::DynamicModelI<3*n_spatial_dim, X, 2*n_spatial_dim>;
+	using typename BaseI::Vec_v;
+	using typename BaseI::Vec_x;
+
+	using typename BaseI::Mat_vv;
+	using typename BaseI::Mat_xv;
+	using typename BaseI::Mat_xx;
+
+	using Vec_s = Eigen::Matrix<double, n_spatial_dim, 1>;
+	using Mat_ss = Eigen::Matrix<double, n_spatial_dim, n_spatial_dim>;
+
+	/** Constant Acceleration Model in 2D
+	 * @param std_vel Standard deviation of velocity
+	 * @param std_acc Standard deviation of acceleration
+	 */
+	ConstantAcceleration(double std_vel, double std_acc) : std_vel_(std_vel), std_acc_(std_acc) {}
+
+	/** Get the Jacobian of the continuous state transition model with respect to the state.
+	 * @param x State
+	 * @return Mat_xx
+	 * @note Overriding DynamicModelLTV::A_d
+	 */
+	Mat_xx A_d(double dt, const Vec_x &x) const override
+	{
+		(void)x; // unused
+		Mat_xx A;
+		// clang-format off
+        A << Mat_ss::Identity(), Mat_ss::Identity()*dt, Mat_ss::Identity()*0.5*dt*dt,
+			 Mat_ss::Zero()    , Mat_ss::Identity()   , Mat_ss::Identity()*dt       ,
+			 Mat_ss::Zero()    , Mat_ss::Zero()       , Mat_ss::Identity()          ;
+		// clang-format on
+		return A;
+	}
+
+	Mat_xv G_d(double dt, const Vec_x & = Vec_x::Zero()) const override
+	{
+		Mat_xv G;
+		// clang-format off
+        G << Mat_ss::Identity()*dt, Mat_ss::Identity()*0.5*dt*dt,
+			 Mat_ss::Identity()   , Mat_ss::Identity()*dt       ,
+			 Mat_ss::Zero()       , Mat_ss::Identity()          ;
+		// clang-format on
+		return G;
+	}
+
+	/** Get the continuous time process noise covariance matrix.
+	 * @param dt Time step (unused)
+	 * @param x State
+	 * @return Mat_xx Process noise covariance
+	 * @note Overriding DynamicModelLTV::Q_d
+	 */
+	Mat_vv Q_d(double = 0.0, const Vec_x & = Vec_x::Zero()) const override
+	{
+		Vec_v D;
+		double var_vel  = std_vel_ * std_vel_;
+		double var_acc  = std_acc_ * std_acc_;
+		D << var_vel, var_vel, var_acc, var_acc;
+		return D.asDiagonal();
+	}
+
+private:
+	double std_vel_;
+	double std_acc_;
 };
 
 /** Coordinated Turn Model in 2D.
@@ -166,78 +240,6 @@ private:
 	double std_turn_;
 };
 
-/** (Nearly) Constant Acceleration Model in 2D
- * x = [x_pos, y_pos, x_vel, y_vel, x_acc, y_acc]
- */
-class ConstantAcceleration : public interface::DynamicModelLTV<6, X, 4> {
-public:
-	using BaseI = interface::DynamicModelI<6, X, 4>;
-	using typename BaseI::Vec_v;
-	using typename BaseI::Vec_x;
-
-	using typename BaseI::Mat_vv;
-	using typename BaseI::Mat_xv;
-	using typename BaseI::Mat_xx;
-
-	/** Constant Acceleration Model in 2D
-	 * @param std_vel Standard deviation of velocity
-	 * @param std_acc Standard deviation of acceleration
-	 */
-	ConstantAcceleration(double std_vel, double std_acc) : std_vel_(std_vel), std_acc_(std_acc) {}
-
-	/** Get the Jacobian of the continuous state transition model with respect to the state.
-	 * @param x State
-	 * @return Mat_xx
-	 * @note Overriding DynamicModelLTV::A_d
-	 */
-	Mat_xx A_d(double dt, const Vec_x &x) const override
-	{
-		(void)x; // unused
-		Mat_xx A;
-		// clang-format off
-        A << 1, 0, dt, 0 , 0.5*dt*dt, 0        ,
-             0, 1, 0 , dt, 0        , 0.5*dt*dt,
-             0, 0, 1 , 0 , dt       , 0        ,
-             0, 0, 0 , 1 , 0        , dt       ,
-             0, 0, 0 , 0 , 1        , 0        ,
-             0, 0, 0 , 0 , 0        , 1        ;
-		// clang-format on
-		return A;
-	}
-
-	Mat_xv G_d(double dt, const Vec_x & = Vec_x::Zero()) const override
-	{
-		Mat_xv G;
-		// clang-format off
-        G << dt, 0 , 0.5*dt*dt, 0        ,
-             0 , dt, 0        , 0.5*dt*dt,
-             1 , 0 , dt       , 0        ,
-             0 , 1 , 0        , dt       ,
-             0 , 0 , 1        , 0        ,
-             0 , 0 , 0        , 1        ;
-		// clang-format on
-		return G;
-	}
-
-	/** Get the continuous time process noise covariance matrix.
-	 * @param dt Time step (unused)
-	 * @param x State
-	 * @return Mat_xx Process noise covariance
-	 * @note Overriding DynamicModelLTV::Q_d
-	 */
-	Mat_vv Q_d(double = 0.0, const Vec_x & = Vec_x::Zero()) const override
-	{
-		Vec_v D;
-		double var_vel  = std_vel_ * std_vel_;
-		double var_acc  = std_acc_ * std_acc_;
-		D << var_vel, var_vel, var_acc, var_acc;
-		return D.asDiagonal();
-	}
-
-private:
-	double std_vel_;
-	double std_acc_;
-};
 
 } // namespace models
 } // namespace vortex

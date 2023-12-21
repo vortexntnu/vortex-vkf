@@ -73,10 +73,13 @@ protected:
  */
 template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelI : public DynamicModelX {
 public:
+	// Declare all sizes and types so that children of this class can reference them
+	static constexpr int N_DIM_x = n_dim_x;
+	static constexpr int N_DIM_u = n_dim_u;
+	static constexpr int N_DIM_v = n_dim_v;
+
 	using BaseX                  = DynamicModelX;
-	static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
-	static constexpr int N_DIM_u = n_dim_u; // Declare so that children of this class can reference it
-	static constexpr int N_DIM_v = n_dim_v; // Declare so that children of this class can reference it
+	using BaseI 				 = DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
 
 	using Vec_x = Eigen::Vector<double, N_DIM_x>;
 	using Vec_u = Eigen::Vector<double, N_DIM_u>;

@@ -1,12 +1,11 @@
 /**
  * @file ekf.hpp
  * @author Eirik Kolås
- * @brief Multivariate Gaussian Distribution. Based on "Fundamentals of Sensor Fusion" by Edmund Brekke
+ * @brief Extended Kalman Filter.
  * @version 0.1
  * @date 2023-10-26
  *
  * @copyright Copyright (c) 2023
- *
  */
 
 #pragma once
@@ -19,18 +18,20 @@
 namespace vortex {
 namespace filter {
 
-/** @brief Extended Kalman Filter. (I stands for interface, T for Type)
- *
+/** 
+ * @brief Extended Kalman Filter. 
  * @tparam n_dim_x State dimension.
  * @tparam n_dim_z Measurement dimension.
  * @tparam n_dim_u Input dimension (Default: n_dim_x)
  * @tparam n_dim_v Process noise dimension (Default: n_dim_x)
  * @tparam n_dim_w Measurement noise dimension (Default: n_dim_z)
+ * @note I stands for interface, T for Type
  */
 template <int n_dim_x, int n_dim_z, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x, int n_dim_w = n_dim_z>
 class EKF : public interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w> {
 public:
-	using BaseI                  = interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w>;
+	using BaseI = interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w>;
+
 	static constexpr int N_DIM_x = BaseI::N_DIM_x;
 	static constexpr int N_DIM_u = BaseI::N_DIM_u;
 	static constexpr int N_DIM_z = BaseI::N_DIM_z;
@@ -63,6 +64,10 @@ public:
 	using Gauss_x = typename BaseI::Gauss_x;
 	using Gauss_z = typename BaseI::Gauss_z;
 
+	/** Construct a new EKF object
+	 * @param dynamic_model Dynamic model (optional)
+	 * @param sensor_model Sensor model (optional)
+	 */
 	EKF(DynModEKFPtr dynamic_model = nullptr, SensModEKFPtr sensor_model = nullptr) : dynamic_model_(dynamic_model), sensor_model_(sensor_model) {}
 
 	/** Perform one EKF prediction step
@@ -186,7 +191,6 @@ private:
 };
 
 /** @brief EKF with dimensions defined by the dynamic model and sensor model.
- *
  * @tparam DynModT Dynamic model type.
  * @tparam SensModT Sensor model type.
  */
