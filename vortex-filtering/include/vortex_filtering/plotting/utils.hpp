@@ -19,11 +19,11 @@ namespace vortex {
 namespace plotting {
 
 struct Ellipse {
-	double x;     // center
-	double y;     // center
-	double a;     // major axis length
-	double b;     // minor axis length
-	double angle; // angle in degrees
+  double x;     // center
+  double y;     // center
+  double a;     // major axis length
+  double b;     // minor axis length
+  double angle; // angle in degrees
 };
 
 /** Convert a Gaussian to an ellipse.

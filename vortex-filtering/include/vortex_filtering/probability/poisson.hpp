@@ -16,44 +16,44 @@ namespace prob {
 
 class Poisson {
 public:
-	Poisson(double lambda) : lambda_(lambda) {}
+  Poisson(double lambda) : lambda_(lambda) {}
 
-	/** Calculate the probability of x given the Poisson distribution
-	 * @param x
-	 * @return double
-	 */
-	double pr(int x) const { return std::pow(lambda_, x) * std::exp(-lambda_) / factorial(x); }
+  /** Calculate the probability of x given the Poisson distribution
+   * @param x
+   * @return double
+   */
+  double pr(int x) const { return std::pow(lambda_, x) * std::exp(-lambda_) / factorial(x); }
 
-	/** Calculate the mean of the Poisson distribution
-	 * @return double mean
-	 */
-	double mean() const { return lambda_; }
+  /** Calculate the mean of the Poisson distribution
+   * @return double mean
+   */
+  double mean() const { return lambda_; }
 
-	/** Calculate the variance of the Poisson distribution
-	 * @return double variance
-	 */
-	double cov() const { return lambda_; }
+  /** Calculate the variance of the Poisson distribution
+   * @return double variance
+   */
+  double cov() const { return lambda_; }
 
-	/** Parameter lambda of the Poisson distribution
-	 * @return double lambda
-	 */
-	double lambda() const { return lambda_; }
+  /** Parameter lambda of the Poisson distribution
+   * @return double lambda
+   */
+  double lambda() const { return lambda_; }
 
 private:
-	const double lambda_;
+  const double lambda_;
 
-	/** Calculate the factorial of x
-	 * @param x
-	 * @return double factorial
-	 */
-	double factorial(int x) const
-	{
-		double factorial = 1;
-		for (int i = 1; i <= x; i++) {
-			factorial *= i;
-		}
-		return factorial;
-	}
+  /** Calculate the factorial of x
+   * @param x
+   * @return double factorial
+   */
+  double factorial(int x) const
+  {
+    double factorial = 1;
+    for (int i = 1; i <= x; i++) {
+      factorial *= i;
+    }
+    return factorial;
+  }
 };
 
 } // namespace prob

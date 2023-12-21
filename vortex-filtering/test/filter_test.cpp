@@ -20,11 +20,11 @@
 #include "test_models.hpp"
 
 struct SimData {
-	std::vector<double> time;
-	std::vector<Eigen::VectorXd> x_true;
-	std::vector<vortex::prob::MultiVarGaussXd> x_est;
-	std::vector<Eigen::VectorXd> z_meas;
-	std::vector<vortex::prob::MultiVarGaussXd> z_est;
+  std::vector<double> time;
+  std::vector<Eigen::VectorXd> x_true;
+  std::vector<vortex::prob::MultiVarGaussXd> x_est;
+  std::vector<Eigen::VectorXd> z_meas;
+  std::vector<vortex::prob::MultiVarGaussXd> z_est;
 };
 
 /**
@@ -41,115 +41,115 @@ struct SimData {
  * @param tolerance tolerance for the test
  */
 struct TestParamKF {
-	std::string test_name                                                    = "";
-	std::shared_ptr<vortex::filter::interface::KalmanFilterX> kf             = nullptr;
-	std::shared_ptr<vortex::models::interface::DynamicModelX> dyn_mod_real   = nullptr;
-	std::shared_ptr<vortex::models::interface::DynamicModelX> dyn_mod_filter = nullptr;
-	std::shared_ptr<vortex::models::interface::SensorModelX> sens_mod_real   = nullptr;
-	std::shared_ptr<vortex::models::interface::SensorModelX> sens_mod_filter = nullptr;
-	size_t num_iters                                                         = 0;
-	double dt                                                                = 0.0;
-	typename vortex::models::interface::DynamicModelX::VecX x0               = {};
-	typename vortex::models::interface::DynamicModelX::GaussX x0_est         = {Eigen::VectorXd::Zero(1), Eigen::MatrixXd::Zero(1, 1)};
-	double tolerance                                                         = 0.0;
+  std::string test_name                                                    = "";
+  std::shared_ptr<vortex::filter::interface::KalmanFilterX> kf             = nullptr;
+  std::shared_ptr<vortex::models::interface::DynamicModelX> dyn_mod_real   = nullptr;
+  std::shared_ptr<vortex::models::interface::DynamicModelX> dyn_mod_filter = nullptr;
+  std::shared_ptr<vortex::models::interface::SensorModelX> sens_mod_real   = nullptr;
+  std::shared_ptr<vortex::models::interface::SensorModelX> sens_mod_filter = nullptr;
+  size_t num_iters                                                         = 0;
+  double dt                                                                = 0.0;
+  typename vortex::models::interface::DynamicModelX::VecX x0               = {};
+  typename vortex::models::interface::DynamicModelX::GaussX x0_est         = {Eigen::VectorXd::Zero(1), Eigen::MatrixXd::Zero(1, 1)};
+  double tolerance                                                         = 0.0;
 };
 
 class KFTest : public ::testing::TestWithParam<TestParamKF> {
 protected:
-	using VecX   = typename vortex::models::interface::DynamicModelX::VecX;
-	using MatXX  = typename vortex::models::interface::DynamicModelX::MatXX;
-	using GaussX = typename vortex::models::interface::DynamicModelX::GaussX;
+  using VecX   = typename vortex::models::interface::DynamicModelX::VecX;
+  using MatXX  = typename vortex::models::interface::DynamicModelX::MatXX;
+  using GaussX = typename vortex::models::interface::DynamicModelX::GaussX;
 
-	/**
-	 * @brief Simulate a dynamic model with a sensor model and a kalman filter
-	 *
-	 * @tparam DynamicModelT
-	 * @tparam SensorModelT
-	 * @param tp TestParamKF Params for the test
-	 * @return SimData<DynamicModelT::N_DIM_x, SensorModelT::N_DIM_z>
-	 */
-	SimData simulate(TestParamKF tp)
-	{
-		// Random number generator
-		std::random_device rd;
-		std::mt19937 gen(rd());
+  /**
+   * @brief Simulate a dynamic model with a sensor model and a kalman filter
+   *
+   * @tparam DynamicModelT
+   * @tparam SensorModelT
+   * @param tp TestParamKF Params for the test
+   * @return SimData<DynamicModelT::N_DIM_x, SensorModelT::N_DIM_z>
+   */
+  SimData simulate(TestParamKF tp)
+  {
+    // Random number generator
+    std::random_device rd;
+    std::mt19937 gen(rd());
 
-		// Initial state
-		std::vector<double> time;
-		std::vector<VecX> x_true;
-		std::vector<GaussX> x_est;
-		std::vector<VecX> z_meas;
-		std::vector<GaussX> z_est;
+    // Initial state
+    std::vector<double> time;
+    std::vector<VecX> x_true;
+    std::vector<GaussX> x_est;
+    std::vector<VecX> z_meas;
+    std::vector<GaussX> z_est;
 
-		// const int N_DIM_x = tp.dyn_mod_real->get_dim_x();
-		const int N_DIM_z = tp.sens_mod_real->get_dim_z();
-		const int N_DIM_u = tp.dyn_mod_real->get_dim_u();
-		// const int N_DIM_w = tp.dyn_mod_real->get_dim_v();
+    // const int N_DIM_x = tp.dyn_mod_real->get_dim_x();
+    const int N_DIM_z = tp.sens_mod_real->get_dim_z();
+    const int N_DIM_u = tp.dyn_mod_real->get_dim_u();
+    // const int N_DIM_w = tp.dyn_mod_real->get_dim_v();
 
-		// Simulate
-		time.push_back(0.0);
-		x_true.push_back(tp.x0);
-		x_est.push_back(tp.x0_est);
-		z_meas.push_back(tp.sens_mod_real->sample_hX(tp.x0, gen));
-		z_est.push_back({VecX::Zero(N_DIM_z), MatXX::Identity(N_DIM_z, N_DIM_z)});
+    // Simulate
+    time.push_back(0.0);
+    x_true.push_back(tp.x0);
+    x_est.push_back(tp.x0_est);
+    z_meas.push_back(tp.sens_mod_real->sample_hX(tp.x0, gen));
+    z_est.push_back({VecX::Zero(N_DIM_z), MatXX::Identity(N_DIM_z, N_DIM_z)});
 
-		for (size_t i = 0; i < tp.num_iters; ++i) {
-			// Simulate
-			VecX u          = VecX::Zero(N_DIM_u);
-			VecX x_true_ip1 = tp.dyn_mod_real->sample_f_dX(tp.dt, x_true.at(i), u, gen);
-			VecX z_meas_i   = tp.sens_mod_real->sample_hX(x_true.at(i), gen);
+    for (size_t i = 0; i < tp.num_iters; ++i) {
+      // Simulate
+      VecX u          = VecX::Zero(N_DIM_u);
+      VecX x_true_ip1 = tp.dyn_mod_real->sample_f_dX(tp.dt, x_true.at(i), u, gen);
+      VecX z_meas_i   = tp.sens_mod_real->sample_hX(x_true.at(i), gen);
 
-			// Predict
-			auto next_state   = tp.kf->stepX(tp.dyn_mod_filter, tp.sens_mod_filter, tp.dt, x_est.at(i), z_meas_i, u);
-			GaussX x_est_upd  = std::get<0>(next_state);
-			GaussX z_est_pred = std::get<2>(next_state);
+      // Predict
+      auto next_state   = tp.kf->stepX(tp.dyn_mod_filter, tp.sens_mod_filter, tp.dt, x_est.at(i), z_meas_i, u);
+      GaussX x_est_upd  = std::get<0>(next_state);
+      GaussX z_est_pred = std::get<2>(next_state);
 
-			// Save data
-			time.push_back(time.back() + tp.dt);
-			x_true.push_back(x_true_ip1);
-			x_est.push_back(x_est_upd);
-			z_meas.push_back(z_meas_i);
-			z_est.push_back(z_est_pred);
-		}
+      // Save data
+      time.push_back(time.back() + tp.dt);
+      x_true.push_back(x_true_ip1);
+      x_est.push_back(x_est_upd);
+      z_meas.push_back(z_meas_i);
+      z_est.push_back(z_est_pred);
+    }
 
-		return {time, x_true, x_est, z_meas, z_est};
-	}
+    return {time, x_true, x_est, z_meas, z_est};
+  }
 };
 
 TEST_P(KFTest, convergence)
 {
-	auto params      = GetParam();
-	SimData sim_data = simulate(params);
-	// Check
-	EXPECT_TRUE(isApproxEqual(sim_data.x_true.back(), sim_data.x_est.back().mean(), params.tolerance));
+  auto params      = GetParam();
+  SimData sim_data = simulate(params);
+  // Check
+  EXPECT_TRUE(isApproxEqual(sim_data.x_true.back(), sim_data.x_est.back().mean(), params.tolerance));
 
-	// Plot results
-	std::vector<double> x_true_0 = vortex::plotting::extract_state_series(sim_data.x_true, 0);
-	std::vector<double> x_est_0  = vortex::plotting::extract_state_series(vortex::plotting::extract_mean_series(sim_data.x_est), 0);
-	std::vector<double> z_meas_0 = vortex::plotting::extract_state_series(sim_data.z_meas, 0);
-	Gnuplot gp;
-	gp << "set terminal wxt size 1200,800\n";
-	gp << "set title '" << params.test_name << ", x_0 vs. time'\n";
-	gp << "set xlabel 't'\n";
-	gp << "set ylabel 'x_0'\n";
-	gp << "plot '-' with lines title 'True', '-' with lines title 'Estimate', '-' with points title 'Measurements' ps 1\n";
-	gp.send1d(std::make_tuple(sim_data.time, x_true_0));
-	gp.send1d(std::make_tuple(sim_data.time, x_est_0));
-	gp.send1d(std::make_tuple(sim_data.time, z_meas_0));
+  // Plot results
+  std::vector<double> x_true_0 = vortex::plotting::extract_state_series(sim_data.x_true, 0);
+  std::vector<double> x_est_0  = vortex::plotting::extract_state_series(vortex::plotting::extract_mean_series(sim_data.x_est), 0);
+  std::vector<double> z_meas_0 = vortex::plotting::extract_state_series(sim_data.z_meas, 0);
+  Gnuplot gp;
+  gp << "set terminal wxt size 1200,800\n";
+  gp << "set title '" << params.test_name << ", x_0 vs. time'\n";
+  gp << "set xlabel 't'\n";
+  gp << "set ylabel 'x_0'\n";
+  gp << "plot '-' with lines title 'True', '-' with lines title 'Estimate', '-' with points title 'Measurements' ps 1\n";
+  gp.send1d(std::make_tuple(sim_data.time, x_true_0));
+  gp.send1d(std::make_tuple(sim_data.time, x_est_0));
+  gp.send1d(std::make_tuple(sim_data.time, z_meas_0));
 
-	// Plot 1. state against 2. state if possible
-	if (sim_data.x_true.at(0).size() >= 2) {
-		Gnuplot gp;
-		std::vector<double> x_true_1 = vortex::plotting::extract_state_series(sim_data.x_true, 1);
-		std::vector<double> x_est_1  = vortex::plotting::extract_state_series(vortex::plotting::extract_mean_series(sim_data.x_est), 1);
-		gp << "set terminal wxt size 1200,800\n";
-		gp << "set title '" << params.test_name << ", x_0 vs. x_1'\n";
-		gp << "set xlabel 'x_0'\n";
-		gp << "set ylabel 'x_1'\n";
-		gp << "plot '-' with lines title 'True', '-' with lines title 'Estimate'\n";
-		gp.send1d(std::make_tuple(x_true_0, x_true_1));
-		gp.send1d(std::make_tuple(x_est_0, x_est_1));
-	}
+  // Plot 1. state against 2. state if possible
+  if (sim_data.x_true.at(0).size() >= 2) {
+    Gnuplot gp;
+    std::vector<double> x_true_1 = vortex::plotting::extract_state_series(sim_data.x_true, 1);
+    std::vector<double> x_est_1  = vortex::plotting::extract_state_series(vortex::plotting::extract_mean_series(sim_data.x_est), 1);
+    gp << "set terminal wxt size 1200,800\n";
+    gp << "set title '" << params.test_name << ", x_0 vs. x_1'\n";
+    gp << "set xlabel 'x_0'\n";
+    gp << "set ylabel 'x_1'\n";
+    gp << "plot '-' with lines title 'True', '-' with lines title 'Estimate'\n";
+    gp.send1d(std::make_tuple(x_true_0, x_true_1));
+    gp.send1d(std::make_tuple(x_est_0, x_est_1));
+  }
 }
 
 using DynModT  = NonlinearModel1;
