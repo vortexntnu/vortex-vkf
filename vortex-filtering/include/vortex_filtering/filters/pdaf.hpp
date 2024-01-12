@@ -5,6 +5,9 @@
 #include <vector>
 #include <vortex_filtering/vortex_filtering.hpp>
 
+namespace vortex {
+namespace filter {
+
 using std::string;
 // using std::endl;
 
@@ -35,7 +38,7 @@ public:
         std::cout << "Created PDAF class with given models!" << std::endl;
     }
 
-    std::tuple<Gauss_z, MeasurementsZd, MeasurementsZd> predict_next_state(Gauss_x x_est, MeasurementsZd z_meas, double timestep, DynModPtr dyn_model, SensModPtr sen_model)
+    std::tuple<Gauss_z, MeasurementsZd, MeasurementsZd> predict_next_state(const Gauss_x& x_est, const MeasurementsZd& z_meas, double timestep, const DynModPtr& dyn_model, const SensModPtr& sen_model) const
     {
         EKF ekf;
         auto [x_pred, z_pred] = ekf.predict(dyn_model, sen_model, timestep, x_est);
@@ -50,7 +53,7 @@ public:
         return {predicted_state, inside, outside};
     }
 
-    std::tuple<MeasurementsZd, MeasurementsZd> apply_gate(double gate_threshold, MeasurementsZd z_meas, Gauss_z z_pred)
+    std::tuple<MeasurementsZd, MeasurementsZd> apply_gate(double gate_threshold, const MeasurementsZd& z_meas, const Gauss_z& z_pred) const
     {
         MeasurementsZd inside_meas;
         MeasurementsZd outside_meas;
@@ -69,7 +72,7 @@ public:
     }
 
     // Getting weighted average of the predicted states
-    Gauss_x get_weighted_average(MeasurementsZd z_meas, StatesXd updated_states, Gauss_z z_pred, Gauss_x x_pred)
+    Gauss_x get_weighted_average(const MeasurementsZd& z_meas, const StatesXd& updated_states, const Gauss_z& z_pred, const Gauss_x& x_pred) const
     {
         StatesXd states;
         states.push_back(x_pred);
@@ -83,7 +86,7 @@ public:
     }
 
     // Getting association probabilities according to textbook p. 123 "Corollary 7.3.3"
-    Eigen::VectorXd get_weights(MeasurementsZd z_meas, Gauss_z z_pred)
+    Eigen::VectorXd get_weights(const MeasurementsZd& z_meas, const Gauss_z& z_pred) const
     {
         Eigen::VectorXd weights(z_meas.size() + 1);
 
@@ -133,3 +136,6 @@ public:
         return clutter_intensity_;
     } 
 };
+
+}  // namespace filter
+}  // namespace vortex
