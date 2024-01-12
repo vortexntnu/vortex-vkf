@@ -86,7 +86,38 @@ install(
 
 # === Build tests ===
 if(BUILD_TESTING)
-  add_subdirectory(test)
+
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(${PROJECT_NAME}_test 
+    test/gtest_main.cpp
+    test/gtest_assertions.cpp
+    ${lib_src}
+
+    test/dynamic_model_test.cpp
+    test/ekf_test.cpp
+    # test/filter_test.cpp
+    test/imm_test.cpp
+    test/numerical_integration_test.cpp
+    test/probability_test.cpp
+    test/sensor_model_test.cpp
+    test/ukf_test.cpp
+    test/pdaf_test.cpp
+  )
+  target_include_directories(${PROJECT_NAME}_test PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+  )
+  ament_target_dependencies(${PROJECT_NAME}_test
+    std_msgs
+    Gnuplot
+    Boost
+  )
+  target_link_libraries(${PROJECT_NAME}_test 
+    Eigen3::Eigen # Makes us able to use #include <Eigen/Dense> instead of #include <eigen3/Eigen/Dense>
+    OpenMP::OpenMP_CXX
+  )
+
+
 endif()
 
 ament_package()
