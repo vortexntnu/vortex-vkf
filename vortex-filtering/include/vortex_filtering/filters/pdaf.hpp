@@ -20,7 +20,7 @@ public:
     using Gauss_x = typename DynModI::Gauss_x;
     using Vec_z = typename SensModI::Vec_z;
     using MeasurementsZd = std::vector<Vec_z>;
-    using StatesZd = std::vector<Gauss_z>;
+    using StatesXd = std::vector<Gauss_x>;
     using GaussMixZd = vortex::prob::GaussianMixture<DynModI::N_DIM_x>;
 
     double gate_threshold_;
@@ -35,20 +35,14 @@ public:
         std::cout << "Created PDAF class with given models!" << std::endl;
     }
 
-    PDAF() = default;
-
-    // predict next state, if ekf is not defined
     std::tuple<Gauss_z, MeasurementsZd, MeasurementsZd> predict_next_state(Gauss_x x_est, MeasurementsZd z_meas, double timestep, DynModPtr dyn_model, SensModPtr sen_model)
     {
         EKF ekf;
-        // std::pair<Gauss4d, Gauss2d> x_z_pred = ekf.predict(dyn_model, sen_model, timestep, x_est);
         auto [x_pred, z_pred] = ekf.predict(dyn_model, sen_model, timestep, x_est);
         auto [inside, outside] = apply_gate(gate_threshold_, z_meas, z_pred);
 
-        StatesZd updated;
-        // x_post -> vector
+        StatesXd updated;
         for (const auto& measurement : inside) {
-            // x_post append with:
             updated.push_back(ekf.update(x_pred, z_pred, measurement));
         }
 
@@ -75,13 +69,13 @@ public:
     }
 
     // Getting weighted average of the predicted states
-    Gauss_x get_weighted_average(MeasurementsZd z_meas, StatesZd updated_states, Gauss_z z_pred, Gauss_x x_pred)
+    Gauss_x get_weighted_average(MeasurementsZd z_meas, StatesXd updated_states, Gauss_z z_pred, Gauss_x x_pred)
     {
-        StatesZd states;
+        StatesXd states;
         states.push_back(x_pred);
         states.insert(states.end(), updated_states.begin(), updated_states.end());
 
-        Eigen::VectorXd weights = get_weights(z_meas, updated_states, z_pred);
+        Eigen::VectorXd weights = get_weights(z_meas, z_pred);
 
         GaussMixZd gaussian_mixture(weights, states);
 
@@ -89,17 +83,20 @@ public:
     }
 
     // Getting association probabilities according to textbook p. 123 "Corollary 7.3.3"
-    Eigen::VectorXd get_weights(MeasurementsZd z_meas, StatesZd updated_states, Gauss_z z_pred)
+    Eigen::VectorXd get_weights(MeasurementsZd z_meas, Gauss_z z_pred)
     {
         Eigen::VectorXd weights(z_meas.size() + 1);
 
+        // in case no measurement assosiates with the target
         double no_association = clutter_intensity_ * (1 - prob_of_detection_);
         weights(0) = no_association;
 
+        // measurements associating with the target
         for (size_t k = 1; k < z_meas.size() + 1; k++) {
-            weights(k) = (prob_of_detection_ * z_pred.pdf(z_meas.at(k)));
+            weights(k) = (prob_of_detection_ * z_pred.pdf(z_meas.at(k - 1)));
         }
 
+        // normalize weights
         weights /= weights.sum();
 
         return weights;
