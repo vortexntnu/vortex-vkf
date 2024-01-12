@@ -2,7 +2,7 @@
 #include <vortex_filtering/filters/pdaf.hpp>
 #include <iostream>
 
-using SimplePDAF = PDAF<vortex::models::ConstantVelocity<2>, vortex::models::IdentitySensorModel<4, 2>>;
+using SimplePDAF = vortex::filter::PDAF<vortex::models::ConstantVelocity<2>, vortex::models::IdentitySensorModel<4, 2>>;
 
 TEST(PDAF, init)
 {
@@ -101,6 +101,27 @@ TEST(PDAF, average_state_is_in_between_prediction_and_measurement_y_axis)
     EXPECT_GT(weighted_average.mean()(1), z_pred.mean()(1));
     EXPECT_LT(weighted_average.mean()(1), meas[0](1));
     EXPECT_LT(weighted_average.mean()(1), updated_states[0].mean()(1));
+
+    std::cout << "weighted average: " << weighted_average.mean() << std::endl;
+}
+
+TEST(PDAF, average_state_is_in_between_prediction_and_measurement_x_axis)
+{
+    SimplePDAF pdaf(2.0, 0.8, 1.0);
+
+    vortex::prob::MultiVarGauss2d z_pred(Eigen::Vector2d(1.0, 1.0), Eigen::Matrix2d::Identity());
+    vortex::prob::MultiVarGauss4d x_pred(Eigen::Vector4d(1.0, 1.0, 0.0, 0.0), Eigen::Matrix4d::Identity());
+    std::vector<Eigen::Vector2d> meas = {{2.0, 1.0}};
+    std::vector<vortex::prob::MultiVarGauss4d> updated_states = {
+        vortex::prob::MultiVarGauss4d(Eigen::Vector4d(1.5, 1.0, 0.0, 0.0), Eigen::Matrix4d::Identity())
+    };
+
+    vortex::prob::MultiVarGauss4d weighted_average = pdaf.get_weighted_average(meas, updated_states, z_pred, x_pred);
+
+    EXPECT_GT(weighted_average.mean()(0), x_pred.mean()(0));
+    EXPECT_GT(weighted_average.mean()(0), z_pred.mean()(0));
+    EXPECT_LT(weighted_average.mean()(0), meas[0](0));
+    EXPECT_LT(weighted_average.mean()(0), updated_states[0].mean()(0));
 
     std::cout << "weighted average: " << weighted_average.mean() << std::endl;
 }
