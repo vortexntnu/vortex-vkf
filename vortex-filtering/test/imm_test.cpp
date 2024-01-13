@@ -237,17 +237,14 @@ TEST(ImmFilter, modeMatchedFilter)
   std::vector<Gauss2d> x_est_prevs = {Gauss2d::Standard(), {{0, 1}, Eigen::Matrix2d::Identity()}};
   Eigen::Vector2d z_meas = {1,1};
 
-  auto moment_based_preds = imm_filter.mode_matched_filter(dt, x_est_prevs, z_meas);
+  auto [x_est_upd, x_est_pred, z_est_pred] = imm_filter.mode_matched_filter(dt, x_est_prevs, z_meas);
 
-  EXPECT_EQ(IMM::N_MODELS, moment_based_preds.size());
+  EXPECT_EQ(IMM::N_MODELS, x_est_upd.size());
 
-  // imm_filter.template step_filter<0>(x_est_prevs.at(0), z_meas, dt);
   // Expect the second filter to predict closer to the measurement
-  EXPECT_FALSE(isApproxEqual(std::get<0>(moment_based_preds[0]).mean(), z_meas, 0.1));
-  EXPECT_TRUE(isApproxEqual(std::get<0>(moment_based_preds[1]).mean(), z_meas, 0.1));
+  EXPECT_FALSE(isApproxEqual(z_est_pred.at(0).mean(), z_meas, 0.1));
+  EXPECT_TRUE(isApproxEqual(z_est_pred.at(1).mean(), z_meas, 0.1));
 
-  std::cout << "moment_based_preds[0].mean(): " << std::get<0>(moment_based_preds[0]).mean() << std::endl;
-  std::cout << "moment_based_preds[1].mean(): " << std::get<0>(moment_based_preds[1]).mean() << std::endl;
 }
 
 TEST(ImmFilter, updateProbabilities)
