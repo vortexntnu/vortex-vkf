@@ -41,10 +41,13 @@ public:
   using Gauss_x = typename SensModI::Gauss_x;
   using Gauss_z = typename SensModI::Gauss_z;
 
+  using Vec_Gauss_x = std::vector<Gauss_x>;
+  using Vec_Gauss_z = std::vector<Gauss_z>;
+
   using GaussMix_x = prob::GaussianMixture<N_DIM_x>;
   using GaussMix_z = prob::GaussianMixture<N_DIM_z>;
 
-  ImmFilter(ImmModelT imm_model, SensModTPtr sensor_model) : imm_model_(std::move(imm_model)), sensor_model_(std::move(sensor_model))
+  ImmFilter()
   {
     // Check if the number of states in each dynamic model is the same as the number of states in the sensor model
     for (size_t n_dim_x : ImmModelT::get_n_dim_x()) {
@@ -61,9 +64,9 @@ public:
    * @param dt The time step.
    * @return The mixing probabilities. Each element is mixing_probs[s_{k-1}, s_k] = mu_{s_{k-1}|s_k} where s is the index of the model.
    */
-  Mat_nn calculate_mixing_probs(const Vec_n &model_weights, double dt)
+  Mat_nn calculate_mixing_probs(const ImmModelT &imm_model, const Vec_n &model_weights, double dt)
   {
-    Mat_nn pi_mat = imm_model_.get_pi_mat_d(dt);
+    Mat_nn pi_mat = imm_model.get_pi_mat_d(dt);
 
     // mu_{s_{k-1}|s_k} = pi_{s_{k-1}|s_k} * mu_{s_{k-1}|k-1}
     Mat_nn mixing_probs = pi_mat.cwiseProduct(model_weights.replicate(1, N_MODELS));
@@ -81,7 +84,7 @@ public:
    * @param mixing_probs Mixing probabilities
    * @return vector of moment-based predictions, i.e. update each model based on the state of all of the other models.
    */
-  std::vector<Gauss_x> mixing(const std::vector<Gauss_x> &x_est_prevs, Mat_nn mixing_probs)
+  std::vector<Gauss_x> mixing(const std::vector<Gauss_x> &x_est_prevs, const Mat_nn &mixing_probs)
   {
     std::vector<Gauss_x> moment_based_preds;
     for (auto weights : mixing_probs.rowwise()) {
@@ -98,20 +101,22 @@ public:
    * @param z_meas Vec_z Measurement
    * @return Tuple of updated states, predicted states, predicted measurements
    */
-  std::tuple<std::vector<Gauss_x>, std::vector<Gauss_x>, std::vector<Gauss_z>> mode_matched_filter(double dt, const std::vector<Gauss_x> &moment_based_preds,
-                                                                                                   const Vec_z &z_meas)
+  std::tuple<Vec_Gauss_x, Vec_Gauss_x, Vec_Gauss_z> mode_matched_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model,
+                                                                        double dt, const std::vector<Gauss_x> &moment_based_preds,
+                                                                        const Vec_z &z_meas)
   {
-    return mode_matched_filter_impl(dt, moment_based_preds, z_meas, std::make_index_sequence<ImmModelT::N_MODELS>{});
+    return mode_matched_filter_impl(imm_model, sensor_model, dt, moment_based_preds, z_meas, std::make_index_sequence<ImmModelT::N_MODELS>{});
   }
 
-  template <size_t i> std::tuple<Gauss_x, Gauss_x, Gauss_z> step_kalman_filter(double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas)
+  template <size_t i> std::tuple<Gauss_x, Gauss_x, Gauss_z> step_kalman_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model,
+                                                                               double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas)
   {
     using DynModI    = typename ImmModelT::template DynModI<i>;
     using DynModIPtr = typename DynModI::SharedPtr;
 
     filter::EKF_M<DynModI, SensModI> ekf;
-    DynModIPtr dyn_model = imm_model_.template get_model<i>();
-    return ekf.step(dyn_model, sensor_model_, dt, x_est_prev, z_meas);
+    DynModIPtr dyn_model = imm_model.template get_model<i>();
+    return ekf.step(dyn_model, sensor_model, dt, x_est_prev, z_meas);
   }
 
   /**
@@ -123,9 +128,9 @@ public:
    * @param prev_weigths Vec_n Weights
    * @return `Vec_n` Updated weights
    */
-  Vec_n update_probabilities(double dt, const std::vector<Gauss_z> &z_preds, const Vec_z &z_meas, const Vec_n &prev_weights)
+  Vec_n update_probabilities(const ImmModelT& imm_model, double dt, const std::vector<Gauss_z> &z_preds, const Vec_z &z_meas, const Vec_n &prev_weights)
   {
-    Mat_nn pi_mat      = imm_model_.get_pi_mat_d(dt);
+    Mat_nn pi_mat      = imm_model.get_pi_mat_d(dt);
     Vec_n weights_pred = pi_mat.transpose() * prev_weights;
 
     Vec_n z_probs;
@@ -157,17 +162,16 @@ public:
   }
 
 private:
-  ImmModelT imm_model_;
-  SensModTPtr sensor_model_;
 
   template <size_t... Is>
-  std::tuple<std::vector<Gauss_x>, std::vector<Gauss_x>, std::vector<Gauss_z>>
-  mode_matched_filter_impl(double dt, const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas, std::index_sequence<Is...>)
+  std::tuple<Vec_Gauss_x, Vec_Gauss_x, Vec_Gauss_z>
+  mode_matched_filter_impl(const ImmModelT &imm_model, const SensModTPtr &sensor_model,
+                           double dt, const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas, std::index_sequence<Is...>)
   {
 
     // Calculate mode-matched filter outputs and save them in a vector of tuples
     std::vector<std::tuple<Gauss_x, Gauss_x, Gauss_z>> ekf_outs;
-    ((ekf_outs.push_back(step_kalman_filter<Is>(dt, moment_based_preds.at(Is), z_meas))), ...);
+    ((ekf_outs.push_back(step_kalman_filter<Is>(imm_model, sensor_model, dt, moment_based_preds.at(Is), z_meas))), ...);
 
     // Convert vector of tuples to tuple of vectors
     std::vector<Gauss_x> x_est_upds;

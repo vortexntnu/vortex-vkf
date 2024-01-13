@@ -117,23 +117,12 @@ TEST(ImmModel, stateSize)
 
 TEST(ImmFilter, init)
 {
-  using namespace vortex::models;
-  using namespace vortex::filter;
+  using DynModT   = vortex::models::IdentityDynamicModel<2>;
+  using SensModT  = vortex::models::IdentitySensorModel<2, 1>;
+  using ImmModelT = vortex::models::ImmModel<DynModT, DynModT>;
 
-  auto model1 = std::make_shared<IdentityDynamicModel<2>>(1.0);
-  auto model2 = std::make_shared<IdentityDynamicModel<2>>(1.0);
+  vortex::filter::ImmFilter<SensModT, ImmModelT> imm_filter;
 
-  Eigen::Matrix2d jump_mat;
-  jump_mat << 0, 1, 1, 0;
-  Eigen::Vector2d hold_times;
-  hold_times << 1, 1;
-
-  using IMM = ImmModel<IdentityDynamicModel<2>, IdentityDynamicModel<2>>;
-  IMM imm_model(std::make_tuple(model1, model2), jump_mat, hold_times);
-
-  auto sensor_model = std::make_shared<IdentitySensorModel<2, 1>>(1.0);
-
-  ImmFilter<IdentitySensorModel<2, 1>, IMM> imm_filter(imm_model, sensor_model);
 }
 
 TEST(ImmFilter, calculateMixingProbs)
@@ -157,20 +146,20 @@ TEST(ImmFilter, calculateMixingProbs)
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 1>>(dt);
 
-  ImmFilter<IdentitySensorModel<2, 1>, IMM> imm_filter(imm_model, sensor_model);
+  ImmFilter<IdentitySensorModel<2, 1>, IMM> imm_filter;
 
   Eigen::Vector2d model_weights;
 
   model_weights << 0.5, 0.5;
   // Since the weights are equal, the mixing probabilities should be equal to the discrete time Markov chain
   Eigen::Matrix2d mixing_probs_true = imm_model.get_pi_mat_d(dt);
-  Eigen::Matrix2d mixing_probs      = imm_filter.calculate_mixing_probs(model_weights, dt);
+  Eigen::Matrix2d mixing_probs      = imm_filter.calculate_mixing_probs(imm_model, model_weights, dt);
   EXPECT_EQ(isApproxEqual(mixing_probs, mixing_probs_true, 1e-6), true);
 
   // When all of the weight is in the first model, the probability that the previous model was the second model should be 0
   model_weights << 1, 0;
   mixing_probs_true << 1, 1, 0, 0;
-  mixing_probs = imm_filter.calculate_mixing_probs(model_weights, dt);
+  mixing_probs = imm_filter.calculate_mixing_probs(imm_model, model_weights, dt);
   EXPECT_EQ(isApproxEqual(mixing_probs, mixing_probs_true, 1e-6), true);
 }
 
@@ -196,7 +185,7 @@ TEST(ImmFilter, mixing)
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 1>>(dt);
 
-  ImmFilter<IdentitySensorModel<2, 1>, IMM> imm_filter(imm_model, sensor_model);
+  ImmFilter<IdentitySensorModel<2, 1>, IMM> imm_filter;
 
   Eigen::Vector2d model_weights;
   model_weights << 0.5, 0.5;
@@ -228,12 +217,12 @@ TEST(ImmFilter, modeMatchedFilter)
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 
-  IMMFilter imm_filter(imm_model, sensor_model);
+  IMMFilter imm_filter;
 
   std::vector<Gauss2d> x_est_prevs = {Gauss2d::Standard(), {{0, 1}, Eigen::Matrix2d::Identity()}};
   Eigen::Vector2d z_meas           = {1, 1};
 
-  auto [x_est_upd, x_est_pred, z_est_pred] = imm_filter.mode_matched_filter(dt, x_est_prevs, z_meas);
+  auto [x_est_upd, x_est_pred, z_est_pred] = imm_filter.mode_matched_filter(imm_model, sensor_model, dt, x_est_prevs, z_meas);
 
   EXPECT_EQ(IMM::N_MODELS, x_est_upd.size());
 
@@ -265,7 +254,7 @@ TEST(ImmFilter, updateProbabilities)
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 
-  IMMFilter imm_filter(imm_model, sensor_model);
+  IMMFilter imm_filter;
 
   Eigen::Vector2d model_weights;
   model_weights << 0.5, 0.5;
@@ -274,7 +263,7 @@ TEST(ImmFilter, updateProbabilities)
 
   std::vector<Gauss2d> z_preds = {Gauss2d::Standard(), {{1, 1}, Eigen::Matrix2d::Identity()}};
 
-  Eigen::Vector2d upd_weights = imm_filter.update_probabilities(dt, z_preds, z_meas, model_weights);
+  Eigen::Vector2d upd_weights = imm_filter.update_probabilities(imm_model, dt, z_preds, z_meas, model_weights);
 
   EXPECT_GT(upd_weights(1), upd_weights(0));
 }

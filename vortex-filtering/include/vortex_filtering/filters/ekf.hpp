@@ -136,9 +136,10 @@ public:
                                              const Vec_u &u = Vec_u::Zero()) const override
   {
     std::pair<Gauss_x, Gauss_z> pred = predict(dyn_mod, sens_mod, dt, x_est_prev, u);
-    Gauss_x x_est_pred               = pred.first;
-    Gauss_z z_est_pred               = pred.second;
-    Gauss_x x_est_upd                = update(dyn_mod, sens_mod, x_est_pred, z_est_pred, z_meas);
+
+    Gauss_x x_est_pred = pred.first;
+    Gauss_z z_est_pred = pred.second;
+    Gauss_x x_est_upd  = update(dyn_mod, sens_mod, x_est_pred, z_est_pred, z_meas);
     return {x_est_upd, x_est_pred, z_est_pred};
   }
 };
