@@ -157,14 +157,14 @@ TEST(ImmFilter, calculateMixingProbs)
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 1>>(dt);
 
-  ImmFilter<IdentitySensorModel<2,1>, IMM> imm_filter(imm_model, sensor_model);
+  ImmFilter<IdentitySensorModel<2, 1>, IMM> imm_filter(imm_model, sensor_model);
 
   Eigen::Vector2d model_weights;
 
   model_weights << 0.5, 0.5;
   // Since the weights are equal, the mixing probabilities should be equal to the discrete time Markov chain
   Eigen::Matrix2d mixing_probs_true = imm_model.get_pi_mat_d(dt);
-  Eigen::Matrix2d mixing_probs = imm_filter.calculate_mixing_probs(model_weights, dt);
+  Eigen::Matrix2d mixing_probs      = imm_filter.calculate_mixing_probs(model_weights, dt);
   EXPECT_EQ(isApproxEqual(mixing_probs, mixing_probs_true, 1e-6), true);
 
   // When all of the weight is in the first model, the probability that the previous model was the second model should be 0
@@ -172,7 +172,6 @@ TEST(ImmFilter, calculateMixingProbs)
   mixing_probs_true << 1, 1, 0, 0;
   mixing_probs = imm_filter.calculate_mixing_probs(model_weights, dt);
   EXPECT_EQ(isApproxEqual(mixing_probs, mixing_probs_true, 1e-6), true);
-
 }
 
 TEST(ImmFilter, mixing)
@@ -202,11 +201,8 @@ TEST(ImmFilter, mixing)
   Eigen::Vector2d model_weights;
   model_weights << 0.5, 0.5;
 
-  std::vector<Gauss2d> x_est_prevs = {Gauss2d::Standard(), Gauss2d::Standard()};
+  std::vector<Gauss2d> x_est_prevs         = {Gauss2d::Standard(), Gauss2d::Standard()};
   std::vector<Gauss2d> moment_based_approx = imm_filter.mixing(x_est_prevs, imm_model.get_pi_mat_d(dt));
-
-
-
 }
 
 TEST(ImmFilter, modeMatchedFilter)
@@ -225,7 +221,7 @@ TEST(ImmFilter, modeMatchedFilter)
   Eigen::Vector2d hold_times;
   hold_times << 1, 1;
 
-  using IMM = ImmModel<ConstantPosition<2>, ConstantVelocity<1>>;
+  using IMM       = ImmModel<ConstantPosition<2>, ConstantVelocity<1>>;
   using IMMFilter = ImmFilter<IdentitySensorModel<2, 2>, IMM>;
 
   IMM imm_model(std::make_tuple(const_pos, const_vel), jump_mat, hold_times);
@@ -235,7 +231,7 @@ TEST(ImmFilter, modeMatchedFilter)
   IMMFilter imm_filter(imm_model, sensor_model);
 
   std::vector<Gauss2d> x_est_prevs = {Gauss2d::Standard(), {{0, 1}, Eigen::Matrix2d::Identity()}};
-  Eigen::Vector2d z_meas = {1,1};
+  Eigen::Vector2d z_meas           = {1, 1};
 
   auto [x_est_upd, x_est_pred, z_est_pred] = imm_filter.mode_matched_filter(dt, x_est_prevs, z_meas);
 
@@ -244,7 +240,6 @@ TEST(ImmFilter, modeMatchedFilter)
   // Expect the second filter to predict closer to the measurement
   EXPECT_FALSE(isApproxEqual(z_est_pred.at(0).mean(), z_meas, 0.1));
   EXPECT_TRUE(isApproxEqual(z_est_pred.at(1).mean(), z_meas, 0.1));
-
 }
 
 TEST(ImmFilter, updateProbabilities)
@@ -263,7 +258,7 @@ TEST(ImmFilter, updateProbabilities)
   Eigen::Vector2d hold_times;
   hold_times << 1, 1;
 
-  using IMM = ImmModel<ConstantPosition<2>, ConstantVelocity<1>>;
+  using IMM       = ImmModel<ConstantPosition<2>, ConstantVelocity<1>>;
   using IMMFilter = ImmFilter<IdentitySensorModel<2, 2>, IMM>;
 
   IMM imm_model(std::make_tuple(const_pos, const_vel), jump_mat, hold_times);
@@ -275,12 +270,11 @@ TEST(ImmFilter, updateProbabilities)
   Eigen::Vector2d model_weights;
   model_weights << 0.5, 0.5;
 
-  Eigen::Vector2d z_meas = {1,1};
+  Eigen::Vector2d z_meas = {1, 1};
 
   std::vector<Gauss2d> z_preds = {Gauss2d::Standard(), {{1, 1}, Eigen::Matrix2d::Identity()}};
 
   Eigen::Vector2d upd_weights = imm_filter.update_probabilities(dt, z_preds, z_meas, model_weights);
 
   EXPECT_GT(upd_weights(1), upd_weights(0));
-
 }

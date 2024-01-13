@@ -47,7 +47,7 @@ public:
 
   /** Default Constructor
    * weights and gaussians are empty
-  */
+   */
   GaussianMixture() = default;
 
   /***/
@@ -113,7 +113,7 @@ public:
   /** Get the weights of the Gaussian mixture
    * @return Eigen::VectorXd
    */
-  const Eigen::VectorXd& weights() const { return weights_; }
+  const Eigen::VectorXd &weights() const { return weights_; }
 
   /** Get the weight of the i'th Gaussian
    * @param i index
@@ -123,7 +123,7 @@ public:
 
   /** Set the weight of the i'th Gaussian
    * @param i index
-   * @param weight 
+   * @param weight
    */
   void set_weight(size_t i, double weight) { weights_(i) = weight; }
 
@@ -135,13 +135,13 @@ public:
   /** Get the Gaussians of the Gaussian mixture
    * @return std::vector<Gauss_n>
    */
-  const std::vector<Gauss_n>& gaussians() const { return gaussians_; }
+  const std::vector<Gauss_n> &gaussians() const { return gaussians_; }
 
   /** Get the i'th Gaussian
    * @param i index
    * @return Gauss_n
    */
-  const Gauss_n& gaussian(size_t i) const { return gaussians_.at(i); }
+  const Gauss_n &gaussian(size_t i) const { return gaussians_.at(i); }
 
   /** Get the number of Gaussians in the mixture
    * @return int
@@ -173,11 +173,10 @@ private:
   const std::vector<Gauss_n> gaussians_;
 };
 
-template <int n_dims>
-using GaussMix = GaussianMixture<n_dims>;
-using GaussMix2d = GaussMix<2>;
-using GaussMix3d = GaussMix<3>;
-using GaussMix4d = GaussMix<4>;
+template <int n_dims> using GaussMix = GaussianMixture<n_dims>;
+using GaussMix2d                     = GaussMix<2>;
+using GaussMix3d                     = GaussMix<3>;
+using GaussMix4d                     = GaussMix<4>;
 
 } // namespace prob
 } // namespace vortex

@@ -68,8 +68,8 @@ public:
   using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
   using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
 
-  static constexpr int N_DIM_a = N_DIM_x + N_DIM_v + N_DIM_w;                     // Augmented state dimension
-  
+  static constexpr int N_DIM_a = N_DIM_x + N_DIM_v + N_DIM_w; // Augmented state dimension
+
   using Vec_a     = Eigen::Vector<double, N_DIM_a>;                  // Augmented state vector
   using Mat_aa    = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;         // Augmented state covariance matrix
   using Mat_x2ap1 = Eigen::Matrix<double, N_DIM_x, 2 * N_DIM_a + 1>; // Matrix for sigma points of x
@@ -311,7 +311,8 @@ private:
  * @tparam DynModT Dynamic model type
  * @tparam SensModT Sensor model type
  */
-template <typename DynModT, typename SensModT> using UKF_M = UKF<DynModT::DynModI::N_DIM_x, SensModT::SensModI::N_DIM_z, DynModT::DynModI::N_DIM_u, DynModT::DynModI::N_DIM_v, SensModT::SensModI::N_DIM_w>;
+template <typename DynModT, typename SensModT>
+using UKF_M = UKF<DynModT::DynModI::N_DIM_x, SensModT::SensModI::N_DIM_z, DynModT::DynModI::N_DIM_u, DynModT::DynModI::N_DIM_v, SensModT::SensModI::N_DIM_w>;
 
 } // namespace filter
 } // namespace vortex

@@ -98,22 +98,21 @@ public:
    * @param z_meas Vec_z Measurement
    * @return Tuple of updated states, predicted states, predicted measurements
    */
-  std::tuple<std::vector<Gauss_x>, std::vector<Gauss_x>, std::vector<Gauss_z>> mode_matched_filter(double dt, const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas)
+  std::tuple<std::vector<Gauss_x>, std::vector<Gauss_x>, std::vector<Gauss_z>> mode_matched_filter(double dt, const std::vector<Gauss_x> &moment_based_preds,
+                                                                                                   const Vec_z &z_meas)
   {
     return mode_matched_filter_impl(dt, moment_based_preds, z_meas, std::make_index_sequence<ImmModelT::N_MODELS>{});
   }
 
-  template <size_t i>
-  std::tuple<Gauss_x, Gauss_x, Gauss_z> step_kalman_filter(double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas)
+  template <size_t i> std::tuple<Gauss_x, Gauss_x, Gauss_z> step_kalman_filter(double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas)
   {
-    using DynModI = typename ImmModelT::template DynModI<i>;
+    using DynModI    = typename ImmModelT::template DynModI<i>;
     using DynModIPtr = typename DynModI::SharedPtr;
 
     filter::EKF_M<DynModI, SensModI> ekf;
     DynModIPtr dyn_model = imm_model_.template get_model<i>();
     return ekf.step(dyn_model, sensor_model_, dt, x_est_prev, z_meas);
   }
-
 
   /**
    * @brief Update the mode probabilites based on how well the predictions matched the measurements.
@@ -162,7 +161,8 @@ private:
   SensModTPtr sensor_model_;
 
   template <size_t... Is>
-  std::tuple<std::vector<Gauss_x>, std::vector<Gauss_x>, std::vector<Gauss_z>> mode_matched_filter_impl(double dt, const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas, std::index_sequence<Is...>)
+  std::tuple<std::vector<Gauss_x>, std::vector<Gauss_x>, std::vector<Gauss_z>>
+  mode_matched_filter_impl(double dt, const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas, std::index_sequence<Is...>)
   {
 
     // Calculate mode-matched filter outputs and save them in a vector of tuples
@@ -183,6 +183,5 @@ private:
     return {x_est_upds, x_est_preds, z_est_preds};
   }
 };
-
 
 } // namespace vortex::filter

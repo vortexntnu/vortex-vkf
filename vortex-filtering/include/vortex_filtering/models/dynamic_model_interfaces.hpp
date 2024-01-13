@@ -9,8 +9,8 @@
 #include <Eigen/Dense>
 #include <eigen3/unsupported/Eigen/MatrixFunctions> // For exp
 #include <functional>
-#include <random>
 #include <memory>
+#include <random>
 #include <vortex_filtering/numerical_integration/erk_methods.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
@@ -79,7 +79,7 @@ public:
   static constexpr int N_DIM_u = n_dim_u;
   static constexpr int N_DIM_v = n_dim_v;
 
-  using BaseX = DynamicModelX;
+  using BaseX   = DynamicModelX;
   using DynModI = DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
 
   using Vec_x = Eigen::Vector<double, N_DIM_x>;
@@ -188,7 +188,7 @@ private:
  */
 template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelCT : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using DynModI                  = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
+  using DynModI                = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
   static constexpr int N_DIM_x = DynModI::N_DIM_x;
   static constexpr int N_DIM_u = DynModI::N_DIM_u;
   static constexpr int N_DIM_v = DynModI::N_DIM_v;
@@ -259,7 +259,7 @@ protected:
  */
 template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelLTV : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using DynModI                  = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
+  using DynModI                = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
   static constexpr int N_DIM_x = n_dim_x;
   static constexpr int N_DIM_u = n_dim_u;
   static constexpr int N_DIM_v = n_dim_v;
@@ -399,7 +399,7 @@ protected:
  */
 template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelCTLTV : public DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using DynModI                  = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
+  using DynModI                = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
   static constexpr int N_DIM_x = n_dim_x;
   static constexpr int N_DIM_u = n_dim_u;
   static constexpr int N_DIM_v = n_dim_v;

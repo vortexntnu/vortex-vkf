@@ -10,8 +10,8 @@
  */
 #pragma once
 #include <eigen3/Eigen/Dense>
-#include <random>
 #include <memory>
+#include <random>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
 namespace vortex {
@@ -183,7 +183,7 @@ private:
  */
 template <int n_dim_x, int n_dim_z, int n_dim_w = n_dim_z> class SensorModelLTV : public SensorModelI<n_dim_x, n_dim_z, n_dim_z> {
 public:
-  using DynModI                  = SensorModelI<n_dim_x, n_dim_z, n_dim_w>;
+  using DynModI                = SensorModelI<n_dim_x, n_dim_z, n_dim_w>;
   static constexpr int N_DIM_x = DynModI::N_DIM_x; // Declare so that children of this class can reference it
   static constexpr int N_DIM_z = DynModI::N_DIM_z; // Declare so that children of this class can reference it
   static constexpr int N_DIM_w = DynModI::N_DIM_w; // Declare so that children of this class can reference it

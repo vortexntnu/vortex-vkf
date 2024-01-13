@@ -29,14 +29,14 @@ public:
 
   static constexpr size_t N_MODELS = sizeof...(DynModels);
 
-  using Vec_n     = Eigen::Vector<double, N_MODELS>;
-  using Mat_nn    = Eigen::Matrix<double, N_MODELS, N_MODELS>;
+  using Vec_n  = Eigen::Vector<double, N_MODELS>;
+  using Mat_nn = Eigen::Matrix<double, N_MODELS, N_MODELS>;
 
-  template <size_t i> using DynModI  = typename std::tuple_element<i, DynModTuple>::type::DynModI; // Get the base interface of the i'th model
-  template <size_t i> using Vec_x  = typename DynModI<i>::Vec_x;
-  template <size_t i> using Vec_u  = typename DynModI<i>::Vec_u;
-  template <size_t i> using Vec_v  = typename DynModI<i>::Vec_v;
-  template <size_t i> using Mat_xx = typename DynModI<i>::Mat_xx;
+  template <size_t i> using DynModI = typename std::tuple_element<i, DynModTuple>::type::DynModI; // Get the base interface of the i'th model
+  template <size_t i> using Vec_x   = typename DynModI<i>::Vec_x;
+  template <size_t i> using Vec_u   = typename DynModI<i>::Vec_u;
+  template <size_t i> using Vec_v   = typename DynModI<i>::Vec_v;
+  template <size_t i> using Mat_xx  = typename DynModI<i>::Mat_xx;
 
   template <size_t i> using DynModT    = typename std::tuple_element<i, DynModTuple>::type;
   template <size_t i> using DynModTPtr = typename std::shared_ptr<DynModT<i>>;
@@ -138,6 +138,5 @@ private:
   const Mat_nn jump_matrix_;
   const Vec_n hold_times_;
 };
-
 
 } // namespace vortex::models

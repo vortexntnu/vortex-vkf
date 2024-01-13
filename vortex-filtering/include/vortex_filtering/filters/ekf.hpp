@@ -141,14 +141,14 @@ public:
     Gauss_x x_est_upd                = update(dyn_mod, sens_mod, x_est_pred, z_est_pred, z_meas);
     return {x_est_upd, x_est_pred, z_est_pred};
   }
-
 };
 
 /** @brief EKF with dimensions defined by the dynamic model and sensor model.
  * @tparam DynModT Dynamic model type.
  * @tparam SensModT Sensor model type.
  */
-template <typename DynModT, typename SensModT> using EKF_M = EKF<DynModT::DynModI::N_DIM_x, SensModT::SensModI::N_DIM_z, DynModT::DynModI::N_DIM_u, DynModT::DynModI::N_DIM_v, SensModT::SensModI::N_DIM_w>;
+template <typename DynModT, typename SensModT>
+using EKF_M = EKF<DynModT::DynModI::N_DIM_x, SensModT::SensModI::N_DIM_z, DynModT::DynModI::N_DIM_u, DynModT::DynModI::N_DIM_v, SensModT::SensModI::N_DIM_w>;
 
 } // namespace filter
 } // namespace vortex

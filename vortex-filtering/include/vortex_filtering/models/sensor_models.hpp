@@ -15,9 +15,9 @@ public:
   using SensModI = interface::SensorModelI<n_dim_x, n_dim_z>;
 
   using typename SensModI::Mat_xx;
+  using typename SensModI::Mat_zw;
   using typename SensModI::Mat_zx;
   using typename SensModI::Mat_zz;
-  using typename SensModI::Mat_zw;
   using typename SensModI::Vec_x;
   using typename SensModI::Vec_z;
 
@@ -53,7 +53,7 @@ public:
    * @param x State (not used)
    * @return Mat_zw
    * @note Overriding SensorModelLTV::H
-  */
+   */
   Mat_zw H(const Vec_x & = Vec_x::Zero()) const override { return Mat_zw::Identity(); }
 
 private:

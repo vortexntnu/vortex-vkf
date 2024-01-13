@@ -11,11 +11,11 @@ constexpr int X = 1; // For when a template parameter is required but not used.
  */
 template <int n_dim_x> class IdentityDynamicModel : public interface::DynamicModelLTV<n_dim_x> {
 public:
-  using DynModI  = interface::DynamicModelI<n_dim_x>;
-  using Vec_x  = typename DynModI::Vec_x;
-  using Mat_xx = typename DynModI::Mat_xx;
-  using Mat_xv = typename DynModI::Mat_xv;
-  using Mat_vv = typename DynModI::Mat_vv;
+  using DynModI = interface::DynamicModelI<n_dim_x>;
+  using Vec_x   = typename DynModI::Vec_x;
+  using Mat_xx  = typename DynModI::Mat_xx;
+  using Mat_xv  = typename DynModI::Mat_xv;
+  using Mat_vv  = typename DynModI::Mat_vv;
 
   /** Identity Dynamic Model
    * @param std Standard deviation of process noise
@@ -34,16 +34,11 @@ private:
   Mat_vv Q_;
 };
 
-
-
-
 /** (Nearly) Constant Position Model
  * State x = [pos], where pos is a `n_spatial_dim`-dimensional vector
  * @tparam n_spatial_dim Number of spatial dimensions
  */
-template <int n_spatial_dim> 
-using ConstantPosition = IdentityDynamicModel<n_spatial_dim>;
-
+template <int n_spatial_dim> using ConstantPosition = IdentityDynamicModel<n_spatial_dim>;
 
 // TODO: Update these models to use discrete time instead of continuous time.
 
