@@ -77,8 +77,6 @@ public:
   using Mat_a2ap1 = Eigen::Matrix<double, N_DIM_a, 2 * N_DIM_a + 1>; // Matrix for sigma points of a
 
   /** Unscented Kalman Filter
-   * @param dynamic_model Dynamic model (default nullptr)
-   * @param sensor_model Sensor model (default nullptr)
    * @param alpha Parameter for spread of sigma points (default 1.0)
    * @param beta Parameter for weighting of mean in covariance calculation (default 2.0)
    * @param kappa Parameter for adding additional spread to sigma points (default 0.0)
@@ -88,7 +86,7 @@ public:
    * @tparam n_dim_v Dimension of process noise vector (default n_dim_x)
    * @tparam n_dim_w Dimension of measurement noise vector (default n_dim_z)
    */
-  UKF(DynModIPtr dynamic_model = nullptr, SensModIPtr sensor_model = nullptr, double alpha = 1.0, double beta = 2.0, double kappa = 0.0)
+  UKF(double alpha = 1.0, double beta = 2.0, double kappa = 0.0)
       : dynamic_model_(dynamic_model), sensor_model_(sensor_model), ALPHA_(alpha), BETA_(beta), KAPPA_(kappa)
   {
     // Parameters for UKF
@@ -176,7 +174,7 @@ private:
     return sigma_z_pred;
   }
 
-  /** Estimate gaussian from sigma points
+  /** Estimate gaussian from sigma points using the unscented transform
    * @param sigma_points Mat_n2ap1 Sigma points
    * @tparam n_dims Dimension of the gaussian
    * @return prob::MultiVarGauss<n_dims>
@@ -299,56 +297,7 @@ public:
     return {x_est_upd, x_pred, z_pred};
   }
 
-  /** Perform one UKF prediction step
-   * @param dt Time step
-   * @param x_est_prev Previous state estimate
-   * @param u Vec_u Control input
-   * @return std::pair<Gauss_x, Gauss_z> Predicted state estimate, predicted measurement estimate
-   */
-  std::pair<Gauss_x, Gauss_z> predict(double dt, const Gauss_x &x_est_prev, const Vec_u &u = Vec_u::Zero()) const
-  {
-    // check if dynamic_model_ and sensor_model_ are set
-    if (!dynamic_model_ || !sensor_model_) {
-      throw std::runtime_error("UKF::predict() called without dynamic_model_ or sensor_model_ set.");
-    }
-    return predict(dynamic_model_, sensor_model_, dt, x_est_prev, u);
-  }
-
-  /** Perform one UKF update step
-   * @param x_est_pred Predicted state estimate
-   * @param z_est_pred Predicted measurement estimate
-   * @param z_meas Measurement
-   * @return Gauss_x Updated state estimate
-   */
-  Gauss_x update(const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas) const
-  {
-    // check if dynamic_model_ and sensor_model_ are set
-    if (!dynamic_model_ || !sensor_model_) {
-      throw std::runtime_error("UKF::update() called without dynamic_model_ or sensor_model_ set.");
-    }
-    return update(dynamic_model_, sensor_model_, x_est_pred, z_est_pred, z_meas);
-  }
-
-  /** Perform one UKF prediction and update step
-   * @param dt Time step
-   * @param x_est_prev Previous state estimate
-   * @param z_meas Measurement
-   * @param u Vec_u Control input
-   * @return std::tuple<Gauss_x, Gauss_x, Gauss_z> Updated state estimate, predicted state estimate, predicted measurement estimate
-   */
-  std::tuple<Gauss_x, Gauss_x, Gauss_z> step(double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas, const Vec_u &u = Vec_u::Zero()) const
-  {
-    // check if dynamic_model_ and sensor_model_ are set
-    if (!dynamic_model_ || !sensor_model_) {
-      throw std::runtime_error("UKF::step() called without dynamic_model_ or sensor_model_ set.");
-    }
-    return step(dynamic_model_, sensor_model_, dt, x_est_prev, z_meas, u);
-  }
-
 private:
-  const DynModIPtr dynamic_model_;
-  const SensModIPtr sensor_model_;
-
   // Parameters for UKF
   double ALPHA_;
   double BETA_;

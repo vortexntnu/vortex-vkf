@@ -118,13 +118,13 @@ public:
   /**
    * @brief Update the mode probabilites based on how well the predictions matched the measurements.
    * Using (6.37) from step 3 and (6.38) from step 4 in (6.4.1) in the book
+   * @param dt double Time step
    * @param z_preds Mode-match filter outputs
    * @param z_meas Vec_z Measurement
-   * @param dt double Time step
    * @param prev_weigths Vec_n Weights
    * @return `Vec_n` Updated weights
    */
-  Vec_n update_probabilities(const std::vector<Gauss_z> &z_preds, const Vec_z &z_meas, double dt, const Vec_n &prev_weights)
+  Vec_n update_probabilities(double dt, const std::vector<Gauss_z> &z_preds, const Vec_z &z_meas, const Vec_n &prev_weights)
   {
     Mat_nn pi_mat      = imm_model_.get_pi_mat_d(dt);
     Vec_n weights_pred = pi_mat.transpose() * prev_weights;
@@ -142,17 +142,17 @@ public:
 
   /**
    * @brief Perform one IMM filter step
+   * @param dt Time step
    * @param x_est_prev Mixture from previous time step
    * @param z_meas Vec_z
-   * @param dt Time step
    * @return Tuple of updated mixture, predicted mixture, predicted measurement mixture
    */
-  GaussMix_x step(const GaussMix_x &x_est_prev, const Vec_z &z_meas, double dt)
+  GaussMix_x step(double dt, const GaussMix_x &x_est_prev, const Vec_z &z_meas)
   {
     Mat_nn mixing_probs                         = calculate_mixing_probs(x_est_prev.weights(), dt);
     std::vector<Gauss_x> moment_based_preds     = mixing(x_est_prev.gaussians(), mixing_probs);
     auto [x_est_upds, x_est_preds, z_est_preds] = mode_matched_filter(moment_based_preds, z_meas, dt);
-    Vec_n weights_upd                           = update_probabilities(z_est_preds, z_meas, dt, x_est_prev.weights());
+    Vec_n weights_upd                           = update_probabilities(dt, z_est_preds, z_meas, x_est_prev.weights());
 
     return {weights_upd, x_est_upds};
   }

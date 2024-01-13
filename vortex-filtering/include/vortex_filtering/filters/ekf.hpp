@@ -65,10 +65,8 @@ public:
   using Gauss_z = typename EKFI::Gauss_z;
 
   /** Construct a new EKF object
-   * @param dynamic_model Dynamic model (optional)
-   * @param sensor_model Sensor model (optional)
    */
-  EKF(DynModEKFPtr dynamic_model = nullptr, SensModEKFPtr sensor_model = nullptr) : dynamic_model_(dynamic_model), sensor_model_(sensor_model) {}
+  EKF() = default;
 
   /** Perform one EKF prediction step
    * @param dyn_mod Dynamic model
@@ -144,50 +142,6 @@ public:
     return {x_est_upd, x_est_pred, z_est_pred};
   }
 
-  /** Perform one EKF prediction step
-   * @param dt Time step
-   * @param x_est_prev Previous state estimate
-   * @return Predicted state, predicted measurement
-   */
-  std::pair<Gauss_x, Gauss_z> predict(double dt, const Gauss_x &x_est_prev, const Vec_u u = Vec_u::Zero()) const
-  {
-    if (!dynamic_model_ || !sensor_model_) {
-      throw std::runtime_error("Dynamic model or sensor model not set");
-    }
-    return predict(dynamic_model_, sensor_model_, dt, x_est_prev, u);
-  }
-
-  /** Perform one EKF update step
-   * @param x_est_pred Predicted state
-   * @param z_est_pred Predicted measurement
-   * @param z_meas Vec_z
-   * @return MultivarGauss Updated state
-   */
-  Gauss_x update(const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas) const
-  {
-    if (!dynamic_model_ || !sensor_model_) {
-      throw std::runtime_error("Dynamic model or sensor model not set");
-    }
-    return update(dynamic_model_, sensor_model_, x_est_pred, z_est_pred, z_meas);
-  }
-
-  /** Perform one EKF prediction and update step
-   * @param dt Time step
-   * @param x_est_prev Previous state estimate
-   * @param z_meas Vec_z
-   * @return Updated state, predicted state, predicted measurement
-   */
-  std::tuple<Gauss_x, Gauss_x, Gauss_z> step(double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas, const Vec_u &u = Vec_u::Zero()) const
-  {
-    if (!dynamic_model_ || !sensor_model_) {
-      throw std::runtime_error("Dynamic model or sensor model not set");
-    }
-    return step(dynamic_model_, sensor_model_, dt, x_est_prev, z_meas, u);
-  }
-
-private:
-  const DynModEKFPtr dynamic_model_;
-  const SensModEKFPtr sensor_model_;
 };
 
 /** @brief EKF with dimensions defined by the dynamic model and sensor model.

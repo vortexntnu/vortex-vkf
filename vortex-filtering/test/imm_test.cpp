@@ -279,7 +279,7 @@ TEST(ImmFilter, updateProbabilities)
 
   std::vector<Gauss2d> z_preds = {Gauss2d::Standard(), {{1, 1}, Eigen::Matrix2d::Identity()}};
 
-  Eigen::Vector2d upd_weights = imm_filter.update_probabilities(z_preds, z_meas, dt, model_weights);
+  Eigen::Vector2d upd_weights = imm_filter.update_probabilities(dt, z_preds, z_meas, model_weights);
 
   EXPECT_GT(upd_weights(1), upd_weights(0));
 
