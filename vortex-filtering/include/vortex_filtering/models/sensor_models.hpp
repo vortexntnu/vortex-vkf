@@ -17,6 +17,7 @@ public:
   using typename SensModI::Mat_xx;
   using typename SensModI::Mat_zx;
   using typename SensModI::Mat_zz;
+  using typename SensModI::Mat_zw;
   using typename SensModI::Vec_x;
   using typename SensModI::Vec_z;
 
@@ -47,6 +48,13 @@ public:
    * @note Overriding SensorModelLTV::R
    */
   Mat_zz R(const Vec_x & = Vec_x::Zero()) const override { return R_; }
+
+  /** Get the Jacobian of the measurement model with respect to noise
+   * @param x State (not used)
+   * @return Mat_zw
+   * @note Overriding SensorModelLTV::H
+  */
+  Mat_zw H(const Vec_x & = Vec_x::Zero()) const override { return Mat_zw::Identity(); }
 
 private:
   const Mat_zz R_; // Measurement covariance matrix
