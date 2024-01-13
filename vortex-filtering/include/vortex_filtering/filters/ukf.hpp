@@ -39,41 +39,42 @@ public:
 
   using DynModI     = models::interface::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
   using SensModI    = models::interface::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
-  using DynModIPtr  = std::shared_ptr<DynModI>;
-  using SensModIPtr = std::shared_ptr<SensModI>;
+  using DynModIPtr  = DynModI::SharedPtr;
+  using SensModIPtr = SensModI::SharedPtr;
 
-  using Vec_x  = Eigen::Vector<double, N_DIM_x>;
+  using Vec_x = Eigen::Vector<double, N_DIM_x>;
+  using Vec_u = Eigen::Vector<double, N_DIM_u>;
+  using Vec_z = Eigen::Vector<double, N_DIM_z>;
+  using Vec_v = Eigen::Vector<double, N_DIM_v>;
+  using Vec_w = Eigen::Vector<double, N_DIM_w>;
+
   using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-
-  using Vec_u = Eigen::Vector<double, DynModI::N_DIM_u>;
-
-  using Vec_z  = Eigen::Vector<double, N_DIM_z>;
-  using Mat_zz = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
-  using Mat_zx = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
   using Mat_xz = Eigen::Matrix<double, N_DIM_x, N_DIM_z>;
-
-  using Vec_v  = Eigen::Vector<double, N_DIM_v>;
-  using Mat_vv = Eigen::Matrix<double, N_DIM_v, N_DIM_v>;
   using Mat_xv = Eigen::Matrix<double, N_DIM_x, N_DIM_v>;
-  using Mat_vx = Eigen::Matrix<double, N_DIM_v, N_DIM_x>;
-
-  using Vec_w  = Eigen::Vector<double, N_DIM_w>;
   using Mat_xw = Eigen::Matrix<double, N_DIM_x, N_DIM_w>;
-  using Mat_wx = Eigen::Matrix<double, N_DIM_w, N_DIM_x>;
+
+  using Mat_zx = Eigen::Matrix<double, N_DIM_z, N_DIM_x>;
+  using Mat_zz = Eigen::Matrix<double, N_DIM_z, N_DIM_z>;
   using Mat_zw = Eigen::Matrix<double, N_DIM_z, N_DIM_w>;
-  using Mat_ww = Eigen::Matrix<double, N_DIM_w, N_DIM_w>;
+
+  using Mat_vx = Eigen::Matrix<double, N_DIM_v, N_DIM_x>;
+  using Mat_vv = Eigen::Matrix<double, N_DIM_v, N_DIM_v>;
   using Mat_vw = Eigen::Matrix<double, N_DIM_v, N_DIM_w>;
+
+  using Mat_wx = Eigen::Matrix<double, N_DIM_w, N_DIM_x>;
   using Mat_wv = Eigen::Matrix<double, N_DIM_w, N_DIM_v>;
+  using Mat_ww = Eigen::Matrix<double, N_DIM_w, N_DIM_w>;
 
   using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
   using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
 
   static constexpr int N_DIM_a = N_DIM_x + N_DIM_v + N_DIM_w;                     // Augmented state dimension
-  using Vec_a                  = Eigen::Vector<double, N_DIM_a>;                  // Augmented state vector
-  using Mat_aa                 = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;         // Augmented state covariance matrix
-  using Mat_x2ap1              = Eigen::Matrix<double, N_DIM_x, 2 * N_DIM_a + 1>; // Matrix for sigma points of x
-  using Mat_z2ap1              = Eigen::Matrix<double, N_DIM_z, 2 * N_DIM_a + 1>; // Matrix for sigma points of z
-  using Mat_a2ap1              = Eigen::Matrix<double, N_DIM_a, 2 * N_DIM_a + 1>; // Matrix for sigma points of a
+  
+  using Vec_a     = Eigen::Vector<double, N_DIM_a>;                  // Augmented state vector
+  using Mat_aa    = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;         // Augmented state covariance matrix
+  using Mat_x2ap1 = Eigen::Matrix<double, N_DIM_x, 2 * N_DIM_a + 1>; // Matrix for sigma points of x
+  using Mat_z2ap1 = Eigen::Matrix<double, N_DIM_z, 2 * N_DIM_a + 1>; // Matrix for sigma points of z
+  using Mat_a2ap1 = Eigen::Matrix<double, N_DIM_a, 2 * N_DIM_a + 1>; // Matrix for sigma points of a
 
   /** Unscented Kalman Filter
    * @param dynamic_model Dynamic model (default nullptr)
@@ -121,9 +122,9 @@ private:
     // Make augmented covariance matrix
     Mat_aa P_a;
     // clang-format off
-        P_a << P	         , Mat_xv::Zero() , Mat_xw::Zero(),
-               Mat_vx::Zero(), Q              , Mat_vw::Zero(),
-               Mat_wx::Zero(), Mat_wv::Zero() , R;
+    P_a << P	           , Mat_xv::Zero() , Mat_xw::Zero(),
+           Mat_vx::Zero(), Q              , Mat_vw::Zero(),
+           Mat_wx::Zero(), Mat_wv::Zero() , R;
     // clang-format on
     Mat_aa sqrt_P_a = P_a.llt().matrixLLT();
 
@@ -361,7 +362,7 @@ private:
  * @tparam DynModT Dynamic model type
  * @tparam SensModT Sensor model type
  */
-template <typename DynModT, typename SensModT> using UKF_M = UKF<DynModT::N_DIM_x, SensModT::N_DIM_z, DynModT::N_DIM_u, DynModT::N_DIM_v, SensModT::N_DIM_w>;
+template <typename DynModT, typename SensModT> using UKF_M = UKF<DynModT::DynModI::N_DIM_x, SensModT::SensModI::N_DIM_z, DynModT::DynModI::N_DIM_u, DynModT::DynModI::N_DIM_v, SensModT::SensModI::N_DIM_w>;
 
 } // namespace filter
 } // namespace vortex

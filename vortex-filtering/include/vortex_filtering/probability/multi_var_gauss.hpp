@@ -30,6 +30,9 @@ public:
     }
   }
 
+  // Default constructor
+  MultiVarGauss() = default;
+
   // Copy constructor
   MultiVarGauss(const MultiVarGauss &other) : N_DIMS(other.N_DIMS), mean_(other.mean_), cov_(other.cov_), cov_inv_(other.cov_inv_) {}
 
@@ -133,7 +136,7 @@ public:
    */
   int size() const { return N_DIMS; }
 
-  /** Construct a Standard Gaussian
+  /** Construct a Standard Gaussian Distribution with zero mean and identity covariance matrix
    * @return MultiVarGauss
    */
   static MultiVarGauss<n_dims> Standard() { return MultiVarGauss<n_dims>(Vec_n::Zero(), Mat_nn::Identity()); }

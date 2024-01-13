@@ -30,39 +30,39 @@ namespace filter {
 template <int n_dim_x, int n_dim_z, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x, int n_dim_w = n_dim_z>
 class EKF : public interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w> {
 public:
-  using BaseI = interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w>;
+  using EKFI = interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w>;
 
-  static constexpr int N_DIM_x = BaseI::N_DIM_x;
-  static constexpr int N_DIM_u = BaseI::N_DIM_u;
-  static constexpr int N_DIM_z = BaseI::N_DIM_z;
-  static constexpr int N_DIM_v = BaseI::N_DIM_v;
-  static constexpr int N_DIM_w = BaseI::N_DIM_w;
+  static constexpr int N_DIM_x = EKFI::N_DIM_x;
+  static constexpr int N_DIM_u = EKFI::N_DIM_u;
+  static constexpr int N_DIM_z = EKFI::N_DIM_z;
+  static constexpr int N_DIM_v = EKFI::N_DIM_v;
+  static constexpr int N_DIM_w = EKFI::N_DIM_w;
 
-  using DynModI     = typename BaseI::DynModI;
-  using SensModI    = typename BaseI::SensModI;
-  using DynModIPtr  = typename BaseI::DynModIPtr;
-  using SensModIPtr = typename BaseI::SensModIPtr;
+  using DynModI     = typename EKFI::DynModI;
+  using SensModI    = typename EKFI::SensModI;
+  using DynModIPtr  = typename DynModI::SharedPtr;
+  using SensModIPtr = typename SensModI::SharedPtr;
 
   using DynModEKF     = models::interface::DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v>;
   using SensModEKF    = models::interface::SensorModelLTV<N_DIM_x, N_DIM_z>;
   using DynModEKFPtr  = std::shared_ptr<DynModEKF>;
   using SensModEKFPtr = std::shared_ptr<SensModEKF>;
 
-  using Vec_x = typename BaseI::Vec_x;
-  using Vec_z = typename BaseI::Vec_z;
-  using Vec_u = typename BaseI::Vec_u;
+  using Vec_x = typename EKFI::Vec_x;
+  using Vec_z = typename EKFI::Vec_z;
+  using Vec_u = typename EKFI::Vec_u;
 
-  using Mat_xx = typename BaseI::Mat_xx;
-  using Mat_xz = typename BaseI::Mat_xz;
+  using Mat_xx = typename EKFI::Mat_xx;
+  using Mat_xz = typename EKFI::Mat_xz;
 
-  using Mat_zx = typename BaseI::Mat_zx;
-  using Mat_zz = typename BaseI::Mat_zz;
-  using Mat_zw = typename BaseI::Mat_zw;
+  using Mat_zx = typename EKFI::Mat_zx;
+  using Mat_zz = typename EKFI::Mat_zz;
+  using Mat_zw = typename EKFI::Mat_zw;
 
-  using Mat_ww = typename BaseI::Mat_ww;
+  using Mat_ww = typename EKFI::Mat_ww;
 
-  using Gauss_x = typename BaseI::Gauss_x;
-  using Gauss_z = typename BaseI::Gauss_z;
+  using Gauss_x = typename EKFI::Gauss_x;
+  using Gauss_z = typename EKFI::Gauss_z;
 
   /** Construct a new EKF object
    * @param dynamic_model Dynamic model (optional)
@@ -194,7 +194,7 @@ private:
  * @tparam DynModT Dynamic model type.
  * @tparam SensModT Sensor model type.
  */
-template <typename DynModT, typename SensModT> using EKF_M = EKF<DynModT::N_DIM_x, SensModT::N_DIM_z, DynModT::N_DIM_u, DynModT::N_DIM_v, SensModT::N_DIM_w>;
+template <typename DynModT, typename SensModT> using EKF_M = EKF<DynModT::DynModI::N_DIM_x, SensModT::SensModI::N_DIM_z, DynModT::DynModI::N_DIM_u, DynModT::DynModI::N_DIM_v, SensModT::SensModI::N_DIM_w>;
 
 } // namespace filter
 } // namespace vortex

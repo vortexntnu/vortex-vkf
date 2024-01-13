@@ -11,6 +11,7 @@
 #pragma once
 #include <eigen3/Eigen/Dense>
 #include <random>
+#include <memory>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
 namespace vortex {
@@ -94,6 +95,8 @@ protected:
  */
 template <int n_dim_x, int n_dim_z, int n_dim_w = n_dim_z> class SensorModelI : public SensorModelX {
 public:
+  using SensModI = SensorModelI<n_dim_x, n_dim_z, n_dim_w>;
+
   static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
   static constexpr int N_DIM_z = n_dim_z; // Declare so that children of this class can reference it
   static constexpr int N_DIM_w = n_dim_w; // Declare so that children of this class can reference it
@@ -115,6 +118,8 @@ public:
   using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
   using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
   using Gauss_w = prob::MultiVarGauss<N_DIM_w>;
+
+  using SharedPtr = std::shared_ptr<SensModI>;
 
   SensorModelI() : SensorModelX(N_DIM_x, N_DIM_z, N_DIM_w) {}
   virtual ~SensorModelI() = default;
@@ -178,24 +183,24 @@ private:
  */
 template <int n_dim_x, int n_dim_z, int n_dim_w = n_dim_z> class SensorModelLTV : public SensorModelI<n_dim_x, n_dim_z, n_dim_z> {
 public:
-  using BaseI                  = SensorModelI<n_dim_x, n_dim_z, n_dim_w>;
-  static constexpr int N_DIM_x = BaseI::N_DIM_x; // Declare so that children of this class can reference it
-  static constexpr int N_DIM_z = BaseI::N_DIM_z; // Declare so that children of this class can reference it
-  static constexpr int N_DIM_w = BaseI::N_DIM_w; // Declare so that children of this class can reference it
+  using DynModI                  = SensorModelI<n_dim_x, n_dim_z, n_dim_w>;
+  static constexpr int N_DIM_x = DynModI::N_DIM_x; // Declare so that children of this class can reference it
+  static constexpr int N_DIM_z = DynModI::N_DIM_z; // Declare so that children of this class can reference it
+  static constexpr int N_DIM_w = DynModI::N_DIM_w; // Declare so that children of this class can reference it
 
-  using Vec_z = typename BaseI::Vec_z;
-  using Vec_x = typename BaseI::Vec_x;
-  using Vec_w = typename BaseI::Vec_w;
+  using Vec_z = typename DynModI::Vec_z;
+  using Vec_x = typename DynModI::Vec_x;
+  using Vec_w = typename DynModI::Vec_w;
 
-  using Mat_xx = typename BaseI::Mat_xx;
-  using Mat_zx = typename BaseI::Mat_zx;
-  using Mat_zz = typename BaseI::Mat_zz;
-  using Mat_zw = typename BaseI::Mat_zw;
+  using Mat_xx = typename DynModI::Mat_xx;
+  using Mat_zx = typename DynModI::Mat_zx;
+  using Mat_zz = typename DynModI::Mat_zz;
+  using Mat_zw = typename DynModI::Mat_zw;
 
-  using Mat_ww = typename BaseI::Mat_ww;
+  using Mat_ww = typename DynModI::Mat_ww;
 
-  using Gauss_x = typename BaseI::Gauss_x;
-  using Gauss_z = typename BaseI::Gauss_z;
+  using Gauss_x = typename DynModI::Gauss_x;
+  using Gauss_z = typename DynModI::Gauss_z;
 
   virtual ~SensorModelLTV() = default;
   /** Sensor Model

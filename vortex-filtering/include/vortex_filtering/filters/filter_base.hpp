@@ -100,8 +100,8 @@ public:
 
   using DynModI     = models::interface::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
   using SensModI    = models::interface::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
-  using DynModIPtr  = std::shared_ptr<DynModI>;
-  using SensModIPtr = std::shared_ptr<SensModI>;
+  using DynModIPtr  = typename DynModI::SharedPtr;
+  using SensModIPtr = typename SensModI::SharedPtr;
 
   /** @brief Static size dimension Kalman filter constructor.
    * @tparam n_dim_x State dimension.

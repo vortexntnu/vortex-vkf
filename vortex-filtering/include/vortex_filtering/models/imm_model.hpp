@@ -14,41 +14,40 @@
 #include <tuple>
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 
-namespace vortex {
-namespace models {
+namespace vortex::models {
+// namespace models {
 
 /**
  * @brief Container class for interacting multiple models.
  * @tparam DynModels Dynamic models to use.
- * @note The models must have a BaseI typedef specifying the base interface (e.g. `using BaseI = ...`).
- * @note Alternatively the corresponding `DynamicModelI` parent class can be passed instead.
+ * @note The models must have a `DynModI` typedef specifying the base interface (e.g. `using DynModI = ...`).
  */
 template <typename... DynModels> class ImmModel {
 public:
   using DynModTuple    = std::tuple<DynModels...>;
   using DynModPtrTuple = std::tuple<std::shared_ptr<DynModels>...>;
-  using Gauss_xTuple   = std::tuple<typename DynModels::BaseI::Gauss_x...>;
 
-  static constexpr int N_MODELS = std::tuple_size<DynModPtrTuple>::value;
+  static constexpr size_t N_MODELS = sizeof...(DynModels);
 
   using Vec_n     = Eigen::Vector<double, N_MODELS>;
-  using Vec_n_row = Eigen::RowVector<double, N_MODELS>;
   using Mat_nn    = Eigen::Matrix<double, N_MODELS, N_MODELS>;
 
-  template <size_t i> using DynModT = typename std::tuple_element<i, DynModPtrTuple>::type;
-  template <size_t i> using BaseI   = typename std::tuple_element<i, DynModTuple>::type::BaseI; // Get the base interface of the i'th model
-  template <size_t i> using Vec_x   = typename BaseI<i>::Vec_x;
-  template <size_t i> using Vec_u   = typename BaseI<i>::Vec_u;
-  template <size_t i> using Vec_v   = typename BaseI<i>::Vec_v;
-  template <size_t i> using Mat_xx  = typename BaseI<i>::Mat_xx;
+  template <size_t i> using DynModI  = typename std::tuple_element<i, DynModTuple>::type::DynModI; // Get the base interface of the i'th model
+  template <size_t i> using Vec_x  = typename DynModI<i>::Vec_x;
+  template <size_t i> using Vec_u  = typename DynModI<i>::Vec_u;
+  template <size_t i> using Vec_v  = typename DynModI<i>::Vec_v;
+  template <size_t i> using Mat_xx = typename DynModI<i>::Mat_xx;
+
+  template <size_t i> using DynModT    = typename std::tuple_element<i, DynModTuple>::type;
+  template <size_t i> using DynModTPtr = typename std::shared_ptr<DynModT<i>>;
 
   /**
    * @brief Construct a new Imm Model object
-   * @tparam Models Dynamic models to use. The models must have a BaseI typedef specifying the base interface (e.g. `using BaseI = ...`).
+   * @tparam Models Dynamic models to use. The models must have a DynModI typedef specifying the base interface (e.g. `using DynModI = ...`).
    * Alternatively the corresponding `DynamicModelI` parent class can be passed instead.
-   * @param models Models to use. The models must have a BaseI typedef specifying the base interface.
+   * @param models Models to use. The models must have a DynModI typedef specifying the base interface.
    * @param jump_matrix Markov jump chain matrix for the transition probabilities.
-   * I.e. the probability of switching from model i to model j is jump_matrix(i,j). Diagonal should be 0.
+   * I.e. the probability of switching from model i to model j is `jump_matrix(i,j)`. Diagonal should be 0.
    * @param hold_times Expected holding time for each state. Parameter is the mean of an exponential distribution.
    * @note The jump matrix specifies the probability of switching to a model WHEN a switch occurs.
    * @note The holding times specifies HOW LONG a state is expected to be held between switches.
@@ -96,14 +95,14 @@ public:
    * @brief Get the dynamic models
    * @return Reference to tuple of shared pointers to dynamic models
    */
-  DynModPtrTuple &get_models() const { return models_; }
+  const DynModPtrTuple &get_models() const { return models_; }
 
   /**
    * @brief Get specific dynamic model
    * @tparam i Index of model
    * @return ModelT<i> shared pointer to model
    */
-  template <size_t i> DynModT<i> get_model() const { return std::get<i>(models_); }
+  template <size_t i> DynModTPtr<i> get_model() const { return std::get<i>(models_); }
 
   /**
    * @brief f_d of specific dynamic model
@@ -132,7 +131,7 @@ public:
    * @brief Get the number of dimensions for the state vector of each dynamic model
    * @return std::array<int, N_MODELS>
    */
-  static constexpr std::array<int, N_MODELS> get_n_dim_x() { return {DynModels::BaseI::N_DIM_x...}; }
+  static constexpr std::array<int, N_MODELS> get_n_dim_x() { return {DynModels::DynModI::N_DIM_x...}; }
 
 private:
   const DynModPtrTuple models_;
@@ -140,5 +139,5 @@ private:
   const Vec_n hold_times_;
 };
 
-} // namespace models
-} // namespace vortex
+
+} // namespace vortex::models

@@ -4,10 +4,10 @@
 
 class SimpleDynamicModel : public vortex::models::interface::DynamicModelCTLTV<2> {
 public:
-  using BaseI = vortex::models::interface::DynamicModelI<2>;
-  using typename BaseI::Mat_xx;
-  using typename BaseI::Vec_x;
-  constexpr static int N_DIM_x = BaseI::N_DIM_x;
+  using DynModI = vortex::models::interface::DynamicModelI<2>;
+  using typename DynModI::Mat_xx;
+  using typename DynModI::Vec_x;
+  constexpr static int N_DIM_x = DynModI::N_DIM_x;
 
   Mat_xx A_c(const Vec_x & = Vec_x::Zero()) const override { return -Mat_xx::Identity(); }
 
@@ -39,13 +39,13 @@ private:
 // https://en.wikipedia.org/wiki/Lorenz_system
 class LorenzAttractorCT : public vortex::models::interface::DynamicModelCT<3> {
 public:
-  using BaseI = vortex::models::interface::DynamicModelI<3>;
-  using typename BaseI::Vec_u;
-  using typename BaseI::Vec_v;
-  using typename BaseI::Vec_x;
+  using DynModI = vortex::models::interface::DynamicModelI<3>;
+  using typename DynModI::Vec_u;
+  using typename DynModI::Vec_v;
+  using typename DynModI::Vec_x;
 
-  using typename BaseI::Mat_vv;
-  using typename BaseI::Mat_xx;
+  using typename DynModI::Mat_vv;
+  using typename DynModI::Mat_xx;
 
   LorenzAttractorCT(double std_dev) : cov_(std_dev * std_dev), sigma_(10.0), beta_(8.0 / 3.0), rho_(28.0) {}
 
@@ -68,14 +68,14 @@ private:
 
 class LorenzAttractorCTLTV : public vortex::models::interface::DynamicModelCTLTV<3> {
 public:
-  using BaseI = vortex::models::interface::DynamicModelI<3>;
-  using typename BaseI::Vec_u;
-  using typename BaseI::Vec_v;
-  using typename BaseI::Vec_x;
+  using DynModI = vortex::models::interface::DynamicModelI<3>;
+  using typename DynModI::Vec_u;
+  using typename DynModI::Vec_v;
+  using typename DynModI::Vec_x;
 
-  using typename BaseI::Mat_vv;
-  using typename BaseI::Mat_xv;
-  using typename BaseI::Mat_xx;
+  using typename DynModI::Mat_vv;
+  using typename DynModI::Mat_xv;
+  using typename DynModI::Mat_xx;
 
   LorenzAttractorCTLTV(double std_dev) : cov_(std_dev * std_dev), sigma_(10.0), beta_(8.0 / 3.0), rho_(28.0) {}
 

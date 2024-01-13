@@ -25,25 +25,37 @@ namespace prob {
 template <int n_dims> class GaussianMixture {
 public:
   using Vec_n   = Eigen::Vector<double, n_dims>;
-  using Mat_n   = Eigen::Matrix<double, n_dims, n_dims>;
+  using Mat_nn  = Eigen::Matrix<double, n_dims, n_dims>;
   using Gauss_n = MultiVarGauss<n_dims>;
-
-  struct Component {
-    double weight;
-    Gauss_n gaussian;
-  };
 
   /** Construct a new Gaussian Mixture object
    * @param weights Weights of the Gaussians
    * @param gaussians Gaussians
-   * @note The weights are automatically normalized, so they do not need to sum to 1.
+   * @note The weights are automatically normalized, so they don't need to sum to 1.
    */
   GaussianMixture(Eigen::VectorXd weights, std::vector<Gauss_n> gaussians) : weights_(std::move(weights)), gaussians_(std::move(gaussians)) {}
+
+  /** Construct a new Gaussian Mixture object from a std::vector of weights
+   * @param weights Weights of the Gaussians
+   * @param gaussians Gaussians
+   * @note The weights are automatically normalized, so they don't need to sum to 1.
+   */
   GaussianMixture(std::vector<double> weights, std::vector<Gauss_n> gaussians)
       : weights_(Eigen::Map<Eigen::VectorXd>(weights.data(), weights.size())), gaussians_(std::move(gaussians))
   {
   }
+
+  /** Default Constructor
+   * weights and gaussians are empty
+  */
   GaussianMixture() = default;
+
+  /***/
+  /** Copy Constructor
+   * @param gaussian_mixture
+   */
+  GaussianMixture(const GaussianMixture &gaussian_mixture) : weights_(gaussian_mixture.weights_), gaussians_(gaussian_mixture.gaussians_) {}
+
   /** Calculate the probability density function of x given the Gaussian mixture
    * @param x
    * @return double
@@ -52,7 +64,7 @@ public:
   {
     double pdf = 0;
     for (int i = 0; i < num_components(); i++) {
-      pdf += weight(i) * gaussian(i).pdf(x);
+      pdf += get_weight(i) * gaussian(i).pdf(x);
     }
     pdf /= sum_weights();
     return pdf;
@@ -64,8 +76,8 @@ public:
   Vec_n mean() const
   {
     Vec_n mean = Vec_n::Zero();
-    for (int i = 0; i < gaussians_.size(); i++) {
-      mean += weight(i) * gaussian(i).mean();
+    for (size_t i = 0; i < gaussians_.size(); i++) {
+      mean += get_weight(i) * gaussian(i).mean();
     }
     mean /= sum_weights();
     return mean;
@@ -74,20 +86,20 @@ public:
   /** Find the covariance of the Gaussian mixture
    * @return Matrix
    */
-  Mat_n cov() const
+  Mat_nn cov() const
   {
     // Spread of innovations
-    Mat_n P_bar = Mat_n::Zero();
+    Mat_nn P_bar = Mat_nn::Zero();
     for (int i = 0; i < num_components(); i++) {
-      P_bar += weight(i) * gaussian(i).mean() * gaussian(i).mean().transpose();
+      P_bar += get_weight(i) * gaussian(i).mean() * gaussian(i).mean().transpose();
     }
     P_bar /= sum_weights();
     P_bar -= mean() * mean().transpose();
 
     // Spread of Gaussians
-    Mat_n P = Mat_n::Zero();
+    Mat_nn P = Mat_nn::Zero();
     for (int i = 0; i < num_components(); i++) {
-      P += weight(i) * gaussian(i).cov();
+      P += get_weight(i) * gaussian(i).cov();
     }
     P /= sum_weights();
     return P + P_bar;
@@ -101,13 +113,19 @@ public:
   /** Get the weights of the Gaussian mixture
    * @return Eigen::VectorXd
    */
-  Eigen::VectorXd weights() const { return weights_; }
+  const Eigen::VectorXd& weights() const { return weights_; }
 
   /** Get the weight of the i'th Gaussian
    * @param i index
    * @return double
    */
-  double weight(int i) const { return weights_(i); }
+  double get_weight(size_t i) const { return weights_(i); }
+
+  /** Set the weight of the i'th Gaussian
+   * @param i index
+   * @param weight 
+   */
+  void set_weight(size_t i, double weight) { weights_(i) = weight; }
 
   /** Get the sum of the weights
    * @return double
@@ -117,13 +135,13 @@ public:
   /** Get the Gaussians of the Gaussian mixture
    * @return std::vector<Gauss_n>
    */
-  std::vector<Gauss_n> gaussians() const { return gaussians_; }
+  const std::vector<Gauss_n>& gaussians() const { return gaussians_; }
 
   /** Get the i'th Gaussian
    * @param i index
    * @return Gauss_n
    */
-  Gauss_n gaussian(int i) const { return gaussians_[i]; }
+  const Gauss_n& gaussian(size_t i) const { return gaussians_.at(i); }
 
   /** Get the number of Gaussians in the mixture
    * @return int
@@ -155,32 +173,11 @@ private:
   const std::vector<Gauss_n> gaussians_;
 };
 
-template <int n_dims> GaussianMixture<n_dims> operator+(const GaussianMixture<n_dims> &lhs, const GaussianMixture<n_dims> &rhs)
-{
-  std::vector<double> weights = lhs.weights();
-  weights.insert(weights.end(), rhs.weights().begin(), rhs.weights().end());
-  std::vector<MultiVarGauss<n_dims>> gaussians = lhs.gaussians();
-  gaussians.insert(gaussians.end(), rhs.gaussians().begin(), rhs.gaussians().end());
-  return GaussianMixture<n_dims>(weights, gaussians);
-}
-
-template <int n_dims> GaussianMixture<n_dims> operator*(double weight, const GaussianMixture<n_dims> &rhs)
-{
-  std::vector<double> weights = rhs.weights();
-  for (int i = 0; i < weights.size(); i++) {
-    weights[i] *= weight;
-  }
-  return GaussianMixture<n_dims>(weights, rhs.gaussians());
-}
-
-template <int n_dims> GaussianMixture<n_dims> operator*(const GaussianMixture<n_dims> &lhs, double weight) { return weight * lhs; }
-
-template <int n_dims> GaussianMixture<n_dims> operator*(double weight, const MultiVarGauss<n_dims> &rhs)
-{
-  return weight * GaussianMixture<n_dims>({1}, {rhs});
-}
-
-template <int n_dims> GaussianMixture<n_dims> operator*(const MultiVarGauss<n_dims> &lhs, double weight) { return weight * lhs; }
+template <int n_dims>
+using GaussMix = GaussianMixture<n_dims>;
+using GaussMix2d = GaussMix<2>;
+using GaussMix3d = GaussMix<3>;
+using GaussMix4d = GaussMix<4>;
 
 } // namespace prob
 } // namespace vortex

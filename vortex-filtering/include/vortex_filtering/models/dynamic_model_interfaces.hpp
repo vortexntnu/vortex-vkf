@@ -10,6 +10,7 @@
 #include <eigen3/unsupported/Eigen/MatrixFunctions> // For exp
 #include <functional>
 #include <random>
+#include <memory>
 #include <vortex_filtering/numerical_integration/erk_methods.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
@@ -79,7 +80,7 @@ public:
   static constexpr int N_DIM_v = n_dim_v;
 
   using BaseX = DynamicModelX;
-  using BaseI = DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
+  using DynModI = DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
 
   using Vec_x = Eigen::Vector<double, N_DIM_x>;
   using Vec_u = Eigen::Vector<double, N_DIM_u>;
@@ -99,6 +100,8 @@ public:
 
   using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
   using Gauss_v = prob::MultiVarGauss<N_DIM_v>;
+
+  using SharedPtr = std::shared_ptr<DynModI>;
 
   DynamicModelI() : DynamicModelX(N_DIM_x, N_DIM_u, N_DIM_v) {}
   virtual ~DynamicModelI() = default;
@@ -185,30 +188,30 @@ private:
  */
 template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelCT : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using BaseI                  = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
-  static constexpr int N_DIM_x = BaseI::N_DIM_x;
-  static constexpr int N_DIM_u = BaseI::N_DIM_u;
-  static constexpr int N_DIM_v = BaseI::N_DIM_v;
+  using DynModI                  = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
+  static constexpr int N_DIM_x = DynModI::N_DIM_x;
+  static constexpr int N_DIM_u = DynModI::N_DIM_u;
+  static constexpr int N_DIM_v = DynModI::N_DIM_v;
 
-  using Vec_x = typename BaseI::Vec_x;
-  using Vec_u = typename BaseI::Vec_u;
-  using Vec_v = typename BaseI::Vec_v;
+  using Vec_x = typename DynModI::Vec_x;
+  using Vec_u = typename DynModI::Vec_u;
+  using Vec_v = typename DynModI::Vec_v;
 
-  using Mat_xx = typename BaseI::Mat_xx;
-  using Mat_xu = typename BaseI::Mat_xu;
-  using Mat_xv = typename BaseI::Mat_xv;
+  using Mat_xx = typename DynModI::Mat_xx;
+  using Mat_xu = typename DynModI::Mat_xu;
+  using Mat_xv = typename DynModI::Mat_xv;
 
-  using Mat_uu = typename BaseI::Mat_uu;
-  using Mat_vv = typename BaseI::Mat_vv;
+  using Mat_uu = typename DynModI::Mat_uu;
+  using Mat_vv = typename DynModI::Mat_vv;
 
   using Dyn_mod_func = std::function<Vec_x(double t, const Vec_x &x)>;
 
   /** Continuous Time Dynamic Model Interface
    * @tparam n_dim_x  State dimension
-   * @tparam n_dim_u  Input dimension
-   * @tparam n_dim_v  Process noise dimension
+   * @tparam n_dim_u  Input dimension (Default: n_dim_x)
+   * @tparam n_dim_v  Process noise dimension (Default: n_dim_x)
    */
-  DynamicModelCT() : BaseI() {}
+  DynamicModelCT() : DynModI() {}
   virtual ~DynamicModelCT() = default;
 
   /** Continuous time dynamics
@@ -245,8 +248,8 @@ protected:
 
 /** Linear Time Variant Dynamic Model Interface. [x_k+1 = f_d = A_k*x_k + B_k*u_k + G_k*v_k]
  * @tparam n_dim_x  State dimension
- * @tparam n_dim_u  Input dimension
- * @tparam n_dim_v  Process noise dimension
+ * @tparam n_dim_u  Input dimension (Default: n_dim_x)
+ * @tparam n_dim_v  Process noise dimension (Default: n_dim_x)
  * @note To derive from this class, you must override the following virtual functions:
  * @note - f_d (optional)
  * @note - A_d
@@ -254,31 +257,31 @@ protected:
  * @note - Q_d
  * @note - G_d (optional if n_dim_x == n_dim_v)
  */
-template <int n_dim_x, int n_dim_u, int n_dim_v> class DynamicModelLTV : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
+template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelLTV : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using BaseI                  = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
+  using DynModI                  = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
   static constexpr int N_DIM_x = n_dim_x;
   static constexpr int N_DIM_u = n_dim_u;
   static constexpr int N_DIM_v = n_dim_v;
 
-  using Vec_x = typename BaseI::Vec_x;
-  using Vec_u = typename BaseI::Vec_u;
-  using Vec_v = typename BaseI::Vec_v;
+  using Vec_x = typename DynModI::Vec_x;
+  using Vec_u = typename DynModI::Vec_u;
+  using Vec_v = typename DynModI::Vec_v;
 
-  using Mat_xx = typename BaseI::Mat_xx;
-  using Mat_xu = typename BaseI::Mat_xu;
-  using Mat_xv = typename BaseI::Mat_xv;
+  using Mat_xx = typename DynModI::Mat_xx;
+  using Mat_xu = typename DynModI::Mat_xu;
+  using Mat_xv = typename DynModI::Mat_xv;
 
-  using Mat_uu = typename BaseI::Mat_uu;
-  using Mat_vv = typename BaseI::Mat_vv;
+  using Mat_uu = typename DynModI::Mat_uu;
+  using Mat_vv = typename DynModI::Mat_vv;
 
   using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
   using Gauss_v = prob::MultiVarGauss<N_DIM_v>;
 
   /** Linear Time Variant Dynamic Model Interface. [x_k+1 = f_d = A_k*x_k + B_k*u_k + G_k*v_k]
    * @tparam n_dim_x  State dimension
-   * @tparam n_dim_u  Input dimension
-   * @tparam n_dim_v  Process noise dimension
+   * @tparam n_dim_u  Input dimension (Default: n_dim_x)
+   * @tparam n_dim_v  Process noise dimension (Default: n_dim_x)
    * @note To derive from this class, you must override the following virtual functions:
    * @note - f_d (optional)
    * @note - A_d
@@ -286,7 +289,7 @@ public:
    * @note - Q_d
    * @note - G_d (optional if n_dim_x == n_dim_v)
    */
-  DynamicModelLTV() : BaseI() {}
+  DynamicModelLTV() : DynModI() {}
   virtual ~DynamicModelLTV() = default;
 
   /** Discrete time dynamics
@@ -333,13 +336,11 @@ public:
    * @param dt Time step
    * @param x Vec_x State
    */
-  virtual Mat_xv G_d(double dt, const Vec_x &x) const
+  virtual Mat_xv G_d(double, const Vec_x &) const
   {
     if (N_DIM_x != N_DIM_v) {
       throw std::runtime_error("G_d not implemented");
     }
-    (void)dt; // unused
-    (void)x;  // unused
     return Mat_xv::Identity();
   }
 
@@ -398,23 +399,23 @@ protected:
  */
 template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelCTLTV : public DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using BaseI                  = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
+  using DynModI                  = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
   static constexpr int N_DIM_x = n_dim_x;
   static constexpr int N_DIM_u = n_dim_u;
   static constexpr int N_DIM_v = n_dim_v;
 
-  using Vec_x = typename BaseI::Vec_x;
-  using Vec_u = typename BaseI::Vec_u;
-  using Vec_v = typename BaseI::Vec_v;
+  using Vec_x = typename DynModI::Vec_x;
+  using Vec_u = typename DynModI::Vec_u;
+  using Vec_v = typename DynModI::Vec_v;
 
-  using Mat_xx = typename BaseI::Mat_xx;
-  using Mat_xu = typename BaseI::Mat_xu;
-  using Mat_xv = typename BaseI::Mat_xv;
+  using Mat_xx = typename DynModI::Mat_xx;
+  using Mat_xu = typename DynModI::Mat_xu;
+  using Mat_xv = typename DynModI::Mat_xv;
 
-  using Mat_ux = typename BaseI::Mat_ux;
-  using Mat_uu = typename BaseI::Mat_uu;
-  using Mat_vv = typename BaseI::Mat_vv;
-  using Mat_vx = typename BaseI::Mat_vx;
+  using Mat_ux = typename DynModI::Mat_ux;
+  using Mat_uu = typename DynModI::Mat_uu;
+  using Mat_vv = typename DynModI::Mat_vv;
+  using Mat_vx = typename DynModI::Mat_vx;
 
   /** Continuous Time Linear Time Varying Dynamic Model Interface. [x_dot = A_c*x + B_c*u + G_c*v]
    * @tparam n_dim_x  State dimension
