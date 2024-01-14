@@ -77,17 +77,16 @@ public:
   using Mat_a2ap1 = Eigen::Matrix<double, N_DIM_a, 2 * N_DIM_a + 1>; // Matrix for sigma points of a
 
   /** Unscented Kalman Filter
-   * @param alpha Parameter for spread of sigma points (default 1.0)
-   * @param beta Parameter for weighting of mean in covariance calculation (default 2.0)
-   * @param kappa Parameter for adding additional spread to sigma points (default 0.0)
    * @tparam n_dim_x Dimension of state vector
    * @tparam n_dim_z Dimension of measurement vector
    * @tparam n_dim_u Dimension of control input vector (default n_dim_x)
    * @tparam n_dim_v Dimension of process noise vector (default n_dim_x)
    * @tparam n_dim_w Dimension of measurement noise vector (default n_dim_z)
+   * @param alpha Parameter for spread of sigma points (default 1.0)
+   * @param beta Parameter for weighting of mean in covariance calculation (default 2.0)
+   * @param kappa Parameter for adding additional spread to sigma points (default 0.0)
    */
-  UKF(double alpha = 1.0, double beta = 2.0, double kappa = 0.0)
-      : dynamic_model_(dynamic_model), sensor_model_(sensor_model), ALPHA_(alpha), BETA_(beta), KAPPA_(kappa)
+  UKF(double alpha = 1.0, double beta = 2.0, double kappa = 0.0) : ALPHA_(alpha), BETA_(beta), KAPPA_(kappa)
   {
     // Parameters for UKF
     LAMBDA_ = ALPHA_ * ALPHA_ * (N_DIM_a + KAPPA_) - N_DIM_a;
@@ -112,7 +111,7 @@ private:
    * @param x_est Gauss_x State estimate
    * @return Mat_a2ap1 sigma_points
    */
-  Mat_a2ap1 get_sigma_points(DynModIPtr dyn_mod, SensModIPtr sens_mod, double dt, const Gauss_x &x_est) const
+  Mat_a2ap1 get_sigma_points(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est) const
   {
     Mat_xx P = x_est.cov();
     Mat_vv Q = dyn_mod->Q_d(dt, x_est.mean());
@@ -147,7 +146,7 @@ private:
    * @param u Vec_u Control input
    * @return Mat_x2ap1 sigma_x_pred
    */
-  Mat_x2ap1 propagate_sigma_points_f(DynModIPtr dyn_mod, double dt, const Mat_a2ap1 &sigma_points, const Vec_u &u = Vec_u::Zero()) const
+  Mat_x2ap1 propagate_sigma_points_f(const DynModIPtr &dyn_mod, double dt, const Mat_a2ap1 &sigma_points, const Vec_u &u = Vec_u::Zero()) const
   {
     Eigen::Matrix<double, N_DIM_x, 2 * N_DIM_a + 1> sigma_x_pred;
     for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
@@ -163,7 +162,7 @@ private:
    * @param sigma_points Mat_a2ap1 Sigma points
    * @return Mat_z2ap1 sigma_z_pred
    */
-  Mat_z2ap1 propagate_sigma_points_h(SensModIPtr sens_mod, const Mat_a2ap1 &sigma_points) const
+  Mat_z2ap1 propagate_sigma_points_h(const SensModIPtr &sens_mod, const Mat_a2ap1 &sigma_points) const
   {
     Mat_z2ap1 sigma_z_pred;
     for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
@@ -203,7 +202,7 @@ public:
    * @param u Vec_u Control input
    * @return std::pair<Gauss_x, Gauss_z> Predicted state estimate, predicted measurement estimate
    */
-  std::pair<Gauss_x, Gauss_z> predict(DynModIPtr dyn_mod, SensModIPtr sens_mod, double dt, const Gauss_x &x_est_prev,
+  std::pair<Gauss_x, Gauss_z> predict(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
                                       const Vec_u &u = Vec_u::Zero()) const override
   {
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_prev);
@@ -228,7 +227,7 @@ public:
    * @return Gauss_x Updated state estimate
    * @note Sigma points are generated from the predicted state estimate instead of the previous state estimate as is done in the 'step' method.
    */
-  Gauss_x update(DynModIPtr dyn_mod, SensModIPtr sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas) const override
+  Gauss_x update(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas) const override
   {
     // Generate sigma points from the predicted state estimate
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, 0.0, x_est_pred);
@@ -266,7 +265,7 @@ public:
    * @param u Vec_u Control input
    * @return std::tuple<Gauss_x, Gauss_x, Gauss_z> Updated state estimate, predicted state estimate, predicted measurement estimate
    */
-  std::tuple<Gauss_x, Gauss_x, Gauss_z> step(DynModIPtr dyn_mod, SensModIPtr sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas,
+  std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas,
                                              const Vec_u &u) const override
   {
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_prev);

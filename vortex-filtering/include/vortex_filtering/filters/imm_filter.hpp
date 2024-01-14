@@ -59,7 +59,7 @@ public:
 
   /**
    * Calculates the mixing probabilities for the IMM filter, following step 1 in (6.4.1) in the book.
-   *
+   * @param imm_model The IMM model.
    * @param model_weights The weights (mode probabilities) from the previous time step.
    * @param dt The time step.
    * @return The mixing probabilities. Each element is mixing_probs[s_{k-1}, s_k] = mu_{s_{k-1}|s_k} where s is the index of the model.
@@ -96,6 +96,8 @@ public:
 
   /**
    * @brief Calculate the Kalman filter outputs for each mode (6.36), following step 3 in (6.4.1) in the book
+   * @param imm_model The IMM model.
+   * @param sensor_model The sensor model.
    * @param dt double Time step
    * @param moment_based_preds Moment-based predictions
    * @param z_meas Vec_z Measurement
@@ -105,9 +107,19 @@ public:
                                                                         double dt, const std::vector<Gauss_x> &moment_based_preds,
                                                                         const Vec_z &z_meas)
   {
-    return mode_matched_filter_impl(imm_model, sensor_model, dt, moment_based_preds, z_meas, std::make_index_sequence<ImmModelT::N_MODELS>{});
+    return mode_matched_filter_impl(imm_model, sensor_model, dt, moment_based_preds, z_meas, std::make_index_sequence<N_MODELS>{});
   }
 
+  /**
+   * @brief Calculate the Kalman filter outputs for one mode
+   * @tparam i Index of model
+   * @param imm_model The IMM model.
+   * @param sensor_model The sensor model.
+   * @param dt double Time step
+   * @param x_est_prev Moment-based prediction
+   * @param z_meas Vec_z Measurement
+   * @return Tuple of updated state, predicted state, predicted measurement
+   */
   template <size_t i> std::tuple<Gauss_x, Gauss_x, Gauss_z> step_kalman_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model,
                                                                                double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas)
   {
@@ -122,6 +134,7 @@ public:
   /**
    * @brief Update the mode probabilites based on how well the predictions matched the measurements.
    * Using (6.37) from step 3 and (6.38) from step 4 in (6.4.1) in the book
+   * @param imm_model The IMM model.
    * @param dt double Time step
    * @param z_preds Mode-match filter outputs
    * @param z_meas Vec_z Measurement
@@ -165,8 +178,8 @@ private:
 
   template <size_t... Is>
   std::tuple<Vec_Gauss_x, Vec_Gauss_x, Vec_Gauss_z>
-  mode_matched_filter_impl(const ImmModelT &imm_model, const SensModTPtr &sensor_model,
-                           double dt, const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas, std::index_sequence<Is...>)
+  mode_matched_filter_impl(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt, 
+                           const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas, std::index_sequence<Is...>)
   {
 
     // Calculate mode-matched filter outputs and save them in a vector of tuples

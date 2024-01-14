@@ -78,7 +78,7 @@ public:
    * @throws std::runtime_error if dyn_mod or sens_mod are not of the DynamicModelT or SensorModelT type
    * @note Overridden from interface::KalmanFilter
    */
-  std::pair<Gauss_x, Gauss_z> predict(DynModIPtr dyn_mod, SensModIPtr sens_mod, double dt, const Gauss_x &x_est_prev,
+  std::pair<Gauss_x, Gauss_z> predict(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
                                       const Vec_u &u = Vec_u::Zero()) const override
   {
     // cast to dynamic model type to access pred_from_est
@@ -101,7 +101,7 @@ public:
    * @throws std::runtime_error ifsens_mod is not of the SensorModelT type
    * @note Overridden from interface::KalmanFilter
    */
-  Gauss_x update(DynModIPtr, SensModIPtr sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas) const override
+  Gauss_x update(DynModIPtr, const SensModIPtr &sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas) const override
   {
     // cast to sensor model type
     auto sens_model = std::dynamic_pointer_cast<SensModEKF>(sens_mod);
@@ -132,7 +132,7 @@ public:
    * @return Updated state, predicted state, predicted measurement
    * @note Overridden from interface::KalmanFilter
    */
-  std::tuple<Gauss_x, Gauss_x, Gauss_z> step(DynModIPtr dyn_mod, SensModIPtr sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas,
+  std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas,
                                              const Vec_u &u = Vec_u::Zero()) const override
   {
     std::pair<Gauss_x, Gauss_z> pred = predict(dyn_mod, sens_mod, dt, x_est_prev, u);
@@ -149,7 +149,11 @@ public:
  * @tparam SensModT Sensor model type.
  */
 template <typename DynModT, typename SensModT>
-using EKF_M = EKF<DynModT::DynModI::N_DIM_x, SensModT::SensModI::N_DIM_z, DynModT::DynModI::N_DIM_u, DynModT::DynModI::N_DIM_v, SensModT::SensModI::N_DIM_w>;
+using EKF_M = EKF<DynModT::DynModI::N_DIM_x, 
+                  SensModT::SensModI::N_DIM_z, 
+                  DynModT::DynModI::N_DIM_u, 
+                  DynModT::DynModI::N_DIM_v, 
+                  SensModT::SensModI::N_DIM_w>;
 
 } // namespace filter
 } // namespace vortex
