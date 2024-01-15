@@ -99,7 +99,7 @@ public:
   using Gauss_w = prob::MultiVarGauss<N_DIM_w>;
 
   using DynModI     = models::interface::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
-  using SensModI    = models::interface::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
+  using SensModI    = models::interface::SensorModel<N_DIM_x, N_DIM_z, N_DIM_w>;
   using DynModIPtr  = typename DynModI::SharedPtr;
   using SensModIPtr = typename SensModI::SharedPtr;
 

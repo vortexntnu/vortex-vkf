@@ -41,7 +41,7 @@ TEST(DynamicModel, sampleSimpleModel)
   std::random_device rd;
   std::mt19937 gen(rd());
 
-  std::vector<Eigen::VectorXd> samples;
+  std::vector<Vec_x> samples;
   for (size_t i = 0; i < 10000; i++) {
     samples.push_back(model.sample_f_d(dt, x, Vec_x::Zero(), gen));
   }

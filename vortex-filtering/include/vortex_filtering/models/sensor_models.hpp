@@ -68,7 +68,7 @@ private:
  */
 class RangeBearingSensor : public interface::SensorModelLTV<2, 2> {
 public:
-  using SensModI = interface::SensorModelI<2, 2>;
+  using SensModI = interface::SensorModel<2, 2>;
   using typename SensModI::Mat_xx;
   using typename SensModI::Mat_zx;
   using typename SensModI::Mat_zz;

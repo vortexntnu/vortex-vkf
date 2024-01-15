@@ -26,14 +26,14 @@ namespace filter {
  * @tparam n_dim_w Measurement noise dimension (Default: n_dim_z)
  * @note I stands for interface, T for Type
  */
-template <int n_dim_x, int n_dim_z, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x, int n_dim_w = n_dim_z>
+template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x, size_t n_dim_w = n_dim_z>
 class EKF {
 public:
-  static constexpr int N_DIM_x = n_dim_x;
-  static constexpr int N_DIM_z = n_dim_z;
-  static constexpr int N_DIM_u = n_dim_u;
-  static constexpr int N_DIM_v = n_dim_v;
-  static constexpr int N_DIM_w = n_dim_w;
+  static constexpr int N_DIM_x = (int)n_dim_x;
+  static constexpr int N_DIM_z = (int)n_dim_z;
+  static constexpr int N_DIM_u = (int)n_dim_u;
+  static constexpr int N_DIM_v = (int)n_dim_v;
+  static constexpr int N_DIM_w = (int)n_dim_w;
 
   using Vec_x = Eigen::Vector<double, N_DIM_x>;
   using Vec_z = Eigen::Vector<double, N_DIM_z>;
@@ -81,7 +81,6 @@ public:
    * @param u Vec_x Input. Not used, set to zero.
    * @return std::pair<Gauss_x, Gauss_z> Predicted state, predicted measurement
    * @throws std::runtime_error if dyn_mod or sens_mod are not of the DynamicModelT or SensorModelT type
-   * @note Overridden from interface::KalmanFilter
    */
   static std::pair<Gauss_x, Gauss_z> predict(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
                                       const Vec_u &u = Vec_u::Zero())
@@ -98,7 +97,6 @@ public:
    * @param z_meas Vec_z Measurement
    * @return MultivarGauss Updated state
    * @throws std::runtime_error ifsens_mod is not of the SensorModelT type
-   * @note Overridden from interface::KalmanFilter
    */
   static Gauss_x update(const SensModIPtr &sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
   {
@@ -127,7 +125,6 @@ public:
    * @param z_meas Vec_z Measurement
    * @param u Vec_x Input
    * @return Updated state, predicted state, predicted measurement
-   * @note Overridden from interface::KalmanFilter
    */
   static std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas,
                                              const Vec_u &u = Vec_u::Zero())

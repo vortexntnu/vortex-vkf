@@ -14,75 +14,7 @@
 #include <random>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
-namespace vortex {
-namespace models {
-namespace interface {
-
-/** Interface for sensor models with dynamic size dimensions.
- * The purpose of this interface is to provide a common interface for sensor models of any dimension.
- * @note To derive from this class, you must override the following functions:
- * @note - hX
- * @note - RX
- */
-class SensorModelX {
-public:
-  // Using dynamic Eigen types
-  using VecX   = Eigen::VectorXd;
-  using MatXX  = Eigen::MatrixXd;
-  using GaussX = prob::MultiVarGauss<Eigen::Dynamic>;
-
-  // Constructor to initialize the dimensions
-  SensorModelX(int dim_x, int dim_z, int dim_w) : dim_x_(dim_x), dim_z_(dim_z), dim_w_(dim_w) {}
-
-  virtual ~SensorModelX() = default;
-
-  /**
-   * @brief Sensor Model
-   * @param x State
-   * @param w Noise
-   * @return Vec_z
-   */
-  virtual VecX hX(const VecX &x, const VecX &w) const = 0;
-
-  /**
-   * @brief Noise covariance matrix. (pure virtual function)
-   * @param x State
-   * @return Mat_zz R
-   */
-  virtual MatXX RX(const VecX &x) const = 0;
-
-  /** Sample from the sensor model
-   * @param x State
-   * @param w Noise
-   * @param gen Random number generator (For deterministic behaviour)
-   * @return Vec_z
-   */
-  VecX sample_hX(const VecX &x, std::mt19937 &gen) const
-  {
-    GaussX w = {VecX::Zero(dim_w_), RX(x)};
-    return hX(x, w.sample(gen));
-  }
-
-  /** Sample from the sensor model
-   * @param x State
-   * @return Vec_z
-   */
-  VecX sample_hX(const VecX &x) const
-  {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    return sample_hX(x, gen);
-  }
-
-  int get_dim_x() const { return dim_x_; }
-  int get_dim_z() const { return dim_z_; }
-  int get_dim_w() const { return dim_w_; }
-
-protected:
-  const int dim_x_; // State dimension
-  const int dim_z_; // Measurement dimension
-  const int dim_w_; // Process noise dimension
-};
+namespace vortex::models::interface {
 
 /**
  * @brief Interface for sensor models.
@@ -93,13 +25,13 @@ protected:
  * @note - h
  * @note - R
  */
-template <int n_dim_x, int n_dim_z, int n_dim_w = n_dim_z> class SensorModelI : public SensorModelX {
+template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_w = n_dim_z> class SensorModel {
 public:
-  using SensModI = SensorModelI<n_dim_x, n_dim_z, n_dim_w>;
+  using SensModI = SensorModel<n_dim_x, n_dim_z, n_dim_w>;
 
-  static constexpr int N_DIM_x = n_dim_x; // Declare so that children of this class can reference it
-  static constexpr int N_DIM_z = n_dim_z; // Declare so that children of this class can reference it
-  static constexpr int N_DIM_w = n_dim_w; // Declare so that children of this class can reference it
+  static constexpr int N_DIM_x = (int)n_dim_x; // Declare so that children of this class can reference it
+  static constexpr int N_DIM_z = (int)n_dim_z; // Declare so that children of this class can reference it
+  static constexpr int N_DIM_w = (int)n_dim_w; // Declare so that children of this class can reference it
 
   using Vec_x = Eigen::Vector<double, N_DIM_x>;
   using Vec_z = Eigen::Vector<double, N_DIM_z>;
@@ -121,8 +53,8 @@ public:
 
   using SharedPtr = std::shared_ptr<SensModI>;
 
-  SensorModelI() : SensorModelX(N_DIM_x, N_DIM_z, N_DIM_w) {}
-  virtual ~SensorModelI() = default;
+  SensorModel() = default;
+  virtual ~SensorModel() = default;
 
   /**
    * @brief Sensor Model
@@ -161,13 +93,6 @@ public:
     return sample_h(x, gen);
   }
 
-  // Override dynamic size functions to use static size functions
-private:
-  // Discrete time dynamics (pure virtual function)
-  VecX hX(const VecX &x, const VecX &w) const override { return h(x, w); }
-
-  // Discrete time process noise (pure virtual function)
-  MatXX RX(const VecX &x) const override { return R(x); }
 };
 
 /**
@@ -181,9 +106,9 @@ private:
  * @note - R
  * @note - H (optional if N_DIM_x == N_DIM_z)
  */
-template <int n_dim_x, int n_dim_z, int n_dim_w = n_dim_z> class SensorModelLTV : public SensorModelI<n_dim_x, n_dim_z, n_dim_z> {
+template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_w = n_dim_z> class SensorModelLTV : public SensorModel<n_dim_x, n_dim_z, n_dim_z> {
 public:
-  using SensModI                = SensorModelI<n_dim_x, n_dim_z, n_dim_w>;
+  using SensModI                = SensorModel<n_dim_x, n_dim_z, n_dim_w>;
   static constexpr int N_DIM_x = SensModI::N_DIM_x; // Declare so that children of this class can reference it
   static constexpr int N_DIM_z = SensModI::N_DIM_z; // Declare so that children of this class can reference it
   static constexpr int N_DIM_w = SensModI::N_DIM_w; // Declare so that children of this class can reference it
@@ -206,7 +131,7 @@ public:
 
   virtual ~SensorModelLTV() = default;
   /** Sensor Model
-   * Overriding SensorModelI::h
+   * Overriding SensorModel::h
    * @param x State
    * @param w Noise
    * @return Vec_z
@@ -275,6 +200,4 @@ public:
   }
 };
 
-} // namespace interface
-} // namespace models
-} // namespace vortex
+} // namespace vortex::models::interface

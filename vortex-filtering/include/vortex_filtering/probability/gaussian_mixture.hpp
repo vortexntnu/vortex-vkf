@@ -22,11 +22,13 @@ namespace prob {
  * A class for representing a multivariate Gaussian mixture distribution
  * @tparam n_dims dimentions of the Gaussian
  */
-template <int n_dims> class GaussianMixture {
+template <size_t n_dims> class GaussianMixture {
 public:
-  using Vec_n   = Eigen::Vector<double, n_dims>;
-  using Mat_nn  = Eigen::Matrix<double, n_dims, n_dims>;
-  using Gauss_n = MultiVarGauss<n_dims>;
+  static constexpr int N_DIMS = (int)n_dims;
+  
+  using Vec_n   = Eigen::Vector<double, N_DIMS>;
+  using Mat_nn  = Eigen::Matrix<double, N_DIMS, N_DIMS>;
+  using Gauss_n = MultiVarGauss<N_DIMS>;
 
   /** Construct a new Gaussian Mixture object
    * @param weights Weights of the Gaussians

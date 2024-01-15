@@ -28,17 +28,17 @@ namespace filter {
  * @tparam n_dim_v Dimension of process noise vector (default n_dim_x)
  * @tparam n_dim_w Dimension of measurement noise vector (default n_dim_z)
  */
-template <int n_dim_x, int n_dim_z, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x, int n_dim_w = n_dim_z>
+template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x, size_t n_dim_w = n_dim_z>
 class UKF : public interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w> {
 public:
-  static constexpr int N_DIM_x = n_dim_x;
-  static constexpr int N_DIM_u = n_dim_u;
-  static constexpr int N_DIM_z = n_dim_z;
-  static constexpr int N_DIM_v = n_dim_v;
-  static constexpr int N_DIM_w = n_dim_w;
+  static constexpr int N_DIM_x = (int)n_dim_x;
+  static constexpr int N_DIM_u = (int)n_dim_u;
+  static constexpr int N_DIM_z = (int)n_dim_z;
+  static constexpr int N_DIM_v = (int)n_dim_v;
+  static constexpr int N_DIM_w = (int)n_dim_w;
 
   using DynModI     = models::interface::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
-  using SensModI    = models::interface::SensorModelI<N_DIM_x, N_DIM_z, N_DIM_w>;
+  using SensModI    = models::interface::SensorModel<N_DIM_x, N_DIM_z, N_DIM_w>;
   using DynModIPtr  = DynModI::SharedPtr;
   using SensModIPtr = SensModI::SharedPtr;
 

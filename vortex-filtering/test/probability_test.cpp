@@ -41,36 +41,6 @@ TEST(MultiVarGauss, invalidCovariance)
   EXPECT_THROW(vortex::prob::MultiVarGauss<2>(Eigen::Vector2d::Zero(), Eigen::Matrix2d{{-1, 0}, {0, -1}}), std::invalid_argument);
 }
 
-TEST(MultiVarGauss, initDynamicSize)
-{
-  vortex::prob::MultiVarGauss<-1> gaussian(Eigen::Vector2d{0, 3}, Eigen::Matrix2d{{4, 0}, {0, 1}});
-
-  EXPECT_EQ(gaussian.mean(), (Eigen::Vector2d{0, 3}));
-  EXPECT_EQ(gaussian.cov(), (Eigen::Matrix2d{{4, 0}, {0, 1}}));
-}
-
-TEST(MultiVarGauss, castToDynamicSize)
-{
-  vortex::prob::MultiVarGauss<2> gaussian(Eigen::Vector2d{0, 1}, Eigen::Matrix2d::Identity());
-  vortex::prob::MultiVarGauss<-1> dynamic_gaussian = gaussian;
-
-  EXPECT_EQ(dynamic_gaussian.mean(), (Eigen::Vector2d{0, 1}));
-  EXPECT_EQ(dynamic_gaussian.cov(), (Eigen::Matrix2d{{1, 0}, {0, 1}}));
-}
-
-TEST(MultiVarGauss, castToStaticSize)
-{
-  vortex::prob::MultiVarGauss<-1> dynamic_gaussian(Eigen::Vector2d{2, 3}, Eigen::Matrix2d::Identity());
-  vortex::prob::MultiVarGauss<2> gaussian = dynamic_gaussian;
-
-  EXPECT_EQ(gaussian.mean(), (Eigen::Vector2d{2, 3}));
-  EXPECT_EQ(gaussian.cov(), (Eigen::Matrix2d{{1, 0}, {0, 1}}));
-
-  // Expect fail when trying to cast to wrong size
-  vortex::prob::MultiVarGauss3d gaussian3 = {Eigen::Vector3d::Zero(), Eigen::Matrix3d::Identity()};
-  EXPECT_THROW(gaussian3 = dynamic_gaussian, std::invalid_argument);
-}
-
 TEST(MultiVarGauss, sample)
 {
   Eigen::Vector2d true_mean{4, -2};

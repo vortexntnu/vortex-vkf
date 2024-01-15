@@ -14,56 +14,10 @@
 #include <vortex_filtering/numerical_integration/erk_methods.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
-namespace vortex {
-namespace models {
-namespace interface {
-
-/** Interface for dynamic models with dynamic size dimensions.
- * The purpose of this class is to provide a common interface for dynamic models of any dimension so that they can be used in the same way.
- * This class is not meant to be inherited from. Use DynamicModelI unless you need dynamic size dimensions.
- * @tparam n_dim_x  State dimension
- * @tparam n_dim_u  Input dimension
- * @tparam n_dim_v  Process noise dimension
- * @note To derive from this class, you must override the following virtual functions:
- * @note - f_dX
- * @note - Q_dX
- */
-class DynamicModelX {
-public:
-  // Using dynamic Eigen types
-  using VecX   = Eigen::VectorXd;
-  using MatXX  = Eigen::MatrixXd;
-  using GaussX = prob::MultiVarGauss<Eigen::Dynamic>;
-
-  // Constructor to initialize the dimensions
-  DynamicModelX(int dim_x, int dim_u, int dim_v) : dim_x_(dim_x), dim_u_(dim_u), dim_v_(dim_v) {}
-
-  virtual ~DynamicModelX() = default;
-
-  // Discrete-time dynamics
-  virtual VecX f_dX(double dt, const VecX &x, const VecX &u, const VecX &v) const = 0;
-
-  // Discrete-time process noise
-  virtual MatXX Q_dX(double dt, const VecX &x) const = 0;
-
-  // Sample from the discrete time dynamics
-  virtual VecX sample_f_dX(double dt, const VecX &x, const VecX &u, std::mt19937 &gen) const = 0;
-
-  // Sample from the discrete time dynamics
-  virtual VecX sample_f_dX(double dt, const VecX &x) const = 0;
-
-  int get_dim_x() const { return dim_x_; }
-  int get_dim_u() const { return dim_u_; }
-  int get_dim_v() const { return dim_v_; }
-
-protected:
-  const int dim_x_; // State dimension
-  const int dim_u_; // Input dimension
-  const int dim_v_; // Process noise dimension
-};
+namespace vortex::models::interface {
 
 /**
- * @brief Interface for dynamic models with static size dimensions
+ * @brief Interface for dynamic models
  *
  * @tparam n_dim_x  State dimension
  * @tparam n_dim_u  Input dimension
@@ -72,14 +26,13 @@ protected:
  * @note - f_d
  * @note - Q_d
  */
-template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelI : public DynamicModelX {
+template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelI {
 public:
   // Declare all sizes and types so that children of this class can reference them
-  static constexpr int N_DIM_x = n_dim_x;
-  static constexpr int N_DIM_u = n_dim_u;
-  static constexpr int N_DIM_v = n_dim_v;
+  static constexpr int N_DIM_x = (int)n_dim_x;
+  static constexpr int N_DIM_u = (int)n_dim_u;
+  static constexpr int N_DIM_v = (int)n_dim_v;
 
-  using BaseX   = DynamicModelX;
   using DynModI = DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
 
   using Vec_x = Eigen::Vector<double, N_DIM_x>;
@@ -103,7 +56,7 @@ public:
 
   using SharedPtr = std::shared_ptr<DynModI>;
 
-  DynamicModelI() : DynamicModelX(N_DIM_x, N_DIM_u, N_DIM_v) {}
+  DynamicModelI() = default;
   virtual ~DynamicModelI() = default;
 
   /** Discrete time dynamics
@@ -146,34 +99,6 @@ public:
     return sample_f_d(dt, x, Vec_u::Zero(), gen);
   }
 
-private:
-  // Override dynamic size functions to use static size functions
-  BaseX::VecX f_dX(double dt, const BaseX::VecX &x, const BaseX::VecX &u, const BaseX::VecX &v) const override
-  {
-    Vec_x x_fixed = x;
-    Vec_u u_fixed = u;
-    Vec_v v_fixed = v;
-    return f_d(dt, x_fixed, u_fixed, v_fixed);
-  }
-
-  BaseX::MatXX Q_dX(double dt, const BaseX::VecX &x) const override
-  {
-    Vec_x x_fixed = x;
-    return Q_d(dt, x_fixed);
-  }
-
-  BaseX::VecX sample_f_dX(double dt, const BaseX::VecX &x, const BaseX::VecX &u, std::mt19937 &gen) const override
-  {
-    Vec_x x_fixed = x;
-    Vec_u u_fixed = u;
-    return sample_f_d(dt, x_fixed, u_fixed, gen);
-  }
-
-  BaseX::VecX sample_f_dX(double dt, const BaseX::VecX &x) const override
-  {
-    Vec_x x_fixed = x;
-    return sample_f_d(dt, x_fixed);
-  }
 };
 
 /**
@@ -186,7 +111,7 @@ private:
  * @note - f_d (optional. Does a RK4 integration of f_c by default)
  * @note - Q_d
  */
-template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelCT : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
+template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelCT : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
 public:
   using DynModI                = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
   static constexpr int N_DIM_x = DynModI::N_DIM_x;
@@ -257,7 +182,7 @@ protected:
  * @note - Q_d
  * @note - G_d (optional if n_dim_x == n_dim_v)
  */
-template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelLTV : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
+template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelLTV : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
 public:
   using DynModI                = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
   static constexpr int N_DIM_x = n_dim_x;
@@ -399,7 +324,7 @@ protected:
  * @note - Q_c
  * @note - G_c (optional if n_dim_x == n_dim_v)
  */
-template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelCTLTV : public DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v> {
+template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelCTLTV : public DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v> {
 public:
   using DynModI                = DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v>;
   static constexpr int N_DIM_x = DynModI::N_DIM_x;
@@ -547,6 +472,4 @@ public:
   }
 };
 
-} // namespace interface
-} // namespace models
-} // namespace vortex
+} // namespace vortex::models::interface
