@@ -19,31 +19,28 @@ TEST(ImmModel, init)
 {
   using namespace vortex::models;
 
-  auto model_2d = std::make_shared<IdentityDynamicModel<2>>(1.0);
-  auto model_3d = std::make_shared<IdentityDynamicModel<3>>(1.0);
-
   Eigen::Matrix2d jump_mat;
   jump_mat << 0, 1, 1, 0;
   Eigen::Vector2d hold_times;
   hold_times << 1, 1;
+  double std = 1.0;
 
-  ImmModel<IdentityDynamicModel<2>, IdentityDynamicModel<3>> imm_model(std::make_tuple(model_2d, model_3d), jump_mat, hold_times);
+  double dt;
+
+  using IMM = ImmModel<IdentityDynamicModel<2>, IdentityDynamicModel<3>>;
+  IMM imm_model(jump_mat, hold_times, {std}, {std});
 
   EXPECT_EQ(typeid(*imm_model.get_model<0>()), typeid(IdentityDynamicModel<2>));
   EXPECT_EQ(typeid(*imm_model.get_model<1>()), typeid(IdentityDynamicModel<3>));
-  EXPECT_EQ(typeid(imm_model.f_d<0>(1.0, Eigen::Vector2d::Zero())), typeid(Eigen::Vector2d));
-  EXPECT_EQ(typeid(imm_model.f_d<1>(1.0, Eigen::Vector3d::Zero())), typeid(Eigen::Vector3d));
-  EXPECT_EQ(typeid(imm_model.Q_d<0>(1.0, Eigen::Vector2d::Zero())), typeid(Eigen::Matrix2d));
-  EXPECT_EQ(typeid(imm_model.Q_d<1>(1.0, Eigen::Vector3d::Zero())), typeid(Eigen::Matrix3d));
+  EXPECT_EQ(typeid(imm_model.f_d<0>(dt, Eigen::Vector2d::Zero())), typeid(Eigen::Vector2d));
+  EXPECT_EQ(typeid(imm_model.f_d<1>(dt, Eigen::Vector3d::Zero())), typeid(Eigen::Vector3d));
+  EXPECT_EQ(typeid(imm_model.Q_d<0>(dt, Eigen::Vector2d::Zero())), typeid(Eigen::Matrix2d));
+  EXPECT_EQ(typeid(imm_model.Q_d<1>(dt, Eigen::Vector3d::Zero())), typeid(Eigen::Matrix3d));
 }
 
 TEST(ImmModel, piMatC)
 {
   using namespace vortex::models;
-
-  auto model1 = std::make_shared<IdentityDynamicModel<2>>(1.0);
-  auto model2 = std::make_shared<IdentityDynamicModel<2>>(1.0);
-  auto model3 = std::make_shared<IdentityDynamicModel<2>>(1.0);
 
   Eigen::Matrix3d jump_mat;
   // clang-format off
@@ -53,8 +50,10 @@ TEST(ImmModel, piMatC)
   // clang-format on
   Eigen::Vector3d hold_times;
   hold_times << 6, 12, 18;
+  double std = 1.0;
 
-  ImmModel<IdentityDynamicModel<2>, IdentityDynamicModel<2>, IdentityDynamicModel<2>> imm_model(std::make_tuple(model1, model2, model3), jump_mat, hold_times);
+  using IMM = ImmModel<IdentityDynamicModel<2>, IdentityDynamicModel<2>, IdentityDynamicModel<2>>;
+  IMM imm_model(jump_mat, hold_times, {std}, {std}, {std});
 
   Eigen::Matrix3d pi_mat_c;
   // clang-format off
@@ -69,11 +68,7 @@ TEST(ImmModel, piMatC)
 TEST(ImmModel, piMatD)
 {
   using namespace vortex::models;
-  using IMM = ImmModel<IdentityDynamicModel<2>, IdentityDynamicModel<2>, IdentityDynamicModel<2>>;
 
-  auto model1 = std::make_shared<IdentityDynamicModel<2>>(1.0);
-  auto model2 = std::make_shared<IdentityDynamicModel<2>>(1.0);
-  auto model3 = std::make_shared<IdentityDynamicModel<2>>(1.0);
 
   Eigen::Matrix3d jump_mat;
   // clang-format off
@@ -83,8 +78,10 @@ TEST(ImmModel, piMatD)
   // clang-format on
   Eigen::Vector3d hold_times;
   hold_times << 6, 12, 18;
+  double std = 1.0;
 
-  IMM imm_model(std::make_tuple(model1, model2, model3), jump_mat, hold_times);
+  using IMM = ImmModel<IdentityDynamicModel<2>, IdentityDynamicModel<2>, IdentityDynamicModel<2>>;
+  IMM imm_model(jump_mat, hold_times, {std}, {std}, {std});
 
   Eigen::Matrix3d pi_mat_d_true;
   // clang-format off
@@ -131,18 +128,16 @@ TEST(ImmFilter, calculateMixingProbs)
   using namespace vortex::filter;
   using namespace vortex::prob;
 
-  auto model1 = std::make_shared<IdentityDynamicModel<2>>(1.0);
-  auto model2 = std::make_shared<IdentityDynamicModel<2>>(1.0);
-
   double dt = 1.0;
 
   Eigen::Matrix2d jump_mat;
   jump_mat << 0, 1, 1, 0;
   Eigen::Vector2d hold_times;
   hold_times << 1, 1;
+  double std = 1.0;
 
   using IMM = ImmModel<IdentityDynamicModel<2>, IdentityDynamicModel<2>>;
-  IMM imm_model(std::make_tuple(model1, model2), jump_mat, hold_times);
+  IMM imm_model(jump_mat, hold_times, {std}, {std});
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 1>>(dt);
 
@@ -169,19 +164,17 @@ TEST(ImmFilter, mixing)
   using namespace vortex::filter;
   using namespace vortex::prob;
 
-  auto model_high_std = std::make_shared<IdentityDynamicModel<2>>(10);
-  auto model_low_std  = std::make_shared<IdentityDynamicModel<2>>(0.1);
-
   double dt = 1;
 
   Eigen::Matrix2d jump_mat;
   jump_mat << 0, 1, 1, 0;
   Eigen::Vector2d hold_times;
   hold_times << 1, 1;
+  double high_std = 10;
+  double low_std = 0.1;
 
   using IMM = ImmModel<IdentityDynamicModel<2>, IdentityDynamicModel<2>>;
-
-  IMM imm_model(std::make_tuple(model_high_std, model_low_std), jump_mat, hold_times);
+  IMM imm_model(jump_mat, hold_times, {high_std}, {low_std});
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 1>>(dt);
 
@@ -200,8 +193,8 @@ TEST(ImmFilter, modeMatchedFilter)
   using namespace vortex::filter;
   using namespace vortex::prob;
 
-  auto const_pos = std::make_shared<ConstantPosition<2>>(0.1);
-  auto const_vel = std::make_shared<ConstantVelocity<1>>(0.1);
+  // auto const_pos = std::make_shared<ConstantPosition<2>>(0.1);
+  // auto const_vel = std::make_shared<ConstantVelocity<1>>(0.1);
 
   double dt = 1;
 
@@ -213,7 +206,10 @@ TEST(ImmFilter, modeMatchedFilter)
   using IMM       = ImmModel<ConstantPosition<2>, ConstantVelocity<1>>;
   using IMMFilter = ImmFilter<IdentitySensorModel<2, 2>, IMM>;
 
-  IMM imm_model(std::make_tuple(const_pos, const_vel), jump_mat, hold_times);
+  double std_pos = 0.1;
+  double std_vel = 0.1;
+
+  IMM imm_model(jump_mat, hold_times, {std_pos}, {std_vel});
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 
@@ -246,11 +242,13 @@ TEST(ImmFilter, updateProbabilities)
   jump_mat << 0, 1, 1, 0;
   Eigen::Vector2d hold_times;
   hold_times << 1, 1;
+  double std_pos = 1;
+  double std_vel = 1;
 
   using IMM       = ImmModel<ConstantPosition<2>, ConstantVelocity<1>>;
   using IMMFilter = ImmFilter<IdentitySensorModel<2, 2>, IMM>;
 
-  IMM imm_model(std::make_tuple(const_pos, const_vel), jump_mat, hold_times);
+  IMM imm_model(jump_mat, hold_times, {std_pos}, {std_vel});
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 

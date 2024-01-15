@@ -12,7 +12,7 @@ namespace models {
  */
 template <int n_dim_x, int n_dim_z> class IdentitySensorModel : public interface::SensorModelLTV<n_dim_x, n_dim_z> {
 public:
-  using SensModI = interface::SensorModelI<n_dim_x, n_dim_z>;
+  using SensModI = interface::SensorModelLTV<n_dim_x, n_dim_z>;
 
   using typename SensModI::Mat_xx;
   using typename SensModI::Mat_zw;

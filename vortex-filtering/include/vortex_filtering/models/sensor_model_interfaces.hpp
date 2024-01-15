@@ -183,24 +183,26 @@ private:
  */
 template <int n_dim_x, int n_dim_z, int n_dim_w = n_dim_z> class SensorModelLTV : public SensorModelI<n_dim_x, n_dim_z, n_dim_z> {
 public:
-  using DynModI                = SensorModelI<n_dim_x, n_dim_z, n_dim_w>;
-  static constexpr int N_DIM_x = DynModI::N_DIM_x; // Declare so that children of this class can reference it
-  static constexpr int N_DIM_z = DynModI::N_DIM_z; // Declare so that children of this class can reference it
-  static constexpr int N_DIM_w = DynModI::N_DIM_w; // Declare so that children of this class can reference it
+  using SensModI                = SensorModelI<n_dim_x, n_dim_z, n_dim_w>;
+  static constexpr int N_DIM_x = SensModI::N_DIM_x; // Declare so that children of this class can reference it
+  static constexpr int N_DIM_z = SensModI::N_DIM_z; // Declare so that children of this class can reference it
+  static constexpr int N_DIM_w = SensModI::N_DIM_w; // Declare so that children of this class can reference it
 
-  using Vec_z = typename DynModI::Vec_z;
-  using Vec_x = typename DynModI::Vec_x;
-  using Vec_w = typename DynModI::Vec_w;
+  using Vec_z = typename SensModI::Vec_z;
+  using Vec_x = typename SensModI::Vec_x;
+  using Vec_w = typename SensModI::Vec_w;
 
-  using Mat_xx = typename DynModI::Mat_xx;
-  using Mat_zx = typename DynModI::Mat_zx;
-  using Mat_zz = typename DynModI::Mat_zz;
-  using Mat_zw = typename DynModI::Mat_zw;
+  using Mat_xx = typename SensModI::Mat_xx;
+  using Mat_zx = typename SensModI::Mat_zx;
+  using Mat_zz = typename SensModI::Mat_zz;
+  using Mat_zw = typename SensModI::Mat_zw;
 
-  using Mat_ww = typename DynModI::Mat_ww;
+  using Mat_ww = typename SensModI::Mat_ww;
 
-  using Gauss_x = typename DynModI::Gauss_x;
-  using Gauss_z = typename DynModI::Gauss_z;
+  using Gauss_x = typename SensModI::Gauss_x;
+  using Gauss_z = typename SensModI::Gauss_z;
+
+  using SharedPtr = std::shared_ptr<SensorModelLTV>;
 
   virtual ~SensorModelLTV() = default;
   /** Sensor Model

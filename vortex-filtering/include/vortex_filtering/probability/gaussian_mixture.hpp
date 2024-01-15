@@ -105,7 +105,24 @@ public:
     return P + P_bar;
   }
 
-  /** Reduce the Gaussian mixture to a single Gaussian
+  /** Find the maximum likelihood estimate of the Gaussian mixture
+   * @return Gauss_n
+   */
+  Gauss_n ml_estimate() const
+  {
+    double max_pdf = 0;
+    int max_i      = 0;
+    for (int i = 0; i < num_components(); i++) {
+      double pdf = get_weight(i) * gaussian(i).pdf(gaussian(i).mean());
+      if (pdf > max_pdf) {
+        max_pdf = pdf;
+        max_i   = i;
+      }
+    }
+    return gaussian(max_i);
+  }
+
+  /** Reduce the Gaussian mixture to a single Gaussian, e.g. the minimum mean square estimate
    * @return Gauss_n
    */
   Gauss_n reduce() const { return {mean(), cov()}; }

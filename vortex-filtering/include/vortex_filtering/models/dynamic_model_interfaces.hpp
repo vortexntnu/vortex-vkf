@@ -278,6 +278,8 @@ public:
   using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
   using Gauss_v = prob::MultiVarGauss<N_DIM_v>;
 
+  using SharedPtr = std::shared_ptr<DynamicModelLTV>;
+
   /** Linear Time Variant Dynamic Model Interface. [x_k+1 = f_d = A_k*x_k + B_k*u_k + G_k*v_k]
    * @tparam n_dim_x  State dimension
    * @tparam n_dim_u  Input dimension (Default: n_dim_x)
@@ -399,10 +401,10 @@ protected:
  */
 template <int n_dim_x, int n_dim_u = n_dim_x, int n_dim_v = n_dim_x> class DynamicModelCTLTV : public DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using DynModI                = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
-  static constexpr int N_DIM_x = n_dim_x;
-  static constexpr int N_DIM_u = n_dim_u;
-  static constexpr int N_DIM_v = n_dim_v;
+  using DynModI                = DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v>;
+  static constexpr int N_DIM_x = DynModI::N_DIM_x;
+  static constexpr int N_DIM_u = DynModI::N_DIM_u;
+  static constexpr int N_DIM_v = DynModI::N_DIM_v;
 
   using Vec_x = typename DynModI::Vec_x;
   using Vec_u = typename DynModI::Vec_u;
@@ -416,6 +418,8 @@ public:
   using Mat_uu = typename DynModI::Mat_uu;
   using Mat_vv = typename DynModI::Mat_vv;
   using Mat_vx = typename DynModI::Mat_vx;
+
+  using SharedPtr = std::shared_ptr<DynamicModelCTLTV>;
 
   /** Continuous Time Linear Time Varying Dynamic Model Interface. [x_dot = A_c*x + B_c*u + G_c*v]
    * @tparam n_dim_x  State dimension

@@ -37,23 +37,27 @@ public:
   template <size_t i> using Vec_u   = typename DynModI<i>::Vec_u;
   template <size_t i> using Vec_v   = typename DynModI<i>::Vec_v;
   template <size_t i> using Mat_xx  = typename DynModI<i>::Mat_xx;
+  template <size_t i> using Mat_vv  = typename DynModI<i>::Mat_vv;
 
   template <size_t i> using DynModT    = typename std::tuple_element<i, DynModTuple>::type;
   template <size_t i> using DynModTPtr = typename std::shared_ptr<DynModT<i>>;
 
   /**
    * @brief Construct a new Imm Model object
-   * @tparam Models Dynamic models to use. The models must have a DynModI typedef specifying the base interface (e.g. `using DynModI = ...`).
-   * Alternatively the corresponding `DynamicModelI` parent class can be passed instead.
-   * @param models Models to use. The models must have a DynModI typedef specifying the base interface.
+   * @tparam DynModels Dynamic models to use. The models must be linear-time-varying and have a `DynModI` typedef 
+   * specifying the base interface as the LTV model interface or it's derived classes 
+   * (e.g. `using DynModI = interface::DynamicModelLTV<...>`).
    * @param jump_matrix Markov jump chain matrix for the transition probabilities.
    * I.e. the probability of switching from model i to model j is `jump_matrix(i,j)`. Diagonal should be 0.
    * @param hold_times Expected holding time for each state. Parameter is the mean of an exponential distribution.
-   * @note The jump matrix specifies the probability of switching to a model WHEN a switch occurs.
-   * @note The holding times specifies HOW LONG a state is expected to be held between switches.
+   * @param models Models to use. The models must have a DynModI typedef specifying the base interface.
+   * @note - The jump matrix specifies the probability of switching to a model WHEN a switch occurs.
+   * @note - The holding times specifies HOW LONG a state is expected to be held between switches.
+   * @note - In order to change the properties of a model, you must get the model using `get_model<i>()` 
    */
-  ImmModel(DynModPtrTuple models, Mat_nn jump_matrix, Vec_n hold_times)
-      : models_(std::move(models)), jump_matrix_(std::move(jump_matrix)), hold_times_(std::move(hold_times))
+  ImmModel(Mat_nn jump_matrix, Vec_n hold_times, DynModels... models)
+      : models_(std::make_shared<DynModels>(models)...), 
+      jump_matrix_(jump_matrix), hold_times_(hold_times)
   {
     if (!jump_matrix_.diagonal().isZero()) {
       throw std::invalid_argument("Jump matrix diagonal should be zero");
@@ -102,7 +106,14 @@ public:
    * @tparam i Index of model
    * @return ModelT<i> shared pointer to model
    */
-  template <size_t i> DynModTPtr<i> get_model() const { return std::get<i>(models_); }
+  template <size_t i> const DynModTPtr<i>& get_model() const { return std::get<i>(models_); }
+
+  /**
+   * @brief Get specific dynamic model (non-const)
+   * @tparam i Index of model
+   * @return ModelT<i> shared pointer to model
+  */
+  template <size_t i> DynModTPtr<i> get_model() { return std::get<i>(models_); }
 
   /**
    * @brief f_d of specific dynamic model
@@ -123,9 +134,9 @@ public:
    * @tparam i Index of model
    * @param dt Time step
    * @param x State
-   * @return Mat_xx
+   * @return Mat_vv
    */
-  template <size_t i> Mat_xx<i> Q_d(double dt, const Vec_x<i> &x) const { return get_model<i>()->Q_d(dt, x); }
+  template <size_t i> Mat_vv<i> Q_d(double dt, const Vec_x<i> &x) const { return get_model<i>()->Q_d(dt, x); }
 
   /**
    * @brief Get the number of dimensions for the state vector of each dynamic model
@@ -134,7 +145,7 @@ public:
   static constexpr std::array<int, N_MODELS> get_n_dim_x() { return {DynModels::DynModI::N_DIM_x...}; }
 
 private:
-  const DynModPtrTuple models_;
+  DynModPtrTuple models_;
   const Mat_nn jump_matrix_;
   const Vec_n hold_times_;
 };

@@ -11,7 +11,7 @@ constexpr int X = 1; // For when a template parameter is required but not used.
  */
 template <int n_dim_x> class IdentityDynamicModel : public interface::DynamicModelLTV<n_dim_x> {
 public:
-  using DynModI = interface::DynamicModelI<n_dim_x>;
+  using DynModI = interface::DynamicModelLTV<n_dim_x>;
   using Vec_x   = typename DynModI::Vec_x;
   using Mat_xx  = typename DynModI::Mat_xx;
   using Mat_xv  = typename DynModI::Mat_xv;
@@ -48,7 +48,7 @@ template <int n_spatial_dim> using ConstantPosition = IdentityDynamicModel<n_spa
  */
 template <int n_spatial_dim> class ConstantVelocity : public interface::DynamicModelLTV<2 * n_spatial_dim, X, n_spatial_dim> {
 public:
-  using DynModI = interface::DynamicModelI<2 * n_spatial_dim, X, n_spatial_dim>;
+  using DynModI = interface::DynamicModelLTV<2 * n_spatial_dim, X, n_spatial_dim>;
   using typename DynModI::Mat_vv;
   using typename DynModI::Mat_xv;
   using typename DynModI::Mat_xx;
@@ -117,7 +117,7 @@ private:
  */
 template <int n_spatial_dim> class ConstantAcceleration : public interface::DynamicModelLTV<3 * n_spatial_dim, X, 2 * n_spatial_dim> {
 public:
-  using DynModI = interface::DynamicModelI<3 * n_spatial_dim, X, 2 * n_spatial_dim>;
+  using DynModI = interface::DynamicModelLTV<3 * n_spatial_dim, X, 2 * n_spatial_dim>;
   using typename DynModI::Vec_v;
   using typename DynModI::Vec_x;
 
@@ -190,7 +190,7 @@ private:
  */
 class CoordinatedTurn : public interface::DynamicModelCTLTV<5, X, 3> {
 public:
-  using DynModI = interface::DynamicModelI<5, X, 3>;
+  using DynModI = interface::DynamicModelCTLTV<5, X, 3>;
   using typename DynModI::Vec_v;
   using typename DynModI::Vec_x;
 
