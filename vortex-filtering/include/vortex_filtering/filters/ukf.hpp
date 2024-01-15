@@ -29,7 +29,7 @@ namespace filter {
  * @tparam n_dim_w Dimension of measurement noise vector (default n_dim_z)
  */
 template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x, size_t n_dim_w = n_dim_z>
-class UKF : public interface::KalmanFilter<n_dim_x, n_dim_z, n_dim_u, n_dim_v, n_dim_w> {
+class UKF {
 public:
   static constexpr int N_DIM_x = (int)n_dim_x;
   static constexpr int N_DIM_u = (int)n_dim_u;
@@ -37,7 +37,7 @@ public:
   static constexpr int N_DIM_v = (int)n_dim_v;
   static constexpr int N_DIM_w = (int)n_dim_w;
 
-  using DynModI     = models::interface::DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
+  using DynModI     = models::interface::DynamicModel<N_DIM_x, N_DIM_u, N_DIM_v>;
   using SensModI    = models::interface::SensorModel<N_DIM_x, N_DIM_z, N_DIM_w>;
   using DynModIPtr  = DynModI::SharedPtr;
   using SensModIPtr = SensModI::SharedPtr;
@@ -203,7 +203,7 @@ public:
    * @return std::pair<Gauss_x, Gauss_z> Predicted state estimate, predicted measurement estimate
    */
   std::pair<Gauss_x, Gauss_z> predict(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
-                                      const Vec_u &u = Vec_u::Zero()) const override
+                                      const Vec_u &u = Vec_u::Zero())
   {
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_prev);
 
@@ -266,7 +266,7 @@ public:
    * @return std::tuple<Gauss_x, Gauss_x, Gauss_z> Updated state estimate, predicted state estimate, predicted measurement estimate
    */
   std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas,
-                                             const Vec_u &u) const override
+                                             const Vec_u &u)
   {
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_prev);
 

@@ -26,14 +26,14 @@ namespace vortex::models::interface {
  * @note - f_d
  * @note - Q_d
  */
-template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelI {
+template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModel {
 public:
   // Declare all sizes and types so that children of this class can reference them
   static constexpr int N_DIM_x = (int)n_dim_x;
   static constexpr int N_DIM_u = (int)n_dim_u;
   static constexpr int N_DIM_v = (int)n_dim_v;
 
-  using DynModI = DynamicModelI<N_DIM_x, N_DIM_u, N_DIM_v>;
+  using DynModI = DynamicModel<N_DIM_x, N_DIM_u, N_DIM_v>;
 
   using Vec_x = Eigen::Vector<double, N_DIM_x>;
   using Vec_u = Eigen::Vector<double, N_DIM_u>;
@@ -56,8 +56,8 @@ public:
 
   using SharedPtr = std::shared_ptr<DynModI>;
 
-  DynamicModelI() = default;
-  virtual ~DynamicModelI() = default;
+  DynamicModel() = default;
+  virtual ~DynamicModel() = default;
 
   /** Discrete time dynamics
    * @param dt Time step
@@ -111,9 +111,9 @@ public:
  * @note - f_d (optional. Does a RK4 integration of f_c by default)
  * @note - Q_d
  */
-template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelCT : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
+template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelCT : public DynamicModel<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using DynModI                = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
+  using DynModI                = DynamicModel<n_dim_x, n_dim_u, n_dim_v>;
   static constexpr int N_DIM_x = DynModI::N_DIM_x;
   static constexpr int N_DIM_u = DynModI::N_DIM_u;
   static constexpr int N_DIM_v = DynModI::N_DIM_v;
@@ -157,7 +157,7 @@ protected:
   // Discrete time stuff
 
   /** Discrete time dynamics. Uses RK4 integration. Assumes constant input and process noise during the time step.
-   * Overriding DynamicModelI::f_d
+   * Overriding DynamicModel::f_d
    * @param dt Time step
    * @param x Vec_x State
    * @param u Vec_u Input
@@ -182,9 +182,9 @@ protected:
  * @note - Q_d
  * @note - G_d (optional if n_dim_x == n_dim_v)
  */
-template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelLTV : public DynamicModelI<n_dim_x, n_dim_u, n_dim_v> {
+template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelLTV : public DynamicModel<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using DynModI                = DynamicModelI<n_dim_x, n_dim_u, n_dim_v>;
+  using DynModI                = DynamicModel<n_dim_x, n_dim_u, n_dim_v>;
   static constexpr int N_DIM_x = n_dim_x;
   static constexpr int N_DIM_u = n_dim_u;
   static constexpr int N_DIM_v = n_dim_v;
@@ -439,7 +439,7 @@ public:
   }
 
   /** Discrete time process noise covariance matrix. This is super scuffed, but it works... (As long as G_d^T*G_d is invertible)
-   * Overriding DynamicModelI::Q_d
+   * Overriding DynamicModel::Q_d
    * @param dt Time step
    * @param x Vec_x
    * @return Matrix Process noise covariance

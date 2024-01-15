@@ -14,8 +14,7 @@
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
-namespace vortex {
-namespace filter {
+namespace vortex::filter {
 
 /**
  * @brief Extended Kalman Filter.
@@ -24,7 +23,7 @@ namespace filter {
  * @tparam n_dim_u Input dimension (Default: n_dim_x)
  * @tparam n_dim_v Process noise dimension (Default: n_dim_x)
  * @tparam n_dim_w Measurement noise dimension (Default: n_dim_z)
- * @note I stands for interface, T for Type
+ * @note The EKF only works with models derived from `vortex::models::DynamicModelLTV` and `vortex::models::SensorModelLTV`.
  */
 template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x, size_t n_dim_w = n_dim_z>
 class EKF {
@@ -147,5 +146,4 @@ using EKF_M = EKF<DynModT::DynModI::N_DIM_x,
                   DynModT::DynModI::N_DIM_v, 
                   SensModT::SensModI::N_DIM_w>;
 
-} // namespace filter
-} // namespace vortex
+} // namespace vortex::filter

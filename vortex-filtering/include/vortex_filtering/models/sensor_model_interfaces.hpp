@@ -109,9 +109,9 @@ public:
 template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_w = n_dim_z> class SensorModelLTV : public SensorModel<n_dim_x, n_dim_z, n_dim_z> {
 public:
   using SensModI                = SensorModel<n_dim_x, n_dim_z, n_dim_w>;
-  static constexpr int N_DIM_x = SensModI::N_DIM_x; // Declare so that children of this class can reference it
-  static constexpr int N_DIM_z = SensModI::N_DIM_z; // Declare so that children of this class can reference it
-  static constexpr int N_DIM_w = SensModI::N_DIM_w; // Declare so that children of this class can reference it
+  static constexpr int N_DIM_x = SensModI::N_DIM_x;
+  static constexpr int N_DIM_z = SensModI::N_DIM_z;
+  static constexpr int N_DIM_w = SensModI::N_DIM_w;
 
   using Vec_z = typename SensModI::Vec_z;
   using Vec_x = typename SensModI::Vec_x;

@@ -4,7 +4,7 @@
 
 class SimpleDynamicModel : public vortex::models::interface::DynamicModelCTLTV<2> {
 public:
-  using DynModI = vortex::models::interface::DynamicModelI<2>;
+  using DynModI = vortex::models::interface::DynamicModel<2>;
   using typename DynModI::Mat_xx;
   using typename DynModI::Vec_x;
   constexpr static int N_DIM_x = DynModI::N_DIM_x;
@@ -14,12 +14,12 @@ public:
   Mat_vv Q_c(const Vec_x & = Vec_x::Zero()) const override { return Mat_xx::Identity(); }
 };
 
-class NonlinearModel1 : public vortex::models::interface::DynamicModelI<1, 1, 1> {
+class NonlinearModel1 : public vortex::models::interface::DynamicModel<1, 1, 1> {
 public:
-  using typename DynamicModelI<1, 1, 1>::Vec_x;
-  using typename DynamicModelI<1, 1, 1>::Mat_xx;
-  using typename DynamicModelI<1, 1, 1>::Mat_xv;
-  using typename DynamicModelI<1, 1, 1>::Vec_v;
+  using typename DynamicModel<1, 1, 1>::Vec_x;
+  using typename DynamicModel<1, 1, 1>::Mat_xx;
+  using typename DynamicModel<1, 1, 1>::Mat_xv;
+  using typename DynamicModel<1, 1, 1>::Vec_v;
 
   NonlinearModel1(double std_dev) : cov_(std_dev * std_dev) {}
 
@@ -39,7 +39,7 @@ private:
 // https://en.wikipedia.org/wiki/Lorenz_system
 class LorenzAttractorCT : public vortex::models::interface::DynamicModelCT<3> {
 public:
-  using DynModI = vortex::models::interface::DynamicModelI<3>;
+  using DynModI = vortex::models::interface::DynamicModel<3>;
   using typename DynModI::Vec_u;
   using typename DynModI::Vec_v;
   using typename DynModI::Vec_x;
@@ -68,7 +68,7 @@ private:
 
 class LorenzAttractorCTLTV : public vortex::models::interface::DynamicModelCTLTV<3> {
 public:
-  using DynModI = vortex::models::interface::DynamicModelI<3>;
+  using DynModI = vortex::models::interface::DynamicModel<3>;
   using typename DynModI::Vec_u;
   using typename DynModI::Vec_v;
   using typename DynModI::Vec_x;
