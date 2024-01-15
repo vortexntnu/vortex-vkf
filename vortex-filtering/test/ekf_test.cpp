@@ -12,7 +12,8 @@
 class EKFTestCVModel : public ::testing::Test {
 protected:
   using PosMeasModel = vortex::models::IdentitySensorModel<4, 2>;
-  using CVModel      = vortex::models::ConstantVelocity;
+  using CVModel      = vortex::models::ConstantVelocity<2>;
+  using DynModI      = CVModel::DynModI;
   using Vec_x        = typename CVModel::Vec_x;
   using Vec_u        = typename CVModel::Vec_u;
   using Mat_xx       = typename CVModel::Mat_xx;
@@ -20,30 +21,26 @@ protected:
   using Gauss_z      = typename PosMeasModel::Gauss_z;
   using Vec_z        = typename PosMeasModel::Vec_z;
 
+  using EKF = vortex::filter::EKF_M<CVModel, PosMeasModel>;
+
   void SetUp() override
   {
-    // Create dynamic model
     dynamic_model_ = std::make_shared<CVModel>(1e-3);
-    // Create sensor model
-    sensor_model_ = std::make_shared<PosMeasModel>(1e-2);
-    // Create EKF
-    ekf_ = std::make_shared<vortex::filter::EKF_M<CVModel, PosMeasModel>>(dynamic_model_, sensor_model_);
+    sensor_model_  = std::make_shared<PosMeasModel>(1e-2);
+
   }
 
   std::shared_ptr<CVModel> dynamic_model_;
   std::shared_ptr<PosMeasModel> sensor_model_;
-  std::shared_ptr<vortex::filter::EKF_M<CVModel, PosMeasModel>> ekf_;
 };
 
-TEST_F(EKFTestCVModel, Predict)
+TEST_F(EKFTestCVModel, predict)
 {
   // Initial state
   Gauss_x x({0, 0, 1, 0}, Mat_xx::Identity());
   double dt = 0.1;
   // Predict
-  auto pred          = ekf_->predict(dt, x);
-  Gauss_x x_est_pred = pred.first;
-  Gauss_z z_est_pred = pred.second;
+  auto [x_est_pred, z_est_pred] = EKF::predict(dynamic_model_, sensor_model_, dt, x);
 
   Vec_x x_true = x.mean() + Vec_x({dt, 0, 0, 0});
   Vec_z z_true = x_true.head(2);
@@ -51,7 +48,7 @@ TEST_F(EKFTestCVModel, Predict)
   ASSERT_EQ(z_est_pred.mean(), z_true);
 }
 
-TEST_F(EKFTestCVModel, Convergence)
+TEST_F(EKFTestCVModel, convergence)
 {
   // Random number generator
   std::random_device rd;
@@ -81,9 +78,7 @@ TEST_F(EKFTestCVModel, Convergence)
     z_meas.push_back(z_meas_i);
 
     // Predict and update
-    auto step          = ekf_->step(dt, x_est.back(), z_meas_i);
-    Gauss_x x_est_upd  = std::get<0>(step);
-    Gauss_z z_est_pred = std::get<2>(step);
+    auto [x_est_upd, x_est_pred, z_est_pred] = EKF::step(dynamic_model_, sensor_model_, dt, x_est.back(), z_meas_i);
 
     // Save results
     time.push_back(time.back() + dt);

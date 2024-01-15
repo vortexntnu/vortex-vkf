@@ -27,8 +27,10 @@ TEST(ImmModel, init)
 
   double dt;
 
-  using IMM = ImmModel<IdentityDynamicModel<2>, IdentityDynamicModel<3>>;
-  IMM imm_model(jump_mat, hold_times, {std}, {std});
+  using DynMod2d = IdentityDynamicModel<2>;
+  using DynMod3d = IdentityDynamicModel<3>;
+
+  ImmModel imm_model(jump_mat, hold_times, DynMod2d(std), DynMod3d(std));
 
   EXPECT_EQ(typeid(*imm_model.get_model<0>()), typeid(IdentityDynamicModel<2>));
   EXPECT_EQ(typeid(*imm_model.get_model<1>()), typeid(IdentityDynamicModel<3>));
@@ -52,8 +54,9 @@ TEST(ImmModel, piMatC)
   hold_times << 6, 12, 18;
   double std = 1.0;
 
-  using IMM = ImmModel<IdentityDynamicModel<2>, IdentityDynamicModel<2>, IdentityDynamicModel<2>>;
-  IMM imm_model(jump_mat, hold_times, {std}, {std}, {std});
+  using DynMod2d = IdentityDynamicModel<2>; 
+
+  ImmModel imm_model(jump_mat, hold_times, DynMod2d(std), DynMod2d(std), DynMod2d(std));
 
   Eigen::Matrix3d pi_mat_c;
   // clang-format off

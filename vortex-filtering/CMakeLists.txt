@@ -119,7 +119,7 @@ if(BUILD_TESTING)
     ${lib_src}
 
     test/dynamic_model_test.cpp
-    # test/ekf_test.cpp
+    test/ekf_test.cpp
     # test/filter_test.cpp
     test/imm_test.cpp
     test/numerical_integration_test.cpp
