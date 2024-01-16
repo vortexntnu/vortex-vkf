@@ -1,10 +1,10 @@
 # Filters
-This folder contains the filters. They are based on Kalman filters
+This folder contains various filters
 
 All classes and functions are under the namespace `vortex::filters`.
 
 ## EKF
-This class represents an [Extended Kalman Filter](https://en.wikipedia.org/wiki/Extended_Kalman_filter). It is a template class with parameters `DynamicModelT` and `SensorModelT` for the dynamic model and sensor model respectively. The models have to be derived from `vortex::models::DynamicModelLTV` and `vortex::models::SensorModelLTV`.
+This class represents an [Extended Kalman Filter](https://en.wikipedia.org/wiki/Extended_Kalman_filter). It is a template class with parameters `DynamicModelT` and `SensorModelT` for the dynamic model and sensor model respectively. The models have to be derived from `vortex::models::DynamicModelLTV` and `vortex::models::SensorModelLTV`. All methods are static, so there is no need to create an instance of this class.
 
 ### Usage
 ```cpp
@@ -27,7 +27,7 @@ auto [x_est_upd, x_est_pred, z_est_pred] = EKF::step(dynamic_model, sensor_model
 
 [UKF explained](https://towardsdatascience.com/the-unscented-kalman-filter-anything-ekf-can-do-i-can-do-it-better-ce7c773cf88d)
 
-The UKF can take any model derived from `vortex::models::DynamicModel` and `vortex::models::SensorModel`. 
+The UKF can take any model derived from `vortex::models::DynamicModel` and `vortex::models::SensorModel`. All methods are static, so there is no need to create an instance of this class.
 
 ### Usage
 ```cpp
@@ -35,4 +35,4 @@ The UKF can take any model derived from `vortex::models::DynamicModel` and `vort
 ```
 
 ## IMM Filter
-This class represents an [Interacting Multiple Model Filter](https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python/blob/master/14-Adaptive-Filtering.ipynb). It is a template class with parameters `DynamicModelT` and `SensorModelT`. `DynamicModelT` is the dynamic model used in the filter and `SensorModelT` is the sensor model used in the filter.
+This class represents an [Interacting Multiple Model Filter](https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python/blob/master/14-Adaptive-Filtering.ipynb). It is a template class with parameters `SensModelT` and `ImmModelT` for the sensor model and IMM model respectively. All methods are static, so there is no need to create an instance of this class.

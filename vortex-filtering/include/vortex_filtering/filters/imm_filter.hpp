@@ -66,7 +66,7 @@ public:
    * @param dt The time step.
    * @return The mixing probabilities. Each element is mixing_probs[s_{k-1}, s_k] = mu_{s_{k-1}|s_k} where s is the index of the model.
    */
-  Mat_nn calculate_mixing_probs(const ImmModelT &imm_model, const Vec_n &model_weights, double dt)
+  static Mat_nn calculate_mixing_probs(const ImmModelT &imm_model, const Vec_n &model_weights, double dt)
   {
     Mat_nn pi_mat = imm_model.get_pi_mat_d(dt);
 
@@ -86,7 +86,7 @@ public:
    * @param mixing_probs Mixing probabilities
    * @return vector of moment-based predictions, i.e. update each model based on the state of all of the other models.
    */
-  std::vector<Gauss_x> mixing(const std::vector<Gauss_x> &x_est_prevs, const Mat_nn &mixing_probs)
+  static std::vector<Gauss_x> mixing(const std::vector<Gauss_x> &x_est_prevs, const Mat_nn &mixing_probs)
   {
     std::vector<Gauss_x> moment_based_preds;
     for (auto weights : mixing_probs.rowwise()) {
@@ -105,7 +105,7 @@ public:
    * @param z_meas Vec_z Measurement
    * @return Tuple of updated states, predicted states, predicted measurements
    */
-  std::tuple<Vec_Gauss_x, Vec_Gauss_x, Vec_Gauss_z> mode_matched_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
+  static std::tuple<Vec_Gauss_x, Vec_Gauss_x, Vec_Gauss_z> mode_matched_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
                                                                         const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas)
   {
     return mode_matched_filter_impl(imm_model, sensor_model, dt, moment_based_preds, z_meas, std::make_index_sequence<N_MODELS>{});
@@ -122,7 +122,7 @@ public:
    * @return Tuple of updated state, predicted state, predicted measurement
    */
   template <size_t i>
-  std::tuple<Gauss_x, Gauss_x, Gauss_z> step_kalman_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt, const Gauss_x &x_est_prev,
+  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step_kalman_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt, const Gauss_x &x_est_prev,
                                                            const Vec_z &z_meas)
   {
     using DynModT    = typename ImmModelT::template DynModT<i>;
@@ -151,7 +151,7 @@ public:
    * @param prev_weigths Vec_n Weights
    * @return `Vec_n` Updated weights
    */
-  Vec_n update_probabilities(const ImmModelT &imm_model, double dt, const std::vector<Gauss_z> &z_preds, const Vec_z &z_meas, const Vec_n &prev_weights)
+  static Vec_n update_probabilities(const ImmModelT &imm_model, double dt, const std::vector<Gauss_z> &z_preds, const Vec_z &z_meas, const Vec_n &prev_weights)
   {
     Mat_nn pi_mat      = imm_model.get_pi_mat_d(dt);
     Vec_n weights_pred = pi_mat.transpose() * prev_weights;
@@ -174,7 +174,7 @@ public:
    * @param z_meas Vec_z
    * @return Tuple of updated mixture, predicted mixture, predicted measurement mixture
    */
-  GaussMix_x step(double dt, const GaussMix_x &x_est_prev, const Vec_z &z_meas)
+  static GaussMix_x step(double dt, const GaussMix_x &x_est_prev, const Vec_z &z_meas)
   {
     Mat_nn mixing_probs                         = calculate_mixing_probs(x_est_prev.weights(), dt);
     std::vector<Gauss_x> moment_based_preds     = mixing(x_est_prev.gaussians(), mixing_probs);
@@ -186,7 +186,7 @@ public:
 
 private:
   template <size_t... Is>
-  std::tuple<Vec_Gauss_x, Vec_Gauss_x, Vec_Gauss_z> mode_matched_filter_impl(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
+  static std::tuple<Vec_Gauss_x, Vec_Gauss_x, Vec_Gauss_z> mode_matched_filter_impl(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
                                                                              const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas,
                                                                              std::index_sequence<Is...>)
   {

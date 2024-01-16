@@ -1,60 +1,71 @@
+<!-- Can be viewed in vscode -->
+
 ```mermaid
 classDiagram
-    KalmanFilterBase <|-- UKF
-    KalmanFilterBase <|-- EKF
-    DynamicModelBase <|-- DynamicModelI
-    SensorModelBase <|-- SensorModelI
+
+    DynamicModel <|-- DynamicModelLTV
+    SensorModel <|-- SensorModelLTV
+    DynamicModelLTV <|-- ConstantVelocity
+    DynamicModelLTV <|-- ConstantAcceleration
+    DynamicModelLTV <|-- CoordinatedTurn
+
+    EKF -- DynamicModelLTV
+    EKF -- SensorModelLTV
+
+    UKF -- DynamicModel
+    UKF -- SensorModel
 
 
-    class KalmanFilterBase{
-      +virtual predict()
-      +virtual update()
-      +virtual step()
-    }
 
     class EKF{
-        -DynamicModelBase dynamic_model_
-        -SensorModelBase sensor_model_
         +predict()
         +update()
         +step()
     }
 
     class UKF{
-        -DynamicModelBase dynamic_model_
-        -SensorModelBase sensor_model_
         +predict()
+        +update()
         +step()
+        -get_sigma_points()
+        -propagate_sigma_points_f()
+        -propagate_sigma_points_h()
+        -estimate_gaussian()
     }
 
-    class DynamicModelBase{
-        +virtual f_d(x, u, v, dt) Vec_x
-        +virtual Q_d(x, dt) Mat_vv
-        +sample_f_d(x, u, v, dt) Vec_x
+    class DynamicModel{
+        +virtual f_d() Vec_x
+        +virtual Q_d() Mat_vv
+        +sample_f_d() Vec_x
     }
 
-    class SensorModelBase{
-        +virtual h(x, w) Vec_z
+    class SensorModel{
+        +virtual h() Vec_z
+        +virtual R() Mat_ww
+        +sample_h() Vec_z
+    }
+
+    class DynamicModelLTV {
+        +overide f_d() Vec_x
+        +virtual A_d() Mat_xx
+        +virtual Q_d() Mat_vv
+        +vurtual G_d() Mat_xv
+        +pred_from_est() Gauss_x
+        +pred_from_state() Gauss_x
+    }
+
+    class SensorModelLTV {
+        +override h(x) Vec_z
         +virtual R(x) Mat_ww
-        +sample_h(x) Vec_z
-    }
-
-    class DynamicModelI {
-        +virtual f_c(x) Vec_x
-        +virtual A_c(x) Mat_xx
-        +virtual Q_c(x) Mat_xx
-        +f_d(x, dt)
-        +F_d(x, dt)
-        +Q_d(x, dt)
-        +pred_from_est(x_est, dt) Gauss_x
-        +pred_from_state(x, dt) Gauss_x
-    }
-
-    class SensorModelI {
-        +virtual h(x)
-        +virtual H(x)
+        +virtual C(x) Mat_zx
+        +virtual H(x) Mat_zw
         +pred_from_est(x_est) Gauss_z
         +pred_from_state(x) Gauss_z
     }
+
+    class ConstantVelocity
+    class CoordinatedTurn
+    class ConstantAcceleration
+
 ```
 <!-- Can be edited at https://mermaid.live/edit -->

@@ -17,6 +17,26 @@ TEST(MultiVarGauss, initGaussian)
   EXPECT_EQ(gaussian.cov(), (Eigen::Matrix2d{{1, 0}, {0, 1}}));
 }
 
+TEST(MultiVarGauss, assignmentOperator)
+{
+  vortex::prob::MultiVarGauss<2> gaussian1(Eigen::Vector2d::Zero(), Eigen::Matrix2d::Identity());
+  vortex::prob::MultiVarGauss<2> gaussian2(Eigen::Vector2d::Ones(), Eigen::Matrix2d::Identity());
+
+  gaussian2 = gaussian1;
+
+  EXPECT_EQ(gaussian2.mean(), gaussian1.mean());
+  EXPECT_EQ(gaussian2.cov(), gaussian1.cov());
+}
+
+TEST(MultiVarGauss, copyConstructor)
+{
+  vortex::prob::MultiVarGauss<2> gaussian1(Eigen::Vector2d::Zero(), Eigen::Matrix2d::Identity());
+  vortex::prob::MultiVarGauss<2> gaussian2(gaussian1);
+
+  EXPECT_EQ(gaussian2.mean(), gaussian1.mean());
+  EXPECT_EQ(gaussian2.cov(), gaussian1.cov());
+}
+
 TEST(MultiVarGauss, pdf)
 {
   vortex::prob::MultiVarGauss<2> gaussian(Eigen::Vector2d::Zero(), Eigen::Matrix2d::Identity());
@@ -89,4 +109,15 @@ TEST(MultiVarGauss, sample)
 
   EXPECT_TRUE(isApproxEqual(mean, true_mean, 0.5));
   EXPECT_TRUE(isApproxEqual(cov, true_cov, 0.5));
+}
+
+TEST(MultiVarGauss, mahalanobisDistanceIdentityCovariance)
+{
+  using vortex::prob::Gauss2d;
+  auto gaussian = Gauss2d::Standard();
+
+  EXPECT_DOUBLE_EQ(gaussian.mahalanobis_distance({0, 0}), 0);
+  EXPECT_DOUBLE_EQ(gaussian.mahalanobis_distance({1, 0}), 1);
+  EXPECT_DOUBLE_EQ(gaussian.mahalanobis_distance({0, 1}), 1);
+  EXPECT_DOUBLE_EQ(gaussian.mahalanobis_distance({1, 1}), std::sqrt(2));
 }
