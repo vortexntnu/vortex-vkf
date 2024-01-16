@@ -18,21 +18,17 @@ namespace vortex::filter {
 
 /**
  * @brief Extended Kalman Filter.
- * @tparam n_dim_x State dimension.
- * @tparam n_dim_z Measurement dimension.
- * @tparam n_dim_u Input dimension (Default: n_dim_x)
- * @tparam n_dim_v Process noise dimension (Default: n_dim_x)
- * @tparam n_dim_w Measurement noise dimension (Default: n_dim_z)
- * @note The EKF only works with models derived from `vortex::models::DynamicModelLTV` and `vortex::models::SensorModelLTV`.
+ * @tparam DynModT Dynamic model type derived from `vortex::models::interface::DynamicModelLTV`
+ * @tparam SensModT Sensor model type derived from `vortex::models::interface::SensorModelLTV`
  */
-template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x, size_t n_dim_w = n_dim_z>
+template <models::concepts::DynamicModelLTV DynModT, models::concepts::SensorModelLTV SensModT>
 class EKF {
 public:
-  static constexpr int N_DIM_x = (int)n_dim_x;
-  static constexpr int N_DIM_z = (int)n_dim_z;
-  static constexpr int N_DIM_u = (int)n_dim_u;
-  static constexpr int N_DIM_v = (int)n_dim_v;
-  static constexpr int N_DIM_w = (int)n_dim_w;
+  static constexpr int N_DIM_x = DynModT::DynModI::N_DIM_x;
+  static constexpr int N_DIM_z = SensModT::SensModI::N_DIM_z;
+  static constexpr int N_DIM_u = DynModT::DynModI::N_DIM_u;
+  static constexpr int N_DIM_v = DynModT::DynModI::N_DIM_v;
+  static constexpr int N_DIM_w = SensModT::SensModI::N_DIM_w;
 
   using Vec_x = Eigen::Vector<double, N_DIM_x>;
   using Vec_z = Eigen::Vector<double, N_DIM_z>;
@@ -68,7 +64,9 @@ public:
   using DynModIPtr  = typename DynModI::SharedPtr;
   using SensModIPtr = typename SensModI::SharedPtr;
 
-  /** Construct a new EKF object
+  /** Construct a new EKF object. 
+   * @tparam DynamicModelT Dynamic model type derived from `vortex::models::interface::DynamicModelLTV`
+   * @tparam SensorModelT Sensor model type derived from `vortex::models::interface::SensorModelLTV`
    */
   EKF() = default;
 
@@ -134,16 +132,5 @@ public:
     return {x_est_upd, x_est_pred, z_est_pred};
   }
 };
-
-/** @brief EKF with dimensions defined by the dynamic model and sensor model.
- * @tparam DynModT Dynamic model type.
- * @tparam SensModT Sensor model type.
- */
-template <typename DynModT, typename SensModT>
-using EKF_M = EKF<DynModT::DynModI::N_DIM_x, 
-                  SensModT::SensModI::N_DIM_z, 
-                  DynModT::DynModI::N_DIM_u, 
-                  DynModT::DynModI::N_DIM_v, 
-                  SensModT::SensModI::N_DIM_w>;
 
 } // namespace vortex::filter

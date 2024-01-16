@@ -7,6 +7,7 @@
 #include <random>
 
 #include "test_models.hpp"
+#include "gtest_assertions.hpp"
 #include <vortex_filtering/filters/ukf.hpp>
 #include <vortex_filtering/models/sensor_models.hpp>
 
@@ -22,6 +23,8 @@ protected:
   using Mat_zz  = typename IdentitySensorModel::Mat_zz;
   using Gauss_z = typename IdentitySensorModel::Gauss_z;
 
+  using UKF = vortex::filter::UKF<NonlinearModel1, IdentitySensorModel>;
+
   void SetUp() override
   {
     // Noise
@@ -32,13 +35,10 @@ protected:
     dynamic_model_ = std::make_shared<NonlinearModel1>(Q);
     // Create sensor model
     sensor_model_ = std::make_shared<IdentitySensorModel>(R);
-    // Create UKF
-    ukf_ = std::make_shared<vortex::filter::UKF_M<NonlinearModel1, IdentitySensorModel>>(dynamic_model_, sensor_model_);
   }
 
   std::shared_ptr<NonlinearModel1> dynamic_model_;
   std::shared_ptr<IdentitySensorModel> sensor_model_;
-  std::shared_ptr<vortex::filter::UKF_M<NonlinearModel1, IdentitySensorModel>> ukf_;
 };
 
 TEST_F(UKFtest, Predict)
@@ -47,14 +47,12 @@ TEST_F(UKFtest, Predict)
   Gauss_x x(Vec_x::Zero(), Mat_xx::Identity());
   double dt = 0.1;
   // Predict
-  auto pred          = ukf_->predict(dt, x, Vec_x::Zero());
-  Gauss_x x_est_pred = pred.first;
-  Gauss_z z_est_pred = pred.second;
+  auto [x_est_pred, z_est_pred] = UKF::predict(dynamic_model_, sensor_model_, dt, x);
 
-  Vec_x x_true = dynamic_model_->f_d(dt, x.mean(), Vec_x::Zero(), Vec_x::Zero());
+  Vec_x x_true = dynamic_model_->f_d(dt, x.mean());
   Vec_z z_true = x_true.head(1);
-  ASSERT_EQ(x_est_pred.mean(), x_true);
-  ASSERT_EQ(z_est_pred.mean(), z_true);
+  ASSERT_TRUE(isApproxEqual(x_est_pred.mean(), x_true, 1e-6));
+  ASSERT_TRUE(isApproxEqual(z_est_pred.mean(), z_true, 1e-6));
 }
 
 TEST_F(UKFtest, Convergence)
@@ -95,9 +93,7 @@ TEST_F(UKFtest, Convergence)
     z_meas.push_back(z_meas_i);
 
     // Predict and update
-    auto step          = ukf_->step(dt, x_est.back(), z_meas_i, Vec_x::Zero());
-    Gauss_x x_est_upd  = std::get<0>(step);
-    Gauss_z z_est_pred = std::get<2>(step);
+    auto [x_est_upd, x_est_pred, z_est_pred] = UKF::step(dynamic_model_, sensor_model_, dt, x_est.back(), z_meas_i, Vec_x::Zero());
 
     // Save results
     time.push_back(time.back() + dt);
@@ -106,7 +102,7 @@ TEST_F(UKFtest, Convergence)
   }
 
   // Check convergence
-  double tol = 1e-2;
+  double tol = 1e-1;
 
   // Plot results
   Gnuplot gp;

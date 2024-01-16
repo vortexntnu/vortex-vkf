@@ -14,7 +14,8 @@
 #include <random>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
-namespace vortex::models::interface {
+namespace vortex::models {
+namespace interface {
 
 /**
  * @brief Interface for sensor models.
@@ -200,4 +201,27 @@ public:
   }
 };
 
-} // namespace vortex::models::interface
+} // namespace interface
+
+namespace concepts {
+
+template <typename T> 
+concept SensorModel = requires
+{
+  // Has member type SensModI
+  typename T::SensModI;
+  // Derived from SensorModel
+  std::derived_from<T, interface::SensorModel<T::SensModI::N_DIM_x, T::SensModI::N_DIM_z, T::SensModI::N_DIM_w>>;
+};
+
+template <typename T>
+concept SensorModelLTV = requires
+{
+  // Has member type SensModI
+  typename T::SensModI;
+  // Derived from SensorModelLTV
+  std::derived_from<T, interface::SensorModelLTV<T::SensModI::N_DIM_x, T::SensModI::N_DIM_z, T::SensModI::N_DIM_w>>;
+};
+
+} // namespace concepts
+} // namespace vortex::models

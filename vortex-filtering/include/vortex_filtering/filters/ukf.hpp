@@ -13,7 +13,6 @@
 #pragma once
 #include <tuple>
 #include <vector>
-#include <vortex_filtering/filters/filter_base.hpp>
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
@@ -22,20 +21,20 @@ namespace vortex {
 namespace filter {
 
 /** Unscented Kalman Filter
- * @tparam n_dim_x Dimension of state vector
- * @tparam n_dim_z Dimension of measurement vector
- * @tparam n_dim_u Dimension of control input vector (default n_dim_x)
- * @tparam n_dim_v Dimension of process noise vector (default n_dim_x)
- * @tparam n_dim_w Dimension of measurement noise vector (default n_dim_z)
+ * @tparam DynModT Dynamic model type derived from `vortex::models::interface::DynamicModel`
+ * @tparam SensModT Sensor model type derived from `vortex::models::interface::SensorModel`
+ * @tparam alpha Parameter for spread of sigma points (default 1.0)
+ * @tparam beta Parameter for weighting of mean in covariance calculation (default 2.0)
+ * @tparam kappa Parameter for adding additional spread to sigma points (default 0.0)
  */
-template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x, size_t n_dim_w = n_dim_z>
+template <models::concepts::DynamicModel DynModT, models::concepts::SensorModel SensModT, double alpha = 1.0, double beta = 2.0, double kappa = 0.0>
 class UKF {
 public:
-  static constexpr int N_DIM_x = (int)n_dim_x;
-  static constexpr int N_DIM_u = (int)n_dim_u;
-  static constexpr int N_DIM_z = (int)n_dim_z;
-  static constexpr int N_DIM_v = (int)n_dim_v;
-  static constexpr int N_DIM_w = (int)n_dim_w;
+  static constexpr int N_DIM_x = DynModT::DynModI::N_DIM_x;
+  static constexpr int N_DIM_u = DynModT::DynModI::N_DIM_u;
+  static constexpr int N_DIM_z = SensModT::SensModI::N_DIM_z;
+  static constexpr int N_DIM_v = DynModT::DynModI::N_DIM_v;
+  static constexpr int N_DIM_w = SensModT::SensModI::N_DIM_w;
 
   using DynModI     = models::interface::DynamicModel<N_DIM_x, N_DIM_u, N_DIM_v>;
   using SensModI    = models::interface::SensorModel<N_DIM_x, N_DIM_z, N_DIM_w>;
@@ -76,32 +75,40 @@ public:
   using Mat_z2ap1 = Eigen::Matrix<double, N_DIM_z, 2 * N_DIM_a + 1>; // Matrix for sigma points of z
   using Mat_a2ap1 = Eigen::Matrix<double, N_DIM_a, 2 * N_DIM_a + 1>; // Matrix for sigma points of a
 
-  /** Unscented Kalman Filter
-   * @tparam n_dim_x Dimension of state vector
-   * @tparam n_dim_z Dimension of measurement vector
-   * @tparam n_dim_u Dimension of control input vector (default n_dim_x)
-   * @tparam n_dim_v Dimension of process noise vector (default n_dim_x)
-   * @tparam n_dim_w Dimension of measurement noise vector (default n_dim_z)
-   * @param alpha Parameter for spread of sigma points (default 1.0)
-   * @param beta Parameter for weighting of mean in covariance calculation (default 2.0)
-   * @param kappa Parameter for adding additional spread to sigma points (default 0.0)
-   */
-  UKF(double alpha = 1.0, double beta = 2.0, double kappa = 0.0) : ALPHA_(alpha), BETA_(beta), KAPPA_(kappa)
-  {
-    // Parameters for UKF
-    LAMBDA_ = ALPHA_ * ALPHA_ * (N_DIM_a + KAPPA_) - N_DIM_a;
-    GAMMA_  = std::sqrt(N_DIM_a + LAMBDA_);
+  // Parameters for UKF
+  static constexpr double ALPHA  = alpha;
+  static constexpr double BETA   = beta;
+  static constexpr double KAPPA  = kappa;
+  static constexpr double LAMBDA = ALPHA * ALPHA * (N_DIM_a + KAPPA) - N_DIM_a; // Parameter for spread of sigma points
+  static constexpr double GAMMA  = std::sqrt(N_DIM_a + LAMBDA);                 // Scaling factor for spread of sigma points                  
 
-    // Scaling factors
-    W_x_.resize(2 * N_DIM_a + 1);
-    W_c_.resize(2 * N_DIM_a + 1);
-    W_x_[0] = LAMBDA_ / (N_DIM_a + LAMBDA_);
-    W_c_[0] = LAMBDA_ / (N_DIM_a + LAMBDA_) + (1 - ALPHA_ * ALPHA_ + BETA_);
+  static constexpr std::array<double, 2 * N_DIM_a + 1> W_x = []() {
+    std::array<double, 2 * N_DIM_a + 1> W_x;
+    W_x[0] = LAMBDA / (N_DIM_a + LAMBDA);
     for (int i = 1; i < 2 * N_DIM_a + 1; i++) {
-      W_x_[i] = 1 / (2 * (N_DIM_a + LAMBDA_));
-      W_c_[i] = 1 / (2 * (N_DIM_a + LAMBDA_));
+      W_x[i] = 1 / (2 * (N_DIM_a + LAMBDA));
     }
-  }
+    return W_x;
+  }();
+
+  static constexpr std::array<double, 2 * N_DIM_a + 1> W_c = []() {
+    std::array<double, 2 * N_DIM_a + 1> W_c;
+    W_c[0] = LAMBDA / (N_DIM_a + LAMBDA) + (1 - ALPHA * ALPHA + BETA);
+    for (int i = 1; i < 2 * N_DIM_a + 1; i++) {
+      W_c[i] = 1 / (2 * (N_DIM_a + LAMBDA));
+    }
+    return W_c;
+  }();
+
+
+  /** Unscented Kalman Filter
+   * @tparam DynModT Dynamic model type derived from `vortex::models::interface::DynamicModel`
+   * @tparam SensModT Sensor model type derived from `vortex::models::interface::SensorModel`
+   * @tparam alpha Parameter for spread of sigma points (default 1.0)
+   * @tparam beta Parameter for weighting of mean in covariance calculation (default 2.0)
+   * @tparam kappa Parameter for adding additional spread to sigma points (default 0.0)
+   */
+  UKF() = default;
 
 private:
   /** Get sigma points
@@ -111,7 +118,7 @@ private:
    * @param x_est Gauss_x State estimate
    * @return Mat_a2ap1 sigma_points
    */
-  Mat_a2ap1 get_sigma_points(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est) const
+  static Mat_a2ap1 get_sigma_points(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est)
   {
     Mat_xx P = x_est.cov();
     Mat_vv Q = dyn_mod->Q_d(dt, x_est.mean());
@@ -133,8 +140,8 @@ private:
     Mat_a2ap1 sigma_points;
     sigma_points.col(0) = x_a;
     for (int i = 1; i <= N_DIM_a; i++) {
-      sigma_points.col(i)           = x_a + GAMMA_ * sqrt_P_a.col(i - 1);
-      sigma_points.col(i + N_DIM_a) = x_a - GAMMA_ * sqrt_P_a.col(i - 1);
+      sigma_points.col(i)           = x_a + GAMMA * sqrt_P_a.col(i - 1);
+      sigma_points.col(i + N_DIM_a) = x_a - GAMMA * sqrt_P_a.col(i - 1);
     }
     return sigma_points;
   }
@@ -146,7 +153,7 @@ private:
    * @param u Vec_u Control input
    * @return Mat_x2ap1 sigma_x_pred
    */
-  Mat_x2ap1 propagate_sigma_points_f(const DynModIPtr &dyn_mod, double dt, const Mat_a2ap1 &sigma_points, const Vec_u &u = Vec_u::Zero()) const
+  static Mat_x2ap1 propagate_sigma_points_f(const DynModIPtr &dyn_mod, double dt, const Mat_a2ap1 &sigma_points, const Vec_u &u = Vec_u::Zero())
   {
     Eigen::Matrix<double, N_DIM_x, 2 * N_DIM_a + 1> sigma_x_pred;
     for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
@@ -162,7 +169,7 @@ private:
    * @param sigma_points Mat_a2ap1 Sigma points
    * @return Mat_z2ap1 sigma_z_pred
    */
-  Mat_z2ap1 propagate_sigma_points_h(const SensModIPtr &sens_mod, const Mat_a2ap1 &sigma_points) const
+  static Mat_z2ap1 propagate_sigma_points_h(const SensModIPtr &sens_mod, const Mat_a2ap1 &sigma_points)
   {
     Mat_z2ap1 sigma_z_pred;
     for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
@@ -179,16 +186,20 @@ private:
    * @return prob::MultiVarGauss<n_dims>
    * @note This function is templated to allow for different dimensions of the gaussian
    */
-  template <int n_dims> prob::MultiVarGauss<n_dims> estimate_gaussian(const Eigen::Matrix<double, n_dims, 2 * N_DIM_a + 1> &sigma_points) const
+  template <int n_dims> 
+  static prob::MultiVarGauss<n_dims> estimate_gaussian(const Eigen::Matrix<double, n_dims, 2 * N_DIM_a + 1> &sigma_points)
   {
+    using Vec_n = Eigen::Vector<double, n_dims>;
+    using Mat_nn = Eigen::Matrix<double, n_dims, n_dims>;
+
     // Predicted State Estimate x_k-
-    Eigen::Vector<double, n_dims> mean = Eigen::Vector<double, n_dims>::Zero();
+    Vec_n mean = Vec_n::Zero();
     for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
-      mean += W_x_[i] * sigma_points.col(i);
+      mean += W_x.at(i) * sigma_points.col(i);
     }
-    Eigen::Matrix<double, n_dims, n_dims> cov = Eigen::Matrix<double, n_dims, n_dims>::Zero();
+    Mat_nn cov = Mat_nn::Zero();
     for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
-      cov += W_c_[i] * (sigma_points.col(i) - mean) * (sigma_points.col(i) - mean).transpose();
+      cov += W_c.at(i) * (sigma_points.col(i) - mean) * (sigma_points.col(i) - mean).transpose();
     }
     return {mean, cov};
   }
@@ -202,7 +213,7 @@ public:
    * @param u Vec_u Control input
    * @return std::pair<Gauss_x, Gauss_z> Predicted state estimate, predicted measurement estimate
    */
-  std::pair<Gauss_x, Gauss_z> predict(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
+  static std::pair<Gauss_x, Gauss_z> predict(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
                                       const Vec_u &u = Vec_u::Zero())
   {
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_prev);
@@ -227,7 +238,7 @@ public:
    * @return Gauss_x Updated state estimate
    * @note Sigma points are generated from the predicted state estimate instead of the previous state estimate as is done in the 'step' method.
    */
-  Gauss_x update(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas) const override
+  static Gauss_x update(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
   {
     // Generate sigma points from the predicted state estimate
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, 0.0, x_est_pred);
@@ -241,7 +252,7 @@ public:
     // Calculate cross-covariance
     Mat_xz P_xz = Mat_xz::Zero();
     for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
-      P_xz += W_c_[i] * (sigma_x_pred.col(i) - x_est_pred.mean()) * (sigma_z_pred.col(i) - z_est_pred.mean()).transpose();
+      P_xz += W_c(i) * (sigma_x_pred.col(i) - x_est_pred.mean()) * (sigma_z_pred.col(i) - z_est_pred.mean()).transpose();
     }
 
     // Calculate Kalman gain
@@ -265,7 +276,7 @@ public:
    * @param u Vec_u Control input
    * @return std::tuple<Gauss_x, Gauss_x, Gauss_z> Updated state estimate, predicted state estimate, predicted measurement estimate
    */
-  std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas,
+  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas,
                                              const Vec_u &u)
   {
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_prev);
@@ -281,7 +292,7 @@ public:
     // Calculate cross-covariance
     Mat_xz P_xz = Mat_xz::Zero();
     for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
-      P_xz += W_c_[i] * (sigma_x_pred.col(i) - x_pred.mean()) * (sigma_z_pred.col(i) - z_pred.mean()).transpose();
+      P_xz += W_c.at(i) * (sigma_x_pred.col(i) - x_pred.mean()) * (sigma_z_pred.col(i) - z_pred.mean()).transpose();
     }
 
     // Calculate Kalman gain
@@ -295,23 +306,8 @@ public:
 
     return {x_est_upd, x_pred, z_pred};
   }
-
-private:
-  // Parameters for UKF
-  double ALPHA_;
-  double BETA_;
-  double KAPPA_;
-  double LAMBDA_;                 // Parameter for spread of sigma points
-  double GAMMA_;                  // Scaling factor for spread of sigma points
-  std::vector<double> W_x_, W_c_; // Weighting factors for sigma points
 };
 
-/** Unscented Kalman Filter with dimensions defined by the dynamic model and sensor model.
- * @tparam DynModT Dynamic model type
- * @tparam SensModT Sensor model type
- */
-template <typename DynModT, typename SensModT>
-using UKF_M = UKF<DynModT::DynModI::N_DIM_x, SensModT::SensModI::N_DIM_z, DynModT::DynModI::N_DIM_u, DynModT::DynModI::N_DIM_v, SensModT::SensModI::N_DIM_w>;
 
 } // namespace filter
 } // namespace vortex

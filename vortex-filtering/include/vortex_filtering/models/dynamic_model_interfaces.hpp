@@ -14,7 +14,8 @@
 #include <vortex_filtering/numerical_integration/erk_methods.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
-namespace vortex::models::interface {
+namespace vortex::models {
+namespace interface {
 
 /**
  * @brief Interface for dynamic models
@@ -472,4 +473,27 @@ public:
   }
 };
 
-} // namespace vortex::models::interface
+} // namespace interface
+
+namespace concepts {
+
+template<typename T>
+concept DynamicModel = requires
+{
+  // Has member type called DynModI
+  typename T::DynModI;
+  // Derived from DynamicModel
+  std::is_base_of<interface::DynamicModel<T::DynModI::N_DIM_x, T::DynModI::N_DIM_u, T::DynModI::N_DIM_v>, T>::value;
+};
+
+template<typename T>
+concept DynamicModelLTV = requires
+{
+  // Has member type called DynModI
+  typename T::DynModI;
+  // Derived from DynamicModelLTV
+  std::is_base_of<interface::DynamicModelLTV<T::DynModI::N_DIM_x, T::DynModI::N_DIM_u, T::DynModI::N_DIM_v>, T>::value;
+};
+
+} // namespace concepts
+} // namespace vortex::models

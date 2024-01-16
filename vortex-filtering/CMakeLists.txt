@@ -5,7 +5,7 @@ project(vortex_filtering)
 
 # === C++ standard ===
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD 20)
   endif()
 
 # === Compiler flags ===
@@ -125,7 +125,7 @@ if(BUILD_TESTING)
     test/numerical_integration_test.cpp
     test/probability_test.cpp
     test/sensor_model_test.cpp
-    # test/ukf_test.cpp
+    test/ukf_test.cpp
   )
   target_include_directories(${PROJECT_NAME}_test PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

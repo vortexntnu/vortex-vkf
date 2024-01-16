@@ -126,7 +126,7 @@ public:
     using DynModI    = typename ImmModelT::template DynModI<i>;
     using DynModIPtr = typename DynModI::SharedPtr;
 
-    filter::EKF_M<DynModI, SensModI> ekf;
+    filter::EKF<DynModI, SensModI> ekf;
     DynModIPtr dyn_model = imm_model.template get_model<i>();
     return ekf.step(dyn_model, sensor_model, dt, x_est_prev, z_meas);
   }

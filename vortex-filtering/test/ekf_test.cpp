@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "test_models.hpp"
+#include "gtest_assertions.hpp"
 #include <gnuplot-iostream.h>
 #include <random>
 #include <vortex_filtering/filters/ekf.hpp>
@@ -21,7 +22,7 @@ protected:
   using Gauss_z      = typename PosMeasModel::Gauss_z;
   using Vec_z        = typename PosMeasModel::Vec_z;
 
-  using EKF = vortex::filter::EKF_M<CVModel, PosMeasModel>;
+  using EKF = vortex::filter::EKF<CVModel, PosMeasModel>;
 
   void SetUp() override
   {
@@ -29,7 +30,6 @@ protected:
     sensor_model_  = std::make_shared<PosMeasModel>(1e-2);
 
   }
-
   std::shared_ptr<CVModel> dynamic_model_;
   std::shared_ptr<PosMeasModel> sensor_model_;
 };
@@ -87,10 +87,8 @@ TEST_F(EKFTestCVModel, convergence)
   }
 
   // Test that the state converges to the true state
-  ASSERT_NEAR(x_est.back().mean()(0), x_true.back()(0), 1e-1);
-  ASSERT_NEAR(x_est.back().mean()(1), x_true.back()(1), 1e-1);
-  ASSERT_NEAR(x_est.back().mean()(2), x_true.back()(2), 1e-1);
-  ASSERT_NEAR(x_est.back().mean()(3), x_true.back()(3), 1e-1);
+  EXPECT_TRUE(isApproxEqual(x_est.back().mean(), x_true.back(), 1e-1));
+
 
   // Plot the results
   std::vector<double> x_true_x, x_true_y, x_true_u, x_true_v, x_est_x, x_est_y, x_est_u, x_est_v, z_meas_x, z_meas_y;
