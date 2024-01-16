@@ -22,7 +22,7 @@ namespace vortex::models {
  * @tparam DynModels Dynamic models to use.
  * @note The models must have a `DynModI` typedef specifying the base interface (e.g. `using DynModI = ...`).
  */
-template <typename... DynModels> class ImmModel {
+template <concepts::DynamicModel... DynModels> class ImmModel {
 public:
   using DynModTuple    = std::tuple<DynModels...>;
   using DynModPtrTuple = std::tuple<std::shared_ptr<DynModels>...>;
@@ -148,5 +148,14 @@ private:
   const Mat_nn jump_matrix_;
   const Vec_n hold_times_;
 };
+
+namespace concepts {
+  template <typename T>
+  concept ImmModel = requires {
+    typename T::DynModTuple;
+    typename T::DynModPtrTuple;
+  };
+
+} // namespace concepts
 
 } // namespace vortex::models

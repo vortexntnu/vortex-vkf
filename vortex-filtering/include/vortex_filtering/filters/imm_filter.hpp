@@ -13,6 +13,8 @@
 #include <tuple>
 
 #include <vortex_filtering/filters/ekf.hpp>
+#include <vortex_filtering/filters/ukf.hpp>
+
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/imm_model.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
@@ -20,7 +22,7 @@
 
 namespace vortex::filter {
 
-template <typename SensModT, typename ImmModelT> class ImmFilter {
+template <models::concepts::SensorModel SensModT, models::concepts::ImmModel ImmModelT> class ImmFilter {
 public:
   using SensModTPtr = std::shared_ptr<SensModT>;
   using SensModI    = typename SensModT::SensModI;
@@ -110,7 +112,7 @@ public:
   }
 
   /**
-   * @brief Calculate the Kalman filter outputs for one mode
+   * @brief Calculate the Kalman filter outputs for one mode. If the model isn't LTV, use the ukf instead of the ekf.
    * @tparam i Index of model
    * @param imm_model The IMM model.
    * @param sensor_model The sensor model.
@@ -123,12 +125,20 @@ public:
   std::tuple<Gauss_x, Gauss_x, Gauss_z> step_kalman_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt, const Gauss_x &x_est_prev,
                                                            const Vec_z &z_meas)
   {
-    using DynModI    = typename ImmModelT::template DynModI<i>;
+    using DynModT    = typename ImmModelT::template DynModT<i>;
+    using DynModI    = typename DynModT::DynModI;
     using DynModIPtr = typename DynModI::SharedPtr;
 
-    filter::EKF<DynModI, SensModI> ekf;
     DynModIPtr dyn_model = imm_model.template get_model<i>();
-    return ekf.step(dyn_model, sensor_model, dt, x_est_prev, z_meas);
+
+    if constexpr (models::concepts::DynamicModelLTV<DynModT> && models::concepts::SensorModelLTV<SensModT>) {
+      using EKF = filter::EKF<DynModI, SensModI>;
+      return EKF::step(dyn_model, sensor_model, dt, x_est_prev, z_meas);
+    }
+    else {
+      using UKF = filter::UKF<DynModI, SensModI>;
+      return UKF::step(dyn_model, sensor_model, dt, x_est_prev, z_meas);
+    } 
   }
 
   /**
