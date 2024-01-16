@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-#include "test_models.hpp"
 #include "gtest_assertions.hpp"
+#include "test_models.hpp"
 #include <gnuplot-iostream.h>
 #include <random>
 #include <vortex_filtering/filters/ekf.hpp>
@@ -28,7 +28,6 @@ protected:
   {
     dynamic_model_ = std::make_shared<CVModel>(1e-3);
     sensor_model_  = std::make_shared<PosMeasModel>(1e-2);
-
   }
   std::shared_ptr<CVModel> dynamic_model_;
   std::shared_ptr<PosMeasModel> sensor_model_;
@@ -88,7 +87,6 @@ TEST_F(EKFTestCVModel, convergence)
 
   // Test that the state converges to the true state
   EXPECT_TRUE(isApproxEqual(x_est.back().mean(), x_true.back(), 1e-1));
-
 
   // Plot the results
   std::vector<double> x_true_x, x_true_y, x_true_u, x_true_v, x_est_x, x_est_y, x_est_u, x_est_v, z_meas_x, z_meas_y;

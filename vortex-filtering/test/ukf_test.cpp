@@ -6,8 +6,8 @@
 #include <memory>
 #include <random>
 
-#include "test_models.hpp"
 #include "gtest_assertions.hpp"
+#include "test_models.hpp"
 #include <vortex_filtering/filters/ukf.hpp>
 #include <vortex_filtering/models/sensor_models.hpp>
 

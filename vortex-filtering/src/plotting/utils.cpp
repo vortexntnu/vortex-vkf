@@ -22,6 +22,5 @@ Ellipse gauss_to_ellipse(const vortex::prob::Gauss2d &gauss)
   return ellipse;
 }
 
-
 } // namespace plotting
 } // namespace vortex

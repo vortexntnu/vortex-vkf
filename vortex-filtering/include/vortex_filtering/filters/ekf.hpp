@@ -21,8 +21,7 @@ namespace vortex::filter {
  * @tparam DynModT Dynamic model type derived from `vortex::models::interface::DynamicModelLTV`
  * @tparam SensModT Sensor model type derived from `vortex::models::interface::SensorModelLTV`
  */
-template <models::concepts::DynamicModelLTV DynModT, models::concepts::SensorModelLTV SensModT>
-class EKF {
+template <models::concepts::DynamicModelLTV DynModT, models::concepts::SensorModelLTV SensModT> class EKF {
 public:
   static constexpr int N_DIM_x = DynModT::DynModI::N_DIM_x;
   static constexpr int N_DIM_z = SensModT::SensModI::N_DIM_z;
@@ -58,13 +57,13 @@ public:
   using Gauss_v = prob::MultiVarGauss<N_DIM_v>;
   using Gauss_w = prob::MultiVarGauss<N_DIM_w>;
 
-  using DynModI     = models::interface::DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v>;
-  using SensModI    = models::interface::SensorModelLTV<N_DIM_x, N_DIM_z, N_DIM_w>;
+  using DynModI  = models::interface::DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v>;
+  using SensModI = models::interface::SensorModelLTV<N_DIM_x, N_DIM_z, N_DIM_w>;
 
   using DynModIPtr  = typename DynModI::SharedPtr;
   using SensModIPtr = typename SensModI::SharedPtr;
 
-  /** Construct a new EKF object. 
+  /** Construct a new EKF object.
    * @tparam DynamicModelT Dynamic model type derived from `vortex::models::interface::DynamicModelLTV`
    * @tparam SensorModelT Sensor model type derived from `vortex::models::interface::SensorModelLTV`
    */
@@ -80,7 +79,7 @@ public:
    * @throws std::runtime_error if dyn_mod or sens_mod are not of the DynamicModelT or SensorModelT type
    */
   static std::pair<Gauss_x, Gauss_z> predict(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
-                                      const Vec_u &u = Vec_u::Zero())
+                                             const Vec_u &u = Vec_u::Zero())
   {
     Gauss_x x_est_pred = dyn_mod->pred_from_est(dt, x_est_prev, u);
     Gauss_z z_est_pred = sens_mod->pred_from_est(x_est_pred);
@@ -97,12 +96,12 @@ public:
    */
   static Gauss_x update(const SensModIPtr &sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
   {
-    Mat_zx C        = sens_mod->C(x_est_pred.mean());
-    Mat_ww R        = sens_mod->R(x_est_pred.mean());
-    Mat_zw H        = sens_mod->H(x_est_pred.mean());
-    Mat_xx P        = x_est_pred.cov();
-    Mat_zz S_inv    = z_est_pred.cov_inv();
-    Mat_xx I        = Mat_xx::Identity(N_DIM_x, N_DIM_x);
+    Mat_zx C     = sens_mod->C(x_est_pred.mean());
+    Mat_ww R     = sens_mod->R(x_est_pred.mean());
+    Mat_zw H     = sens_mod->H(x_est_pred.mean());
+    Mat_xx P     = x_est_pred.cov();
+    Mat_zz S_inv = z_est_pred.cov_inv();
+    Mat_xx I     = Mat_xx::Identity(N_DIM_x, N_DIM_x);
 
     Mat_xz W         = P * C.transpose() * S_inv; // Kalman gain
     Vec_z innovation = z_meas - z_est_pred.mean();
@@ -123,12 +122,12 @@ public:
    * @param u Vec_x Input
    * @return Updated state, predicted state, predicted measurement
    */
-  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas,
-                                             const Vec_u &u = Vec_u::Zero())
+  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
+                                                    const Vec_z &z_meas, const Vec_u &u = Vec_u::Zero())
   {
     auto [x_est_pred, z_est_pred] = predict(dyn_mod, sens_mod, dt, x_est_prev, u);
 
-    Gauss_x x_est_upd  = update(sens_mod, x_est_pred, z_est_pred, z_meas);
+    Gauss_x x_est_upd = update(sens_mod, x_est_pred, z_est_pred, z_meas);
     return {x_est_upd, x_est_pred, z_est_pred};
   }
 };

@@ -44,8 +44,8 @@ public:
 
   /**
    * @brief Construct a new Imm Model object
-   * @tparam DynModels Dynamic models to use. The models must be linear-time-varying and have a `DynModI` typedef 
-   * specifying the base interface as the LTV model interface or it's derived classes 
+   * @tparam DynModels Dynamic models to use. The models must be linear-time-varying and have a `DynModI` typedef
+   * specifying the base interface as the LTV model interface or it's derived classes
    * (e.g. `using DynModI = interface::DynamicModelLTV<...>`).
    * @param jump_matrix Markov jump chain matrix for the transition probabilities.
    * I.e. the probability of switching from model i to model j is `jump_matrix(i,j)`. Diagonal should be 0.
@@ -53,11 +53,10 @@ public:
    * @param models Models to use. The models must have a DynModI typedef specifying the base interface.
    * @note - The jump matrix specifies the probability of switching to a model WHEN a switch occurs.
    * @note - The holding times specifies HOW LONG a state is expected to be held between switches.
-   * @note - In order to change the properties of a model, you must get the model using `get_model<i>()` 
+   * @note - In order to change the properties of a model, you must get the model using `get_model<i>()`
    */
   ImmModel(Mat_nn jump_matrix, Vec_n hold_times, DynModels... models)
-      : models_(std::make_shared<DynModels>(models)...), 
-      jump_matrix_(jump_matrix), hold_times_(hold_times)
+      : models_(std::make_shared<DynModels>(models)...), jump_matrix_(jump_matrix), hold_times_(hold_times)
   {
     if (!jump_matrix_.diagonal().isZero()) {
       throw std::invalid_argument("Jump matrix diagonal should be zero");
@@ -106,13 +105,13 @@ public:
    * @tparam i Index of model
    * @return ModelT<i> shared pointer to model
    */
-  template <size_t i> const DynModTPtr<i>& get_model() const { return std::get<i>(models_); }
+  template <size_t i> const DynModTPtr<i> &get_model() const { return std::get<i>(models_); }
 
   /**
    * @brief Get specific dynamic model (non-const)
    * @tparam i Index of model
    * @return ModelT<i> shared pointer to model
-  */
+   */
   template <size_t i> DynModTPtr<i> get_model() { return std::get<i>(models_); }
 
   /**

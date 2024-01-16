@@ -57,7 +57,7 @@ public:
 
   using SharedPtr = std::shared_ptr<DynModI>;
 
-  DynamicModel() = default;
+  DynamicModel()          = default;
   virtual ~DynamicModel() = default;
 
   /** Discrete time dynamics
@@ -99,7 +99,6 @@ public:
     std::mt19937 gen(rd());
     return sample_f_d(dt, x, Vec_u::Zero(), gen);
   }
-
 };
 
 /**
@@ -477,18 +476,16 @@ public:
 
 namespace concepts {
 
-template<typename T>
-concept DynamicModel = requires
-{
+template <typename T>
+concept DynamicModel = requires {
   // Has member type called DynModI
   typename T::DynModI;
   // Derived from DynamicModel
   std::is_base_of<interface::DynamicModel<T::DynModI::N_DIM_x, T::DynModI::N_DIM_u, T::DynModI::N_DIM_v>, T>::value;
 };
 
-template<typename T>
-concept DynamicModelLTV = requires
-{
+template <typename T>
+concept DynamicModelLTV = requires {
   // Has member type called DynModI
   typename T::DynModI;
   // Derived from DynamicModelLTV

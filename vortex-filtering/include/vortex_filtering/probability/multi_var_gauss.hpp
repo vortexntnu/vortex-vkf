@@ -20,8 +20,7 @@ public:
    * @param mean
    * @param cov Symmetric positive definite covariance matrix
    */
-  MultiVarGauss(const Vec_n &mean, const Mat_nn &cov)
-      : mean_(mean), cov_(cov), cov_inv_(cov_.llt().solve(Mat_nn::Identity()))
+  MultiVarGauss(const Vec_n &mean, const Mat_nn &cov) : mean_(mean), cov_(cov), cov_inv_(cov_.llt().solve(Mat_nn::Identity()))
   {
     if (!cov_.isApprox(cov_.transpose(), 1e-6)) {
       throw std::invalid_argument("Covariance matrix is not symmetric");
@@ -111,11 +110,10 @@ private:
   Mat_nn cov_inv_;
 };
 
-template <int n_dims>
-using Gauss = MultiVarGauss<n_dims>;
-using Gauss2d = Gauss<2>;
-using Gauss3d = Gauss<3>;
-using Gauss4d = Gauss<4>;
+template <int n_dims> using Gauss = MultiVarGauss<n_dims>;
+using Gauss2d                     = Gauss<2>;
+using Gauss3d                     = Gauss<3>;
+using Gauss4d                     = Gauss<4>;
 
 } // namespace prob
 } // namespace vortex

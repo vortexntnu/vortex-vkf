@@ -39,16 +39,16 @@ Ellipse gauss_to_ellipse(const vortex::prob::Gauss2d &gauss);
  * @return std::vector<double>
  */
 template <int n_dims>
-std::vector<double> create_nees_series(const std::vector<Eigen::Vector<double, n_dims>> &errors, const std::vector<Eigen::Matrix<double, n_dims, n_dims>> &covariances,
-                                       const std::vector<size_t> &indices)
+std::vector<double> create_nees_series(const std::vector<Eigen::Vector<double, n_dims>> &errors,
+                                       const std::vector<Eigen::Matrix<double, n_dims, n_dims>> &covariances, const std::vector<size_t> &indices)
 {
-  using Vec_n = Eigen::Vector<double, n_dims>;
+  using Vec_n  = Eigen::Vector<double, n_dims>;
   using Mat_nn = Eigen::Matrix<double, n_dims, n_dims>;
 
   std::vector<double> nees_series;
 
   for (size_t i = 0; i < errors.size(); ++i) {
-    Vec_n error      = errors[i];
+    Vec_n error       = errors[i];
     Mat_nn covariance = covariances[i];
 
     // Handle indices if provided
@@ -81,7 +81,8 @@ std::vector<double> create_nees_series(const std::vector<Eigen::Vector<double, n
  * @return std::vector<Eigen::Vector_n>
  */
 template <int n_dims>
-std::vector<Eigen::Vector<double, n_dims>> create_error_series(const std::vector<Eigen::Vector<double, n_dims>> &x_true, const std::vector<vortex::prob::Gauss<n_dims>> &x_est)
+std::vector<Eigen::Vector<double, n_dims>> create_error_series(const std::vector<Eigen::Vector<double, n_dims>> &x_true,
+                                                               const std::vector<vortex::prob::Gauss<n_dims>> &x_est)
 {
   std::vector<Eigen::Vector<double, n_dims>> error_series;
   for (size_t i = 0; i < x_true.size(); ++i) {
@@ -95,8 +96,7 @@ std::vector<Eigen::Vector<double, n_dims>> create_error_series(const std::vector
  * @param index
  * @return std::vector<double>
  */
-template <int n_dims>
-std::vector<double> extract_state_series(const std::vector<Eigen::Vector<double, n_dims>> &x_series, size_t index)
+template <int n_dims> std::vector<double> extract_state_series(const std::vector<Eigen::Vector<double, n_dims>> &x_series, size_t index)
 {
   std::vector<double> state_series;
   for (size_t i = 0; i < x_series.size(); ++i) {
@@ -109,8 +109,7 @@ std::vector<double> extract_state_series(const std::vector<Eigen::Vector<double,
  * @param x_series
  * @return std::vector<Eigen::Vector_n>
  */
-template <int n_dims>
-std::vector<Eigen::Vector<double, n_dims>> extract_mean_series(const std::vector<vortex::prob::Gauss<n_dims>> &x_series)
+template <int n_dims> std::vector<Eigen::Vector<double, n_dims>> extract_mean_series(const std::vector<vortex::prob::Gauss<n_dims>> &x_series)
 {
   std::vector<Eigen::Vector<double, n_dims>> mean_series;
   for (size_t i = 0; i < x_series.size(); ++i) {
@@ -123,10 +122,9 @@ std::vector<Eigen::Vector<double, n_dims>> extract_mean_series(const std::vector
  * @param samples
  * @return vortex::prob::Gauss_n
  */
-template <int n_dims>
-vortex::prob::Gauss<n_dims> approximate_gaussian(const std::vector<Eigen::Vector<double, n_dims>> &samples)
+template <int n_dims> vortex::prob::Gauss<n_dims> approximate_gaussian(const std::vector<Eigen::Vector<double, n_dims>> &samples)
 {
-  using Vec_n = Eigen::Vector<double, n_dims>;
+  using Vec_n  = Eigen::Vector<double, n_dims>;
   using Mat_nn = Eigen::Matrix<double, n_dims, n_dims>;
 
   Vec_n mean = Vec_n::Zero();

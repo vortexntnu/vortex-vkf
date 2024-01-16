@@ -27,8 +27,7 @@ namespace filter {
  * @tparam beta Parameter for weighting of mean in covariance calculation (default 2.0)
  * @tparam kappa Parameter for adding additional spread to sigma points (default 0.0)
  */
-template <models::concepts::DynamicModel DynModT, models::concepts::SensorModel SensModT, double alpha = 1.0, double beta = 2.0, double kappa = 0.0>
-class UKF {
+template <models::concepts::DynamicModel DynModT, models::concepts::SensorModel SensModT, double alpha = 1.0, double beta = 2.0, double kappa = 0.0> class UKF {
 public:
   static constexpr int N_DIM_x = DynModT::DynModI::N_DIM_x;
   static constexpr int N_DIM_u = DynModT::DynModI::N_DIM_u;
@@ -80,7 +79,7 @@ public:
   static constexpr double BETA   = beta;
   static constexpr double KAPPA  = kappa;
   static constexpr double LAMBDA = ALPHA * ALPHA * (N_DIM_a + KAPPA) - N_DIM_a; // Parameter for spread of sigma points
-  static constexpr double GAMMA  = std::sqrt(N_DIM_a + LAMBDA);                 // Scaling factor for spread of sigma points                  
+  static constexpr double GAMMA  = std::sqrt(N_DIM_a + LAMBDA);                 // Scaling factor for spread of sigma points
 
   static constexpr std::array<double, 2 * N_DIM_a + 1> W_x = []() {
     std::array<double, 2 * N_DIM_a + 1> W_x;
@@ -99,7 +98,6 @@ public:
     }
     return W_c;
   }();
-
 
   /** Unscented Kalman Filter
    * @tparam DynModT Dynamic model type derived from `vortex::models::interface::DynamicModel`
@@ -186,10 +184,9 @@ private:
    * @return prob::MultiVarGauss<n_dims>
    * @note This function is templated to allow for different dimensions of the gaussian
    */
-  template <int n_dims> 
-  static prob::MultiVarGauss<n_dims> estimate_gaussian(const Eigen::Matrix<double, n_dims, 2 * N_DIM_a + 1> &sigma_points)
+  template <int n_dims> static prob::MultiVarGauss<n_dims> estimate_gaussian(const Eigen::Matrix<double, n_dims, 2 * N_DIM_a + 1> &sigma_points)
   {
-    using Vec_n = Eigen::Vector<double, n_dims>;
+    using Vec_n  = Eigen::Vector<double, n_dims>;
     using Mat_nn = Eigen::Matrix<double, n_dims, n_dims>;
 
     // Predicted State Estimate x_k-
@@ -214,7 +211,7 @@ public:
    * @return std::pair<Gauss_x, Gauss_z> Predicted state estimate, predicted measurement estimate
    */
   static std::pair<Gauss_x, Gauss_z> predict(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
-                                      const Vec_u &u = Vec_u::Zero())
+                                             const Vec_u &u = Vec_u::Zero())
   {
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_prev);
 
@@ -276,8 +273,8 @@ public:
    * @param u Vec_u Control input
    * @return std::tuple<Gauss_x, Gauss_x, Gauss_z> Updated state estimate, predicted state estimate, predicted measurement estimate
    */
-  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas,
-                                             const Vec_u &u)
+  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
+                                                    const Vec_z &z_meas, const Vec_u &u)
   {
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_prev);
 
@@ -307,7 +304,6 @@ public:
     return {x_est_upd, x_pred, z_pred};
   }
 };
-
 
 } // namespace filter
 } // namespace vortex

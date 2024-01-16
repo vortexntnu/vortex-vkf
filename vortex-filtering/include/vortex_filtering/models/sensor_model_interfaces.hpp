@@ -54,7 +54,7 @@ public:
 
   using SharedPtr = std::shared_ptr<SensModI>;
 
-  SensorModel() = default;
+  SensorModel()          = default;
   virtual ~SensorModel() = default;
 
   /**
@@ -93,7 +93,6 @@ public:
     std::mt19937 gen(rd());
     return sample_h(x, gen);
   }
-
 };
 
 /**
@@ -109,7 +108,7 @@ public:
  */
 template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_w = n_dim_z> class SensorModelLTV : public SensorModel<n_dim_x, n_dim_z, n_dim_z> {
 public:
-  using SensModI                = SensorModel<n_dim_x, n_dim_z, n_dim_w>;
+  using SensModI               = SensorModel<n_dim_x, n_dim_z, n_dim_w>;
   static constexpr int N_DIM_x = SensModI::N_DIM_x;
   static constexpr int N_DIM_z = SensModI::N_DIM_z;
   static constexpr int N_DIM_w = SensModI::N_DIM_w;
@@ -205,9 +204,8 @@ public:
 
 namespace concepts {
 
-template <typename T> 
-concept SensorModel = requires
-{
+template <typename T>
+concept SensorModel = requires {
   // Has member type SensModI
   typename T::SensModI;
   // Derived from SensorModel
@@ -215,8 +213,7 @@ concept SensorModel = requires
 };
 
 template <typename T>
-concept SensorModelLTV = requires
-{
+concept SensorModelLTV = requires {
   // Has member type SensModI
   typename T::SensModI;
   // Derived from SensorModelLTV

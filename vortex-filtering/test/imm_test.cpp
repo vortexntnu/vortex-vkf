@@ -54,7 +54,7 @@ TEST(ImmModel, piMatC)
   hold_times << 6, 12, 18;
   double std = 1.0;
 
-  using DynMod2d = IdentityDynamicModel<2>; 
+  using DynMod2d = IdentityDynamicModel<2>;
 
   ImmModel imm_model(jump_mat, hold_times, DynMod2d(std), DynMod2d(std), DynMod2d(std));
 
@@ -71,7 +71,6 @@ TEST(ImmModel, piMatC)
 TEST(ImmModel, piMatD)
 {
   using namespace vortex::models;
-
 
   Eigen::Matrix3d jump_mat;
   // clang-format off
@@ -122,7 +121,6 @@ TEST(ImmFilter, init)
   using ImmModelT = vortex::models::ImmModel<DynModT, DynModT>;
 
   vortex::filter::ImmFilter<SensModT, ImmModelT> imm_filter;
-
 }
 
 TEST(ImmFilter, calculateMixingProbs)
@@ -174,7 +172,7 @@ TEST(ImmFilter, mixing)
   Eigen::Vector2d hold_times;
   hold_times << 1, 1;
   double high_std = 10;
-  double low_std = 0.1;
+  double low_std  = 0.1;
 
   using IMM = ImmModel<IdentityDynamicModel<2>, IdentityDynamicModel<2>>;
   IMM imm_model(jump_mat, hold_times, {high_std}, {low_std});
