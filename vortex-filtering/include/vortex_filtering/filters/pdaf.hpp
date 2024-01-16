@@ -15,10 +15,10 @@ template<class DynModT, class SensModT>
 class PDAF {
 public:
     using SensModI = typename SensModT::SensModI;
-    using DynModI = typename DynModT::BaseI;
+    using DynModI = typename DynModT::DynModI;
     using DynModPtr = std::shared_ptr<DynModI>;
     using SensModPtr = std::shared_ptr<SensModI>;
-    using EKF = vortex::filter::EKF_M<DynModI, SensModI>;
+    using EKF = vortex::filter::EKF<DynModI, SensModI>;
     using Gauss_z = typename SensModI::Gauss_z;
     using Gauss_x = typename DynModI::Gauss_x;
     using Vec_z = typename SensModI::Vec_z;
@@ -38,30 +38,32 @@ public:
         std::cout << "Created PDAF class with given models!" << std::endl;
     }
 
-    std::tuple<Gauss_z, MeasurementsZd, MeasurementsZd> predict_next_state(const Gauss_x& x_est, const MeasurementsZd& z_meas, double timestep, const DynModPtr& dyn_model, const SensModPtr& sen_model) const
+    std::tuple<Gauss_x, MeasurementsZd, MeasurementsZd> predict_next_state(const Gauss_x& x_est, const MeasurementsZd& z_meas, double timestep, const DynModPtr& dyn_model, const SensModPtr& sen_model) const
     {
-        EKF ekf;
-        auto [x_pred, z_pred] = ekf.predict(dyn_model, sen_model, timestep, x_est);
-        auto [inside, outside] = apply_gate(gate_threshold_, z_meas, z_pred);
+        auto [x_pred, z_pred] = EKF::predict(dyn_model, sen_model, timestep, x_est);
+        auto [inside, outside] = apply_gate(z_meas, z_pred);
 
         StatesXd updated;
         for (const auto& measurement : inside) {
-            updated.push_back(ekf.update(x_pred, z_pred, measurement));
+            updated.push_back(EKF::update(sen_model, x_pred, z_pred, measurement));
         }
 
-        Gauss_z predicted_state = get_weighted_average(z_meas, updated, z_pred, x_pred);
+        Gauss_x predicted_state = get_weighted_average(z_meas, updated, z_pred, x_pred);
         return {predicted_state, inside, outside};
     }
 
-    std::tuple<MeasurementsZd, MeasurementsZd> apply_gate(double gate_threshold, const MeasurementsZd& z_meas, const Gauss_z& z_pred) const
+    std::tuple<MeasurementsZd, MeasurementsZd> apply_gate(const MeasurementsZd& z_meas, const Gauss_z& z_pred) const
     {
         MeasurementsZd inside_meas;
         MeasurementsZd outside_meas;
 
         for (const auto& measurement : z_meas) {
             double distance = z_pred.mahalanobis_distance(measurement);
+            // std::cout << "measurement: " << measurement << std::endl;
+            // std::cout << "z_pred: " << z_pred.mean() << std::endl;
+            // std::cout << "distance: " << distance << std::endl;
 
-            if (distance < gate_threshold) {
+            if (distance < gate_threshold_) {
                 inside_meas.push_back(measurement);
             } else {
                 outside_meas.push_back(measurement);
