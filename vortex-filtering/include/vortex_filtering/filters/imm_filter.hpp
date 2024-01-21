@@ -19,6 +19,7 @@
 #include <vortex_filtering/models/imm_model.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 #include <vortex_filtering/probability/gaussian_mixture.hpp>
+#include <vortex_filtering/probability/uniform.hpp>
 
 namespace vortex::filter {
 
@@ -57,17 +58,16 @@ public:
 
   /**
    * Calculates the mixing probabilities for the IMM filter, following step 1 in (6.4.1) in the book.
-   * @param imm_model The IMM model.
+   * @param transition_matrix The discrete time transition matrix for the Markov chain. (pi_mat_d from the imm model)
    * @param model_weights The weights (mode probabilities) from the previous time step.
    * @param dt The time step.
    * @return The mixing probabilities. Each element is mixing_probs[s_{k-1}, s_k] = mu_{s_{k-1}|s_k} where s is the index of the model.
    */
-  static Mat_nn calculate_mixing_probs(const ImmModelT &imm_model, const Vec_n &model_weights, double dt)
+  static Mat_nn calculate_mixing_probs(const Mat_nn &transition_matrix, const Vec_n &model_weights, double dt)
   {
-    Mat_nn pi_mat = imm_model.get_pi_mat_d(dt);
 
     // mu_{s_{k-1}|s_k} = pi_{s_{k-1}|s_k} * mu_{s_{k-1}|k-1}
-    Mat_nn mixing_probs = pi_mat.cwiseProduct(model_weights.replicate(1, N_MODELS));
+    Mat_nn mixing_probs = transition_matrix.cwiseProduct(model_weights.replicate(1, N_MODELS));
 
     // Normalize
     for (int i = 0; i < mixing_probs.cols(); i++) {
@@ -140,17 +140,16 @@ public:
   /**
    * @brief Update the mode probabilites based on how well the predictions matched the measurements.
    * Using (6.37) from step 3 and (6.38) from step 4 in (6.4.1) in the book
-   * @param imm_model The IMM model.
+   * @param transition_matrix The discrete time transition matrix for the Markov chain. (pi_mat_d from the imm model)
    * @param dt double Time step
    * @param z_preds Mode-match filter outputs
    * @param z_meas Vec_z Measurement
    * @param prev_weigths Vec_n Weights
    * @return `Vec_n` Updated weights
    */
-  static Vec_n update_probabilities(const ImmModelT &imm_model, double dt, const std::vector<Gauss_z> &z_preds, const Vec_z &z_meas, const Vec_n &prev_weights)
+  static Vec_n update_probabilities(const Mat_nn &transition_matrix, double dt, const std::vector<Gauss_z> &z_preds, const Vec_z &z_meas, const Vec_n &prev_weights)
   {
-    Mat_nn pi_mat      = imm_model.get_pi_mat_d(dt);
-    Vec_n weights_pred = pi_mat.transpose() * prev_weights;
+    Vec_n weights_pred = transition_matrix.transpose() * prev_weights;
 
     Vec_n z_probs;
     for (size_t i = 0; i < N_MODELS; i++) {
@@ -170,17 +169,29 @@ public:
    * @param z_meas Vec_z
    * @return Tuple of updated mixture, predicted mixture, predicted measurement mixture
    */
-  static GaussMix_x step(double dt, const GaussMix_x &x_est_prev, const Vec_z &z_meas)
+  static GaussMix_x step(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt, const GaussMix_x &x_est_prev, const Vec_z &z_meas)
   {
-    Mat_nn mixing_probs                         = calculate_mixing_probs(x_est_prev.weights(), dt);
+    Mat_nn transition_matrix = imm_model.get_pi_mat_d(dt);
+
+    Mat_nn mixing_probs                         = calculate_mixing_probs(transition_matrix, x_est_prev.weights(), dt);
     std::vector<Gauss_x> moment_based_preds     = mixing(x_est_prev.gaussians(), mixing_probs);
-    auto [x_est_upds, x_est_preds, z_est_preds] = mode_matched_filter(moment_based_preds, z_meas, dt);
-    Vec_n weights_upd                           = update_probabilities(dt, z_est_preds, z_meas, x_est_prev.weights());
+    auto [x_est_upds, x_est_preds, z_est_preds] = mode_matched_filter(imm_model, sensor_model, moment_based_preds, z_meas, dt);
+    Vec_n weights_upd                           = update_probabilities(transition_matrix, dt, z_est_preds, z_meas, x_est_prev.weights());
 
     return {weights_upd, x_est_upds};
   }
 
 private:
+  /**
+   * @brief Calculate the Kalman filter outputs for each mode. If the model isn't LTV, use the ukf instead of the ekf.
+   * @tparam Is Indices of models
+   * @param imm_model The IMM model.
+   * @param sensor_model The sensor model.
+   * @param dt double Time step
+   * @param moment_based_preds Moment-based predictions
+   * @param z_meas Vec_z Measurement
+   * @return Tuple of updated states, predicted states, predicted measurements
+   */
   template <size_t... Is>
   static std::tuple<Vec_Gauss_x, Vec_Gauss_x, Vec_Gauss_z> mode_matched_filter_impl(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
                                                                                     const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas,
@@ -204,6 +215,114 @@ private:
 
     return {x_est_upds, x_est_preds, z_est_preds};
   }
+};
+
+
+
+struct MotionModelMixingParams {
+  double max_velocity;
+  double max_abs_turn_rate;
+};
+
+class MultipleMotionModelsFilter {
+public:
+
+  constexpr static size_t N_SPATIAL_DIMS = 2;
+
+  using ConstPos  = models::ConstantPosition<N_SPATIAL_DIMS>;
+  using ConstVel  = models::ConstantVelocity<N_SPATIAL_DIMS>;
+  using CoordTurn = models::CoordinatedTurn;
+  using ImmModelT = models::ImmModel<ConstPos, ConstVel, ConstVel, CoordTurn>;
+
+  static constexpr size_t N_MODELS = ImmModelT::N_MODELS;
+
+  using Vec_n  = typename ImmModelT::Vec_n;
+  using Mat_nn = typename ImmModelT::Mat_nn;
+
+  using GaussTuple_x = typename ImmModelT::GaussTuple_x;
+
+  template<size_t i> using Gauss_x = typename ImmModelT::template Gauss_x<i>;
+
+  enum class State {
+    none, pos_x, pos_y, vel_x, vel_y, turn_rate
+  };
+
+  // Map of state to index in state vector
+  using StateMap = Eigen::Matrix<State, 5, N_MODELS>;
+
+  const StateMap state_map_;
+
+private:
+ // A dummy IMM filter with the correct number of models
+  using DummyDynModel = models::IdentityDynamicModel<1>;
+  using DummySensorModel = models::IdentitySensorModel<1, 1>;
+  using DummyImmModel = models::ImmModel<DummyDynModel, DummyDynModel, DummyDynModel, DummyDynModel>;
+  using DummyImmFilter = ImmFilter<DummySensorModel, DummyImmModel>;
+public:
+
+  MultipleMotionModelsFilter() : state_map_{[]() {
+    StateMap map;
+    // clang-format off
+    map << State::pos_x, State::pos_x, State::pos_x, State::pos_x,
+           State::pos_y, State::pos_y, State::pos_y, State::pos_y,
+           State::none , State::vel_x, State::vel_x, State::vel_x,
+           State::none , State::vel_y, State::vel_y, State::vel_y,
+           State::none , State::none , State::none , State::turn_rate;
+    // clang-format on
+    return map;
+  }()}
+  {};
+
+  using calculate_mixing_probs = decltype(DummyImmFilter::calculate_mixing_probs);
+  using mixing = decltype(DummyImmFilter::mixing);
+
+  static GaussTuple_x mixing(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs)
+  {
+    // std::vector<Gauss_x> moment_based_preds;
+    // for (auto weights : mixing_probs.rowwise()) {
+    //   GaussMix_x mixture(weights, x_est_prevs);
+    //   moment_based_preds.push_back(mixture.reduce());
+    // }
+    // return moment_based_preds;
+
+    GaussTuple_x moment_based_preds;
+
+  }
+
+  template <size_t target_model_index>
+  static Gauss_x<target_model_index> mix_one_component(const GaussTuple_x &x_est_prevs, const Vec_n &weights)
+  {
+    constexpr size_t N_DIM_x = ImmModelT::get_n_dim_x().at(target_model_index);
+    using Vec_x   = Eigen::Vector<double, N_DIM_x>;
+    using Mat_xx  = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+    using Gauss_x = prob::Gauss<N_DIM_x>;
+    using Uni_x   = prob::Uniform<N_DIM_x>;
+
+    using MatchedVec = Eigen::Vector<bool, N_MODELS>;
+    using MatchedMat = Eigen::Matrix<bool, N_MODELS>;
+    // Go through all models. If the model has the same state, copy the state 
+    for (size_t model_index = 0; model_index < N_MODELS; model_index++) {
+      MatchedVec matching_vec = MatchedVec::Zero();
+      for (size_t state_index = 0; state_index < N_DIM_x; state_index++) {
+        matching_vec(model_index) = state_map_(state_index, target_model_index) == state_map_(state_index, model_index);
+      }
+      MatchedMat matching_mat =  matching_vec * matching_vec.transpose();
+
+      Vec_x x  = x_est_prevs.at(model_index).mean().cwiseProduct(matching_vec);
+      Mat_xx P = x_est_prevs.at(model_index).cov().cwiseProduct(matching_mat);
+
+      for (size_t i = 0; i < N_DIM_x; i++) {
+        if (!matching_vec(i)) {
+          Uni_x uni_x{-Vec_x::Ones(), Vec_x::Ones()};
+          x(i) = uni_x.mean()(i);
+          P(i, i) = uni_x.cov()(i, i);
+        };
+      }
+    }
+  }
+    
+
+    
 };
 
 } // namespace vortex::filter

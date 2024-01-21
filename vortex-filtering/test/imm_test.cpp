@@ -149,13 +149,13 @@ TEST(ImmFilter, calculateMixingProbs)
   model_weights << 0.5, 0.5;
   // Since the weights are equal, the mixing probabilities should be equal to the discrete time Markov chain
   Eigen::Matrix2d mixing_probs_true = imm_model.get_pi_mat_d(dt);
-  Eigen::Matrix2d mixing_probs      = imm_filter.calculate_mixing_probs(imm_model, model_weights, dt);
+  Eigen::Matrix2d mixing_probs      = imm_filter.calculate_mixing_probs(imm_model.get_pi_mat_d(dt), model_weights, dt);
   EXPECT_EQ(isApproxEqual(mixing_probs, mixing_probs_true, 1e-6), true);
 
   // When all of the weight is in the first model, the probability that the previous model was the second model should be 0
   model_weights << 1, 0;
   mixing_probs_true << 1, 1, 0, 0;
-  mixing_probs = imm_filter.calculate_mixing_probs(imm_model, model_weights, dt);
+  mixing_probs = imm_filter.calculate_mixing_probs(imm_model.get_pi_mat_d(dt), model_weights, dt);
   EXPECT_EQ(isApproxEqual(mixing_probs, mixing_probs_true, 1e-6), true);
 }
 
@@ -262,7 +262,7 @@ TEST(ImmFilter, updateProbabilities)
 
   std::vector<Gauss2d> z_preds = {Gauss2d::Standard(), {{1, 1}, Eigen::Matrix2d::Identity()}};
 
-  Eigen::Vector2d upd_weights = imm_filter.update_probabilities(imm_model, dt, z_preds, z_meas, model_weights);
+  Eigen::Vector2d upd_weights = imm_filter.update_probabilities(imm_model.get_pi_mat_d(dt), dt, z_preds, z_meas, model_weights);
 
   EXPECT_GT(upd_weights(1), upd_weights(0));
 }

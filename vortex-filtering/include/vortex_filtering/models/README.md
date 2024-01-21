@@ -53,7 +53,7 @@ This class implements the `DynamicModelLTV` interface and defines the dynamics o
 This class can hold multiple `DynamicModel` objects and defines functions to calculate the probability of switching between the models. 
 
 #### Usage
-To instantiate a **Interacting Multiple Models (IMM) object**, you must provide three key parameters:
+To instantiate a **Interacting Multiple Models (IMM) object**, you must provide three parameters:
 
 1. **Hold Times Vector**: This vector should contain the expected time durations between switches for each model. The length of this vector must equal the number of models, denoted as `N`.
 

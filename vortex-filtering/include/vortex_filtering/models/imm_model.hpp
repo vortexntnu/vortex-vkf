@@ -17,6 +17,8 @@
 namespace vortex::models {
 // namespace models {
 
+
+
 /**
  * @brief Container class for interacting multiple models.
  * @tparam DynModels Dynamic models to use.
@@ -26,6 +28,8 @@ template <concepts::DynamicModel... DynModels> class ImmModel {
 public:
   using DynModTuple    = std::tuple<DynModels...>;
   using DynModPtrTuple = std::tuple<std::shared_ptr<DynModels>...>;
+
+  using GaussTuple_x = std::tuple<typename DynModels::DynModI::Gauss_x...>;
 
   static constexpr size_t N_MODELS = sizeof...(DynModels);
 
@@ -40,6 +44,7 @@ public:
   template <size_t i> using Vec_v   = typename DynModI<i>::Vec_v;
   template <size_t i> using Mat_xx  = typename DynModI<i>::Mat_xx;
   template <size_t i> using Mat_vv  = typename DynModI<i>::Mat_vv;
+  template <size_t i> using Gauss_x = typename DynModI<i>::Gauss_x;
 
   template <size_t i> using DynModT    = typename std::tuple_element<i, DynModTuple>::type;
   template <size_t i> using DynModTPtr = typename std::shared_ptr<DynModT<i>>;

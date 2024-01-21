@@ -101,7 +101,8 @@ public:
  */
 template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelCT : public DynamicModel<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using DynModI                = DynamicModel<n_dim_x, n_dim_u, n_dim_v>;
+  using DynModI = DynamicModel<n_dim_x, n_dim_u, n_dim_v>;
+
   static constexpr int N_DIM_x = DynModI::N_DIM_x;
   static constexpr int N_DIM_u = DynModI::N_DIM_u;
   static constexpr int N_DIM_v = DynModI::N_DIM_v;
@@ -172,7 +173,8 @@ protected:
  */
 template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelLTV : public DynamicModel<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using DynModI                = DynamicModel<n_dim_x, n_dim_u, n_dim_v>;
+  using DynModI = DynamicModel<n_dim_x, n_dim_u, n_dim_v>;
+
   static constexpr int N_DIM_x = n_dim_x;
   static constexpr int N_DIM_u = n_dim_u;
   static constexpr int N_DIM_v = n_dim_v;
@@ -417,7 +419,10 @@ public:
   Mat_xv G_d(double dt, const Vec_x &x) const override
   {
     Eigen::Matrix<double, N_DIM_x + N_DIM_v, N_DIM_x + N_DIM_v> van_loan;
-    van_loan << A_c(x), G_c(x), Mat_vx::Zero(), Mat_vv::Zero();
+    // clang-format off
+    van_loan << A_c(x)        , G_c(x), 
+                Mat_vx::Zero(), Mat_vv::Zero();
+    // clang-format on
     van_loan *= dt;
     van_loan = van_loan.exp();
 
@@ -440,7 +445,6 @@ public:
     Mat_vx G_d_pinv = G_d.completeOrthogonalDecomposition().pseudoInverse();
 
     return G_d_pinv * GQGT_d * G_d_pinv.transpose();
-    return Mat_vv::Identity();
   }
 
   Mat_xx GQGT_d(double dt, const Vec_x &x) const override
@@ -450,9 +454,13 @@ public:
     Mat_xv G_c = this->G_c(x);
 
     Eigen::Matrix<double, 2 * N_DIM_x, 2 * N_DIM_x> van_loan;
-    van_loan << -A_c, G_c * Q_c * G_c.transpose(), Mat_xx::Zero(), A_c.transpose();
+    // clang-format off
+    van_loan <<           -A_c, G_c * Q_c * G_c.transpose(), 
+                Mat_xx::Zero(),             A_c.transpose();
+    // clang-format on
     van_loan *= dt;
-    van_loan              = van_loan.exp();
+    van_loan = van_loan.exp();
+
     Mat_xx A_d            = van_loan.template block<N_DIM_x, N_DIM_x>(N_DIM_x, N_DIM_x).transpose();
     Mat_xx A_d_inv_GQGT_d = van_loan.template block<N_DIM_x, N_DIM_x>(0, N_DIM_x); // A_d^(-1) * G * Q * G^T
     Mat_xx GQGT_d         = A_d * A_d_inv_GQGT_d;                                  // G * Q * G^T

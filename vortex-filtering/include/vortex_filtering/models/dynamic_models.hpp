@@ -4,6 +4,27 @@
 namespace vortex {
 namespace models {
 
+
+template <typename T, T X, std::size_t... Is>
+constexpr auto generate_constant_sequence(std::index_sequence<Is...>)
+{
+    return std::integer_sequence<T, ((void)Is, X)...>{};
+}
+
+template <typename T, T X, std::size_t N>
+using constant_sequence = decltype(generate_constant_sequence<T, X>(std::make_index_sequence<N>{}));
+
+
+enum class StateType { position, velocity, acceleration, turn_rate };
+
+template <StateType... state_types> struct SemanticState 
+{
+  constexpr SemanticState = default;
+  constexpr SemanticState(state_types...) {}
+  static constexpr size_t N_STATES = sizeof...(state_types);
+  static constexpr std::array<StateType, N_STATES> TYPES = {state_types...};
+};
+
 constexpr int X = 1; // For when a template parameter is required but not used.
 
 /** Identity Dynamic Model
@@ -46,7 +67,12 @@ template <int n_spatial_dim> using ConstantPosition = IdentityDynamicModel<n_spa
  * State x = [pos, vel], where pos and vel are `n_spatial_dim`-dimensional vectors
  * @tparam n_spatial_dim Number of spatial dimensions
  */
-template <int n_spatial_dim> class ConstantVelocity : public interface::DynamicModelLTV<2 * n_spatial_dim, X, n_spatial_dim> {
+template <int n_spatial_dim> class ConstantVelocity 
+  : public interface::DynamicModelLTV<2 * n_spatial_dim, X, n_spatial_dim>
+  , public SemanticState<
+      constant_sequence<StateType, StateType::position, n_spatial_dim>, 
+      constant_sequence<StateType, StateType::velocity, n_spatial_dim>> 
+{
 public:
   using DynModI = interface::DynamicModelLTV<2 * n_spatial_dim, X, n_spatial_dim>;
   using typename DynModI::Mat_vv;
@@ -115,7 +141,13 @@ private:
  * State vector x = [pos, vel, acc], where pos, vel and acc are `n_spatial_dim`-dimensional vectors
  * @tparam n_spatial_dim Number of spatial dimensions
  */
-template <int n_spatial_dim> class ConstantAcceleration : public interface::DynamicModelLTV<3 * n_spatial_dim, X, 2 * n_spatial_dim> {
+template <int n_spatial_dim> class ConstantAcceleration 
+  : public interface::DynamicModelLTV<3 * n_spatial_dim, X, 2 * n_spatial_dim>
+  , public SemanticState<
+      constant_sequence<StateType, StateType::position, n_spatial_dim>, 
+      constant_sequence<StateType, StateType::velocity, n_spatial_dim>,
+      constant_sequence<StateType, StateType::acceleration, n_spatial_dim>>
+  {
 public:
   using DynModI = interface::DynamicModelLTV<3 * n_spatial_dim, X, 2 * n_spatial_dim>;
   using typename DynModI::Vec_v;
@@ -197,6 +229,14 @@ public:
   using typename DynModI::Mat_vv;
   using typename DynModI::Mat_xv;
   using typename DynModI::Mat_xx;
+
+  using States = SemanticState<
+    StateType::position,
+    StateType::position,
+    StateType::velocity,
+    StateType::velocity,
+    StateType::turn_rate>;
+    
 
   /** (Nearly) Coordinated Turn Model in 2D. (Nearly constant speed, nearly constant turn rate)
    * State = [x, y, x_dot, y_dot, omega]
