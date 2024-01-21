@@ -230,12 +230,12 @@ struct MotionModelMixingParams {
 class MultipleMotionModelsFilter {
 public:
 
-  using ConstPos  = models::ConstantPosition;
-  using ConstVel  = models::ConstantVelocity;
+  constexpr static size_t N_SPATIAL_DIMS = 2;
+
+  using ConstPos  = models::ConstantPosition<N_SPATIAL_DIMS>;
+  using ConstVel  = models::ConstantVelocity<N_SPATIAL_DIMS>;
   using CoordTurn = models::CoordinatedTurn;
-  using ImmModelT = models::ImmModel<ConstVel, ConstVel, CoordTurn>;
-
-
+  using ImmModelT = models::ImmModel<ConstPos, ConstVel, ConstVel, CoordTurn>;
 
   static constexpr size_t N_MODELS = ImmModelT::N_MODELS;
 
