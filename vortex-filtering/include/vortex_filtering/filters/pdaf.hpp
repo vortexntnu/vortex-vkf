@@ -38,18 +38,18 @@ public:
         std::cout << "Created PDAF class with given models!" << std::endl;
     }
 
-    std::tuple<Gauss_x, MeasurementsZd, MeasurementsZd> predict_next_state(const Gauss_x& x_est, const MeasurementsZd& z_meas, double timestep, const DynModPtr& dyn_model, const SensModPtr& sen_model) const
+    std::tuple<Gauss_x, MeasurementsZd, MeasurementsZd, Gauss_x, Gauss_z, StatesXd> predict_next_state(const Gauss_x& x_est, const MeasurementsZd& z_meas, double timestep, const DynModPtr& dyn_model, const SensModPtr& sen_model) const
     {
         auto [x_pred, z_pred] = EKF::predict(dyn_model, sen_model, timestep, x_est);
         auto [inside, outside] = apply_gate(z_meas, z_pred);
 
-        StatesXd updated;
+        StatesXd x_updated;
         for (const auto& measurement : inside) {
-            updated.push_back(EKF::update(sen_model, x_pred, z_pred, measurement));
+            x_updated.push_back(EKF::update(sen_model, x_pred, z_pred, measurement));
         }
 
-        Gauss_x predicted_state = get_weighted_average(z_meas, updated, z_pred, x_pred);
-        return {predicted_state, inside, outside};
+        Gauss_x x_final = get_weighted_average(z_meas, x_updated, z_pred, x_pred);
+        return {x_final, inside, outside, x_pred, z_pred, x_updated};
     }
 
     std::tuple<MeasurementsZd, MeasurementsZd> apply_gate(const MeasurementsZd& z_meas, const Gauss_z& z_pred) const
@@ -59,11 +59,11 @@ public:
 
         for (const auto& measurement : z_meas) {
             double distance = z_pred.mahalanobis_distance(measurement);
-            // std::cout << "measurement: " << measurement << std::endl;
-            // std::cout << "z_pred: " << z_pred.mean() << std::endl;
-            // std::cout << "distance: " << distance << std::endl;
+            std::cout << "measurement: " << measurement << std::endl;
+            std::cout << "z_pred: " << z_pred.mean() << std::endl;
+            std::cout << "distance: " << distance << std::endl;
 
-            if (distance < gate_threshold_) {
+            if (distance <= gate_threshold_) {
                 inside_meas.push_back(measurement);
             } else {
                 outside_meas.push_back(measurement);

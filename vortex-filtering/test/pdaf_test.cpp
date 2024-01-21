@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <vortex_filtering/filters/pdaf.hpp>
+#include <vortex_filtering/plotting/utils.hpp>
 #include <iostream>
 #include <gnuplot-iostream.h>
 
@@ -168,16 +169,40 @@ TEST(PDAF, apply_gate_is_calculating)
 
 TEST(PDAF, apply_gate_is_separating_correctly)
 {
-    double gate_threshold = 1.8;
+    double gate_threshold = 2;
     SimplePDAF pdaf(gate_threshold, 0.8, 1.0);
+    
+    Eigen::Matrix2d cov;
+    cov << 1.0, 0.0,
+           0.0, 4.0;
 
-    vortex::prob::Gauss2d z_pred(Eigen::Vector2d(0.0, 0.0), Eigen::Matrix2d::Identity());
-    std::vector<Eigen::Vector2d> meas = {{0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0},{0.0, 2.0}, {2.0, 0.0}, {2.0, 2.0}};
+    vortex::prob::Gauss2d z_pred(Eigen::Vector2d(0.0, 0.0), cov);
+    std::vector<Eigen::Vector2d> meas = {{0.0, 4.0}, {4.0, 0.0}};
 
     auto [inside, outside] = pdaf.apply_gate(meas, z_pred);
 
-    EXPECT_EQ(inside.size(), 3u);
-    EXPECT_EQ(outside.size(), 3u);
+    EXPECT_EQ(inside.size(), 1u);
+    EXPECT_EQ(outside.size(), 1u);
+    EXPECT_EQ(inside[0], meas[0]);
+    EXPECT_EQ(outside[0], meas[1]);
+
+    Gnuplot gp;
+    gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
+    gp << "set style circle radius 0.05\n";
+    gp << "plot '-' with circles title 'Samples' fs transparent solid 1 noborder\n";
+    gp.send1d(meas);
+
+    int object_counter = 0;
+
+    gp << "set object " << ++object_counter << " circle center " << z_pred.mean()(0) << "," << z_pred.mean()(1) << " size " << 0.05 << " fs empty border lc rgb 'green'\n";
+    gp << "replot\n";
+
+    vortex::plotting::Ellipse prediction = vortex::plotting::gauss_to_ellipse(z_pred, 5.991);
+
+    gp << "set object " << ++object_counter << " ellipse center " << prediction.x << "," << prediction.y << " size " << prediction.a << "," << prediction.b << " angle " << prediction.angle
+        << "fs empty border lc rgb 'cyan'\n";
+    gp << "replot\n";
+
 }
 
 TEST(PDAF, apply_gate_is_separating_correctly_2)
@@ -197,7 +222,9 @@ TEST(PDAF, apply_gate_is_separating_correctly_2)
 // testing the predict_next_state function
 TEST(PDAF, predict_next_state_is_calculating)
 {
-    SimplePDAF pdaf(2.0, 0.8, 1.0);
+
+    double gate_threshold = 1.0;
+    SimplePDAF pdaf(gate_threshold, 0.8, 1.0);
 
     vortex::prob::Gauss4d x_est(Eigen::Vector4d(0.0, 0.0, 0.0, 0.0), Eigen::Matrix4d::Identity());
     std::vector<Eigen::Vector2d> meas = {{0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0},{0.0, 2.0}, {2.0, 0.0}, {2.0, 2.0}};
@@ -205,17 +232,34 @@ TEST(PDAF, predict_next_state_is_calculating)
     auto dyn_model = std::make_shared<vortex::models::ConstantVelocity<2>>(1.0);
     auto sen_model = std::make_shared<vortex::models::IdentitySensorModel<4, 2>>(1.0);
 
-    auto [x_pred, inside, outside] = pdaf.predict_next_state(x_est, meas, 1.0, dyn_model, sen_model);
-    std::cout << "x_pred: " << x_pred.mean() << std::endl;
+    auto [x_final, inside, outside, x_pred, z_pred, x_updated] = pdaf.predict_next_state(x_est, meas, 1.0, dyn_model, sen_model);
+    std::cout << "x_final: " << x_final.mean() << std::endl;
 
-    // Gnuplot gp;
-    // gp << "set xrange [-5:5]\nset yrange [-5:5]\n";
-    // gp << "set style circle radius 0.05\n";
-    // gp << "plot '-' with circles title 'Samples' fs transparent solid 0.05 noborder\n";
-    // gp.send1d(meas);
+    Gnuplot gp;
+    gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
+    gp << "set style circle radius 0.05\n";
+    gp << "plot '-' with circles title 'Samples' fs transparent solid 1 noborder\n";
+    gp.send1d(meas);
 
-    // gp << "set object 1 ellipse center " << true_mean(0) << "," << true_mean(1) << " size " << majorAxisLength << "," << minorAxisLength << " angle " << angle
-    //     << "fs empty border lc rgb 'cyan'\n";
-    // gp << "replot\n";
+    int object_counter = 0;
+
+    gp << "set object " << ++object_counter << " circle center " << x_est.mean()(0) << "," << x_est.mean()(1) << " size " << 0.05 << "fs empty border lc rgb 'black'\n";
+    gp << "set object " << ++object_counter << " circle center " << x_final.mean()(0) << "," << x_final.mean()(1) << " size " << 0.05 << " fs empty border lc rgb 'green'\n";
+    gp << "replot\n";
+
+    vortex::plotting::Ellipse gate = vortex::plotting::gauss_to_ellipse(z_pred, gate_threshold);
+
+    gp << "set object " << ++object_counter << " ellipse center " << gate.x << "," << gate.y << " size " << gate.a << "," << gate.b << " angle " << gate.angle
+        << "fs empty border lc rgb 'cyan'\n";
+    gp << "replot\n";
+
+    for (const auto& state: x_updated)
+    {   
+        vortex::prob::Gauss2d gauss(state.mean().head(2), state.cov().topLeftCorner(2,2));
+        vortex::plotting::Ellipse ellipse = vortex::plotting::gauss_to_ellipse(gauss); 
+
+        gp << "set object " << ++object_counter << " ellipse center " << ellipse.x << "," << ellipse.y << " size " << ellipse.a << "," << ellipse.b << " angle " << ellipse.angle << "fs empty border lc rgb 'blue'\n";
+    };
+    gp << "replot\n";
 
 }
