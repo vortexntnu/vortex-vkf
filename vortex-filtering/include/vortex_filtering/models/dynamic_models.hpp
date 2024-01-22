@@ -16,6 +16,7 @@ using constant_sequence = decltype(generate_constant_sequence<T, X>(std::make_in
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 enum class StateType { none, position, velocity, acceleration, turn_rate };
 
 template <StateType... state_types> struct SemanticState 
@@ -30,6 +31,14 @@ template <StateType... state_types> struct SemanticState
   constexpr SemanticState = default;
   constexpr SemanticState(state_types...) {}
 >>>>>>> d2c9504 (started on new IMM filter)
+=======
+enum class StateType { none, position, velocity, acceleration, turn_rate };
+
+template <StateType... state_types> struct SemanticState 
+{
+  constexpr SemanticState() = default;
+  constexpr SemanticState(StateType...) {}
+>>>>>>> 5b59215 (more changes...)
   static constexpr size_t N_STATES = sizeof...(state_types);
   static constexpr std::array<StateType, N_STATES> TYPES = {state_types...};
 };
