@@ -15,12 +15,12 @@ template <typename T, T X, std::size_t N>
 using constant_sequence = decltype(generate_constant_sequence<T, X>(std::make_index_sequence<N>{}));
 
 
-enum class StateType { position, velocity, acceleration, turn_rate };
+enum class StateType { none, position, velocity, acceleration, turn_rate };
 
 template <StateType... state_types> struct SemanticState 
 {
-  constexpr SemanticState = default;
-  constexpr SemanticState(state_types...) {}
+  constexpr SemanticState() = default;
+  constexpr SemanticState(StateType...) {}
   static constexpr size_t N_STATES = sizeof...(state_types);
   static constexpr std::array<StateType, N_STATES> TYPES = {state_types...};
 };
@@ -30,13 +30,15 @@ constexpr int X = 1; // For when a template parameter is required but not used.
 /** Identity Dynamic Model
  * @tparam n_dim_x Number of dimensions in state vector
  */
-template <int n_dim_x> class IdentityDynamicModel : public interface::DynamicModelLTV<n_dim_x> {
+template <size_t n_dim_x> class IdentityDynamicModel : public interface::DynamicModelLTV<n_dim_x> {
 public:
   using DynModI = interface::DynamicModelLTV<n_dim_x>;
   using Vec_x   = typename DynModI::Vec_x;
   using Mat_xx  = typename DynModI::Mat_xx;
   using Mat_xv  = typename DynModI::Mat_xv;
   using Mat_vv  = typename DynModI::Mat_vv;
+
+  using StateNames = SemanticState<constant_sequence<StateType, StateType::none, n_dim_x>()>;
 
   /** Identity Dynamic Model
    * @param std Standard deviation of process noise
@@ -59,7 +61,76 @@ private:
  * State x = [pos], where pos is a `n_spatial_dim`-dimensional vector
  * @tparam n_spatial_dim Number of spatial dimensions
  */
-template <int n_spatial_dim> using ConstantPosition = IdentityDynamicModel<n_spatial_dim>;
+class ConstantPosition : public interface::DynamicModelLTV<2, X, 2> {
+public:
+  using DynModI = interface::DynamicModelLTV<2, X, 2>;
+  using typename DynModI::Vec_v;
+  using typename DynModI::Vec_x;
+
+  using typename DynModI::Mat_vv;
+  using typename DynModI::Mat_xv;
+  using typename DynModI::Mat_xx;
+
+  using Vec_s  = Eigen::Matrix<double, 2, 1>;
+  using Mat_ss = Eigen::Matrix<double, 2, 2>;
+
+  using StateNames = SemanticState<
+    StateType::position,
+    StateType::position>;
+
+  /** Constant Position Model in 2D
+   * x = [x, y]
+   * @param std_pos Standard deviation of position
+   */
+  ConstantPosition(double std_pos) : std_pos_(std_pos) {}
+
+  /** Get the Jacobian of the continuous state transition model with respect to the state.
+   * @param dt Time step
+   * @param x State (unused)
+   * @return Mat_xx
+   * @note Overriding DynamicModelLTV::A_d
+   */
+  Mat_xx A_d(double dt, const Vec_x & = Vec_x::Zero()) const override
+  {
+    Mat_ss I = Mat_ss::Identity();
+    Mat_xx A;
+    // clang-format off
+    A << I, I*dt,
+         I, I;
+    // clang-format on
+    return A;
+  }
+
+  /** Get the Jacobian of the continuous state transition model with respect to the process noise.
+   * @param dt Time step
+   * @param x State (unused)
+   * @return Mat_xv
+   * @note Overriding DynamicModelLTV::G_d
+   */
+  Mat_xv G_d(double dt, const Vec_x & = Vec_x::Zero()) const override
+  {
+    Mat_ss I = Mat_ss::Identity();
+    Mat_xv G;
+    // clang-format off
+    G << 0.5*dt*dt*I,
+                dt*I;
+    // clang-format on
+    return G;
+  }
+
+  /** Get the continuous time process noise covariance matrix.
+   * @param dt Time step (unused)
+   * @param x State (unused)
+   * @return Mat_xx Process noise covariance
+   * @note Overriding DynamicModelLTV::Q_d
+   */
+  Mat_vv Q_d(double = 0.0, const Vec_x & = Vec_x::Zero()) const override { return Mat_vv::Identity() * std_pos_ * std_pos_; }
+
+  private:
+    double std_pos_;
+};
+
+
 
 // TODO: Update these models to use discrete time instead of continuous time.
 
@@ -67,21 +138,25 @@ template <int n_spatial_dim> using ConstantPosition = IdentityDynamicModel<n_spa
  * State x = [pos, vel], where pos and vel are `n_spatial_dim`-dimensional vectors
  * @tparam n_spatial_dim Number of spatial dimensions
  */
-template <int n_spatial_dim> class ConstantVelocity 
-  : public interface::DynamicModelLTV<2 * n_spatial_dim, X, n_spatial_dim>
-  , public SemanticState<
-      constant_sequence<StateType, StateType::position, n_spatial_dim>, 
-      constant_sequence<StateType, StateType::velocity, n_spatial_dim>> 
+class ConstantVelocity : public interface::DynamicModelLTV<4, X, 2>
 {
 public:
-  using DynModI = interface::DynamicModelLTV<2 * n_spatial_dim, X, n_spatial_dim>;
+  static constexpr int N_SPATIAL_DIM = 2;
+
+  using DynModI = interface::DynamicModelLTV<2 * N_SPATIAL_DIM, X, N_SPATIAL_DIM>;
   using typename DynModI::Mat_vv;
   using typename DynModI::Mat_xv;
   using typename DynModI::Mat_xx;
   using typename DynModI::Vec_x;
 
-  using Vec_s  = Eigen::Matrix<double, n_spatial_dim, 1>;
-  using Mat_ss = Eigen::Matrix<double, n_spatial_dim, n_spatial_dim>;
+  using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
+  using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
+
+  using StateNames = SemanticState<
+  StateType::position,
+  StateType::position,
+  StateType::velocity,
+  StateType::velocity>;
 
   /**
    * @brief Constant Velocity Model in 2D
@@ -141,15 +216,10 @@ private:
  * State vector x = [pos, vel, acc], where pos, vel and acc are `n_spatial_dim`-dimensional vectors
  * @tparam n_spatial_dim Number of spatial dimensions
  */
-template <int n_spatial_dim> class ConstantAcceleration 
-  : public interface::DynamicModelLTV<3 * n_spatial_dim, X, 2 * n_spatial_dim>
-  , public SemanticState<
-      constant_sequence<StateType, StateType::position, n_spatial_dim>, 
-      constant_sequence<StateType, StateType::velocity, n_spatial_dim>,
-      constant_sequence<StateType, StateType::acceleration, n_spatial_dim>>
-  {
+class ConstantAcceleration : public interface::DynamicModelLTV<3 * 2, X, 2 * 2> {
 public:
-  using DynModI = interface::DynamicModelLTV<3 * n_spatial_dim, X, 2 * n_spatial_dim>;
+  static constexpr int N_SPATIAL_DIM = 2;
+  using DynModI = interface::DynamicModelLTV<3 * N_SPATIAL_DIM, X, 2 * N_SPATIAL_DIM>;
   using typename DynModI::Vec_v;
   using typename DynModI::Vec_x;
 
@@ -157,8 +227,16 @@ public:
   using typename DynModI::Mat_xv;
   using typename DynModI::Mat_xx;
 
-  using Vec_s  = Eigen::Matrix<double, n_spatial_dim, 1>;
-  using Mat_ss = Eigen::Matrix<double, n_spatial_dim, n_spatial_dim>;
+  using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
+  using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
+
+  using StateNames = SemanticState<
+    StateType::position,
+    StateType::position,
+    StateType::velocity,
+    StateType::velocity,
+    StateType::acceleration,
+    StateType::acceleration>;
 
   /** Constant Acceleration Model
    * @param std_vel Standard deviation of velocity
@@ -230,7 +308,7 @@ public:
   using typename DynModI::Mat_xv;
   using typename DynModI::Mat_xx;
 
-  using States = SemanticState<
+  using StateNames = SemanticState<
     StateType::position,
     StateType::position,
     StateType::velocity,

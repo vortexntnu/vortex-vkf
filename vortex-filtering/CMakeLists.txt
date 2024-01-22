@@ -32,7 +32,34 @@ find_package(Boost REQUIRED
     filesystem
 ) # for gnuplot
 
-# = Specify dependencies
+
+# === Include directories ===
+include_directories(include)
+
+# === Executables ===
+add_executable(${PROJECT_NAME}_node 
+  src/nodes/kf_node.cpp
+)
+ament_target_dependencies(${PROJECT_NAME}_node 
+  rclcpp 
+  std_msgs
+  geometry_msgs
+  Gnuplot
+)
+target_link_libraries(${PROJECT_NAME}_node 
+  Eigen3::Eigen
+)
+
+install(TARGETS
+  ${PROJECT_NAME}_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+
+# === Libraries ===
+add_library(${PROJECT_NAME}_lib INTERFACE)
+
+# = Specify the dependencies
 set(lib_deps
   Eigen3
   OpenMP

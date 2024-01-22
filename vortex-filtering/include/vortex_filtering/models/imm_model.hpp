@@ -17,6 +17,14 @@
 namespace vortex::models {
 // namespace models {
 
+namespace concepts {
+  template <typename T>
+  concept ImmCompatibleModel = requires {
+    concepts::DynamicModel<T>; // Is a dynamic model
+    typename T::StateNames; // Has a list of named states
+    T::StateNames::N_STATES == T::DynModI::N_DIM_x;
+  };
+}
 
 
 /**
@@ -24,7 +32,7 @@ namespace vortex::models {
  * @tparam DynModels Dynamic models to use.
  * @note The models must have a `DynModI` typedef specifying the base interface (e.g. `using DynModI = ...`).
  */
-template <concepts::DynamicModel... DynModels> class ImmModel {
+template <concepts::ImmCompatibleModel... DynModels> class ImmModel {
 public:
   using DynModTuple    = std::tuple<DynModels...>;
   using DynModPtrTuple = std::tuple<std::shared_ptr<DynModels>...>;
@@ -33,7 +41,7 @@ public:
 
   static constexpr size_t N_MODELS = sizeof...(DynModels);
 
-  static constexpr bool SAME_DIMS_x = (DynModels::DynModI::N_DIM_x == ...);
+  static constexpr bool SAME_SIZE_x = (DynModels::DynModI::N_DIM_x == ...);
 
   using Vec_n  = Eigen::Vector<double, N_MODELS>;
   using Mat_nn = Eigen::Matrix<double, N_MODELS, N_MODELS>;
@@ -149,6 +157,41 @@ public:
    * @return std::array<int, N_MODELS>
    */
   static constexpr std::array<int, N_MODELS> get_n_dim_x() { return {DynModels::DynModI::N_DIM_x...}; }
+
+  static constexpr int N_DIM_x(size_t model_index) { return std::array<int, N_MODELS>{DynModels::DynModI::N_DIM_x...}.at(model_index); }
+
+
+  template <size_t model_index> static constexpr std::array<StateType, N_DIM_x(model_index)> get_state_names() { return DynModT<i>::template StateNames::Types; }
+
+  template <size_t model_index_1, size_t model_index_2>
+  static constexpr bool same_state_name(size_t state_index)
+  {
+      int n_dim_x_1 = N_DIM_x(model_index_1);
+      int n_dim_x_2 = N_DIM_x(model_index_2);
+
+      // Return false if state_index is out of bounds for either model
+      if (state_index >= n_dim_x_1 || state_index >= n_dim_x_2) {
+          return false;
+      }
+
+      auto state_name_1 = get_state_names<model_index_1>().at(state_index);
+      auto state_name_2 = get_state_names<model_index_2>().at(state_index);
+
+      return state_name_1 == state_name_2;
+  }
+
+  template <size_t model_index_1, size_t model_index_2>
+  static constexpr std::array<bool, model_index_1> same_state_names()
+  {
+      std::array<bool, model_index_1> same_names{};
+
+      for (size_t i = 0; i < model_index_1; i++) {
+          same_names.at(i) = same_state_name<model_index_1, model_index_2>(i);
+      }
+
+      return same_names;
+  }
+
 
 private:
   DynModPtrTuple models_;

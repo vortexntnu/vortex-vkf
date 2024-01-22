@@ -22,10 +22,7 @@ public:
 
   constexpr Uniform(Vec_n lower, Vec_n upper)
       : lower_(lower), upper_(upper)
-  {
-    std::random_device rd;
-    gen_ = std::mt19937(rd());
-  }
+  {}
 
   double pr(Vec_n x) const
   {

@@ -21,6 +21,9 @@
 #include <vortex_filtering/probability/gaussian_mixture.hpp>
 #include <vortex_filtering/probability/uniform.hpp>
 
+#include <vortex_filtering/models/dynamic_models.hpp>
+#include <vortex_filtering/models/sensor_models.hpp>
+
 namespace vortex::filter {
 
 template <models::concepts::SensorModel SensModT, models::concepts::ImmModel ImmModelT> class ImmFilter {
@@ -227,12 +230,12 @@ struct MotionModelMixingParams {
 class MultipleMotionModelsFilter {
 public:
 
-  constexpr static size_t N_SPATIAL_DIMS = 2;
-
-  using ConstPos  = models::ConstantPosition<N_SPATIAL_DIMS>;
-  using ConstVel  = models::ConstantVelocity<N_SPATIAL_DIMS>;
+  using ConstPos  = models::ConstantPosition;
+  using ConstVel  = models::ConstantVelocity;
   using CoordTurn = models::CoordinatedTurn;
-  using ImmModelT = models::ImmModel<ConstPos, ConstVel, ConstVel, CoordTurn>;
+  using ImmModelT = models::ImmModel<ConstVel, ConstVel, CoordTurn>;
+
+
 
   static constexpr size_t N_MODELS = ImmModelT::N_MODELS;
 
@@ -243,35 +246,16 @@ public:
 
   template<size_t i> using Gauss_x = typename ImmModelT::template Gauss_x<i>;
 
-  enum class State {
-    none, pos_x, pos_y, vel_x, vel_y, turn_rate
-  };
-
-  // Map of state to index in state vector
-  using StateMap = Eigen::Matrix<State, 5, N_MODELS>;
-
-  const StateMap state_map_;
-
 private:
  // A dummy IMM filter with the correct number of models
-  using DummyDynModel = models::IdentityDynamicModel<1>;
+  using DummyDynModel = models::IdentityDynamicModel<4>;
   using DummySensorModel = models::IdentitySensorModel<1, 1>;
   using DummyImmModel = models::ImmModel<DummyDynModel, DummyDynModel, DummyDynModel, DummyDynModel>;
   using DummyImmFilter = ImmFilter<DummySensorModel, DummyImmModel>;
+
 public:
 
-  MultipleMotionModelsFilter() : state_map_{[]() {
-    StateMap map;
-    // clang-format off
-    map << State::pos_x, State::pos_x, State::pos_x, State::pos_x,
-           State::pos_y, State::pos_y, State::pos_y, State::pos_y,
-           State::none , State::vel_x, State::vel_x, State::vel_x,
-           State::none , State::vel_y, State::vel_y, State::vel_y,
-           State::none , State::none , State::none , State::turn_rate;
-    // clang-format on
-    return map;
-  }()}
-  {};
+  MultipleMotionModelsFilter() {};
 
   using calculate_mixing_probs = decltype(DummyImmFilter::calculate_mixing_probs);
   using mixing = decltype(DummyImmFilter::mixing);
@@ -286,6 +270,7 @@ public:
     // return moment_based_preds;
 
     GaussTuple_x moment_based_preds;
+    return moment_based_preds;
 
   }
 
@@ -297,19 +282,19 @@ public:
     using Mat_xx  = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
     using Gauss_x = prob::Gauss<N_DIM_x>;
     using Uni_x   = prob::Uniform<N_DIM_x>;
-
+    using MultiVarGauss_x = prob::MultiVarGauss<N_DIM_x>;
     using MatchedVec = Eigen::Vector<bool, N_MODELS>;
-    using MatchedMat = Eigen::Matrix<bool, N_MODELS>;
+
+
+
+    std::vector<Gauss_x> moment_based_preds;
+
     // Go through all models. If the model has the same state, copy the state 
     for (size_t model_index = 0; model_index < N_MODELS; model_index++) {
-      MatchedVec matching_vec = MatchedVec::Zero();
-      for (size_t state_index = 0; state_index < N_DIM_x; state_index++) {
-        matching_vec(model_index) = state_map_(state_index, target_model_index) == state_map_(state_index, model_index);
-      }
-      MatchedMat matching_mat =  matching_vec * matching_vec.transpose();
+      MatchedVec matching_vec = Eigen::Map<MatchedVec>(ImmModelT::same_state_names<target_model_index, model_index>().data());
 
       Vec_x x  = x_est_prevs.at(model_index).mean().cwiseProduct(matching_vec);
-      Mat_xx P = x_est_prevs.at(model_index).cov().cwiseProduct(matching_mat);
+      Mat_xx P = x_est_prevs.at(model_index).cov().cwiseProduct(matching_vec * matching_vec.transpose());
 
       for (size_t i = 0; i < N_DIM_x; i++) {
         if (!matching_vec(i)) {
@@ -318,7 +303,10 @@ public:
           P(i, i) = uni_x.cov()(i, i);
         };
       }
+      moment_based_preds.push_back({x, P});
     }
+    
+    return MultiVarGauss_x(weights, moment_based_preds).reduce();
   }
     
 
