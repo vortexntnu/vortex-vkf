@@ -298,38 +298,43 @@ TEST(PDAF, predict_next_state_is_calculating)
     gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
     gp << "set size ratio -1\n";
     gp << "set style circle radius 0.05\n";
+
     gp << "plot '-' with circles title 'Samples' linecolor rgb 'red' fs transparent solid 1 noborder\n";
     gp.send1d(meas);
 
     int object_counter = 0;
 
-    gp << "set object " << ++object_counter << " circle center " << x_est.mean()(0) << "," << x_est.mean()(1) << " size " << 0.05 << "fs empty border lc rgb 'black'\n";
-    gp << "set object " << ++object_counter << " circle center " << x_pred.mean()(0) << "," << x_pred.mean()(1) << " size " << 0.05 << "fs empty border lc rgb 'pink'\n";
-    gp << "set object " << ++object_counter << " circle center " << x_final.mean()(0) << "," << x_final.mean()(1) << " size " << 0.05 << " fs empty border lc rgb 'green'\n";
-    gp << "replot\n";
+    // Create the ellipses first
+    // for (const auto& state: x_updated)
+    // {   
+    //     vortex::prob::Gauss2d gauss(state.mean().head(2), state.cov().topLeftCorner(2,2));
+    //     vortex::plotting::Ellipse ellipse = vortex::plotting::gauss_to_ellipse(gauss); 
 
+    //     gp << "set object " << ++object_counter 
+    //     << " ellipse center " << ellipse.x << "," << ellipse.y 
+    //     << " size " << ellipse.a << "," << ellipse.b 
+    //     << " angle " << ellipse.angle 
+    //     << " fs solid 0.2 noborder front lc rgb 'blue'\n";
+    // }
+
+    // Create other objects
+    gp << "set object " << ++object_counter << " circle center " << x_est.mean()(0) << "," << x_est.mean()(1) << " size " << 0.05 << " fs empty border lc rgb 'black'\n";
+    gp << "set object " << ++object_counter << " circle center " << x_pred.mean()(0) << "," << x_pred.mean()(1) << " size " << 0.05 << " fs empty border lc rgb 'pink'\n";
+    gp << "set object " << ++object_counter << " circle center " << x_final.mean()(0) << "," << x_final.mean()(1) << " size " << 0.05 << " fs empty border lc rgb 'green'\n";
+
+    // Add arrows
     gp << "set arrow from " << x_est.mean()(0) << "," << x_est.mean()(1) << " to " << x_pred.mean()(0) << "," << x_pred.mean()(1) << " nohead lc rgb 'pink'\n";
     gp << "set arrow from " << x_est.mean()(0) << "," << x_est.mean()(1) << " to " << x_final.mean()(0) << "," << x_final.mean()(1) << " nohead lc rgb 'green'\n";
-    gp << "replot\n";
 
+    // Set gate ellipse
     vortex::plotting::Ellipse gate = vortex::plotting::gauss_to_ellipse(z_pred, gate_threshold);
-
     gp << "set object " << ++object_counter << " ellipse center " << gate.x << "," << gate.y << " size " << gate.a << "," << gate.b << " angle " << gate.angle
-        << "fs empty border lc rgb 'cyan'\n";
+    << " fs empty border lc rgb 'cyan'\n";
+
+    
+    // Execute the plot with all objects
     gp << "replot\n";
 
-    for (const auto& state: x_updated)
-    {   
-        vortex::prob::Gauss2d gauss(state.mean().head(2), state.cov().topLeftCorner(2,2));
-        vortex::plotting::Ellipse ellipse = vortex::plotting::gauss_to_ellipse(gauss); 
-
-        gp << "set object " << ++object_counter 
-           << " ellipse center " << ellipse.x << "," << ellipse.y 
-           << " size " << ellipse.a << "," << ellipse.b 
-           << " angle " << ellipse.angle 
-           << "fs solid 0.2 noborder front lc rgb 'blue'\n";    
-    };
-        gp << "replot\n";
 }
 
 TEST(PDAF, predict_next_state_2)
@@ -358,13 +363,28 @@ TEST(PDAF, predict_next_state_2)
     std::cout << "x_final: " << x_final.mean() << std::endl;
 
     Gnuplot gp;
+    int object_counter = 0;
+
     gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
     gp << "set size ratio -1\n";
+
+    for (const auto& state: x_updated)
+    {   
+        vortex::prob::Gauss2d gauss(state.mean().head(2), state.cov().topLeftCorner(2,2));
+        vortex::plotting::Ellipse ellipse = vortex::plotting::gauss_to_ellipse(gauss); 
+
+        gp << "set object " << ++object_counter 
+           << " ellipse center " << ellipse.x << "," << ellipse.y 
+           << " size " << ellipse.a << "," << ellipse.b 
+           << " angle " << ellipse.angle 
+           << "fs solid 0.2 noborder front lc rgb 'blue'\n";
+    };
+
     gp << "set style circle radius 0.05\n";
     gp << "plot '-' with circles title 'Samples' linecolor rgb 'red' fs transparent solid 1 noborder\n";
     gp.send1d(meas);
 
-    int object_counter = 0;
+    
 
     gp << "set object " << ++object_counter << " circle center " << x_est.mean()(0) << "," << x_est.mean()(1) << " size " << 0.05 << "fs empty border lc rgb 'black'\n";
     gp << "set object " << ++object_counter << " circle center " << x_pred.mean()(0) << "," << x_pred.mean()(1) << " size " << 0.05 << "fs empty border lc rgb 'pink'\n";
@@ -379,18 +399,6 @@ TEST(PDAF, predict_next_state_2)
 
     gp << "set object " << ++object_counter << " ellipse center " << gate.x << "," << gate.y << " size " << gate.a << "," << gate.b << " angle " << gate.angle
         << "fs empty border lc rgb 'cyan'\n";
-
-    for (const auto& state: x_updated)
-    {   
-        vortex::prob::Gauss2d gauss(state.mean().head(2), state.cov().topLeftCorner(2,2));
-        vortex::plotting::Ellipse ellipse = vortex::plotting::gauss_to_ellipse(gauss); 
-
-        gp << "set object " << ++object_counter 
-           << " ellipse center " << ellipse.x << "," << ellipse.y 
-           << " size " << ellipse.a << "," << ellipse.b 
-           << " angle " << ellipse.angle 
-           << "fs solid 0.2 noborder lc rgb 'blue'\n";
-    };
 
     gp << "replot\n";
     
