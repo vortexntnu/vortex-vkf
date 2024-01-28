@@ -26,33 +26,45 @@ public:
     using StatesXd = std::vector<Gauss_x>;
     using GaussMixZd = vortex::prob::GaussianMixture<DynModI::N_DIM_x>;
 
-    double gate_threshold_;
-    double prob_of_detection_;
-    double clutter_intensity_;
-
-    PDAF(double gate, double prob_of_detection, double clutter_intensity)
-        : gate_threshold_(gate)
-        , prob_of_detection_(prob_of_detection)
-        , clutter_intensity_(clutter_intensity)
+    PDAF()
     {
-        std::cout << "Created PDAF class with given models!" << std::endl;
+        std::cout << "Created PDAF class!" << std::endl;
     }
 
-    std::tuple<Gauss_x, MeasurementsZd, MeasurementsZd, Gauss_x, Gauss_z, StatesXd> predict_next_state(const Gauss_x& x_est, const MeasurementsZd& z_meas, double timestep, const DynModPtr& dyn_model, const SensModPtr& sen_model) const
+    std::tuple<Gauss_x, MeasurementsZd, MeasurementsZd, Gauss_x, Gauss_z, StatesXd> predict_next_state(
+        const Gauss_x& x_est, 
+        const MeasurementsZd& z_meas, 
+        double timestep, 
+        const DynModPtr& dyn_model, 
+        const SensModPtr& sen_model,
+        double gate_threshold,
+        double prob_of_detection,
+        double clutter_intensity
+        ) const
     {
         auto [x_pred, z_pred] = EKF::predict(dyn_model, sen_model, timestep, x_est);
-        auto [inside, outside] = apply_gate(z_meas, z_pred);
+        auto [inside, outside] = apply_gate(z_meas, z_pred, gate_threshold);
 
         StatesXd x_updated;
         for (const auto& measurement : inside) {
             x_updated.push_back(EKF::update(sen_model, x_pred, z_pred, measurement));
         }
 
-        Gauss_x x_final = get_weighted_average(z_meas, x_updated, z_pred, x_pred);
+        Gauss_x x_final = get_weighted_average(
+            z_meas,
+            x_updated, 
+            z_pred, 
+            x_pred, 
+            prob_of_detection, 
+            clutter_intensity);
         return {x_final, inside, outside, x_pred, z_pred, x_updated};
     }
 
-    std::tuple<MeasurementsZd, MeasurementsZd> apply_gate(const MeasurementsZd& z_meas, const Gauss_z& z_pred) const
+    std::tuple<MeasurementsZd, MeasurementsZd> apply_gate(
+        const MeasurementsZd& z_meas, 
+        const Gauss_z& z_pred,
+        double gate_threshold
+        ) const
     {
         MeasurementsZd inside_meas;
         MeasurementsZd outside_meas;
@@ -63,7 +75,7 @@ public:
             std::cout << "z_pred: " << z_pred.mean() << std::endl;
             std::cout << "distance: " << distance << std::endl;
 
-            if (distance <= gate_threshold_) {
+            if (distance <= gate_threshold) {
                 inside_meas.push_back(measurement);
             } else {
                 outside_meas.push_back(measurement);
@@ -74,13 +86,20 @@ public:
     }
 
     // Getting weighted average of the predicted states
-    Gauss_x get_weighted_average(const MeasurementsZd& z_meas, const StatesXd& updated_states, const Gauss_z& z_pred, const Gauss_x& x_pred) const
+    Gauss_x get_weighted_average(
+        const MeasurementsZd& z_meas,
+        const StatesXd& updated_states,
+        const Gauss_z& z_pred,
+        const Gauss_x& x_pred,
+        double prob_of_detection,
+        double clutter_intensity
+        ) const
     {
         StatesXd states;
         states.push_back(x_pred);
         states.insert(states.end(), updated_states.begin(), updated_states.end());
 
-        Eigen::VectorXd weights = get_weights(z_meas, z_pred);
+        Eigen::VectorXd weights = get_weights(z_meas, z_pred, prob_of_detection, clutter_intensity);
 
         GaussMixZd gaussian_mixture(weights, states);
 
@@ -88,17 +107,22 @@ public:
     }
 
     // Getting association probabilities according to textbook p. 123 "Corollary 7.3.3"
-    Eigen::VectorXd get_weights(const MeasurementsZd& z_meas, const Gauss_z& z_pred) const
+    Eigen::VectorXd get_weights(
+        const MeasurementsZd& z_meas,
+        const Gauss_z& z_pred,
+        double prob_of_detection,
+        double clutter_intensity
+        ) const
     {
         Eigen::VectorXd weights(z_meas.size() + 1);
 
         // in case no measurement assosiates with the target
-        double no_association = clutter_intensity_ * (1 - prob_of_detection_);
+        double no_association = clutter_intensity * (1 - prob_of_detection);
         weights(0) = no_association;
 
         // measurements associating with the target
         for (size_t k = 1; k < z_meas.size() + 1; k++) {
-            weights(k) = (prob_of_detection_ * z_pred.pdf(z_meas.at(k - 1)));
+            weights(k) = (prob_of_detection * z_pred.pdf(z_meas.at(k - 1)));
         }
 
         // normalize weights
@@ -106,37 +130,6 @@ public:
 
         return weights;
     }
-
-    // Getter and setter for mem
-    void set_gate_threshold(double gate_threshold)
-    {
-        gate_threshold_ = gate_threshold;
-    }
-
-    void set_prob_of_detection(double prob_of_detection)
-    {
-        prob_of_detection_ = prob_of_detection;
-    }   
-
-    void set_clutter_intensity(double clutter_intensity)
-    {
-        clutter_intensity_ = clutter_intensity;
-    }   
-
-    double get_gate_threshold()
-    {
-        return gate_threshold_;
-    }   
-
-    double get_prob_of_detection()
-    {
-        return prob_of_detection_;
-    }   
-
-    double get_clutter_intensity()
-    {
-        return clutter_intensity_;
-    } 
 };
 
 }  // namespace filter
