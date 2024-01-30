@@ -87,7 +87,6 @@ public:
     Gauss_v v = {Vec_v::Zero(), Q_d(dt, x)};
     return f_d(dt, x, u, v.sample(gen));
   }
-
 };
 
 /**

@@ -45,10 +45,7 @@ private:
    * @param x
    * @return double factorial
    */
-  static constexpr double factorial(int x)
-  {
-    return (x == 1 || x == 0) ? 1 : factorial(x - 1) * x;
-  }
+  static constexpr double factorial(int x) { return (x == 1 || x == 0) ? 1 : factorial(x - 1) * x; }
 };
 
 } // namespace vortex::prob
