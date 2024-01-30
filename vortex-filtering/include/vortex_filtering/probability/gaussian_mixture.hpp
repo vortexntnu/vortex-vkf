@@ -14,8 +14,23 @@
 #include <numeric> // std::accumulate
 #include <vector>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
+#include <concepts>
+#include <type_traits>
+#include <iterator>
+
+
+
 
 namespace vortex::prob {
+
+namespace concepts {
+template <typename T, typename U>
+concept IterableOf = requires(T a) {
+    { std::begin(a) } -> std::same_as<typename std::iterator_traits<decltype(std::begin(a))>::iterator_category>;
+    { std::end(a) } -> std::same_as<typename std::iterator_traits<decltype(std::end(a))>::iterator_category>;
+    requires std::is_same_v<typename T::value_type, U>;
+};
+}
 
 /**
  * A class for representing a multivariate Gaussian mixture distribution
@@ -34,17 +49,10 @@ public:
    * @param gaussians Gaussians
    * @note The weights are automatically normalized, so they don't need to sum to 1.
    */
-  GaussianMixture(Eigen::VectorXd weights, std::vector<Gauss_n> gaussians) : weights_(std::move(weights)), gaussians_(std::move(gaussians)) {}
-
-  /** Construct a new Gaussian Mixture object from a std::vector of weights
-   * @param weights Weights of the Gaussians
-   * @param gaussians Gaussians
-   * @note The weights are automatically normalized, so they don't need to sum to 1.
-   */
-  GaussianMixture(std::vector<double> weights, std::vector<Gauss_n> gaussians)
-      : weights_(Eigen::Map<Eigen::VectorXd>(weights.data(), weights.size())), gaussians_(std::move(gaussians))
-  {
-  }
+    GaussianMixture(IterableOf<double> auto const& weights, IterableOf<Gauss_n> auto const& gaussians)
+        : weights_(Eigen::Map<const Eigen::VectorXd>(weights.data(), std::distance(std::begin(weights), std::end(weights)))),
+          gaussians_(std::begin(gaussians), std::end(gaussians)) 
+    {}
 
   /** Default Constructor
    * weights and gaussians are empty

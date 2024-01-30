@@ -277,38 +277,47 @@ public:
   template <size_t target_model_index>
   static Gauss_x<target_model_index> mix_one_component(const GaussTuple_x &x_est_prevs, const Vec_n &weights)
   {
-    constexpr size_t N_DIM_x = ImmModelT::get_n_dim_x().at(target_model_index);
-    using Vec_x   = Eigen::Vector<double, N_DIM_x>;
-    using Mat_xx  = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-    using Gauss_x = prob::Gauss<N_DIM_x>;
-    using Uni_x   = prob::Uniform<N_DIM_x>;
-    using MultiVarGauss_x = prob::MultiVarGauss<N_DIM_x>;
-    using MatchedVec = Eigen::Vector<bool, N_MODELS>;
+      using MultiVarGauss_x = prob::MultiVarGauss<N_DIM_x>;
+      constexpr size_t N_DIM_x = ImmModelT::get_n_dim_x().at(target_model_index);
 
+      auto moment_based_preds = process_models<target_model_index>(x_est_prevs, std::make_index_sequence<N_MODELS>{});
 
+      return MultiVarGauss_x(weights, moment_based_preds).reduce();
+  }
 
-    std::vector<Gauss_x> moment_based_preds;
+  template <size_t target_model_index, size_t... model_indices>
+  static std::array<Gauss_x<target_model_index>, N_MODELS> process_models(const GaussTuple_x &x_est_prevs, std::integer_sequence<size_t, model_indices...>)
+  {
+      return {process_single_model<target_model_index, model_indices>(x_est_prevs)...};
+  }
 
-    // Go through all models. If the model has the same state, copy the state 
-    for (size_t model_index = 0; model_index < N_MODELS; model_index++) {
+  template <size_t target_model_index, size_t model_index>
+  static Gauss_x<target_model_index> process_single_model(const GaussTuple_x &x_est_prevs)
+  {
+      constexpr size_t N_DIM_x = ImmModelT::get_n_dim_x().at(target_model_index);
+      using Vec_x = Eigen::Vector<double, N_DIM_x>;
+      using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+      using Gauss_x = prob::Gauss<N_DIM_x>;
+      using Uni_x = prob::Uniform<N_DIM_x>;
+      using MatchedVec = Eigen::Vector<bool, N_MODELS>;
+
       MatchedVec matching_vec = Eigen::Map<MatchedVec>(ImmModelT::same_state_names<target_model_index, model_index>().data());
 
-      Vec_x x  = x_est_prevs.at(model_index).mean().cwiseProduct(matching_vec);
+      Vec_x x = x_est_prevs.at(model_index).mean().cwiseProduct(matching_vec);
       Mat_xx P = x_est_prevs.at(model_index).cov().cwiseProduct(matching_vec * matching_vec.transpose());
 
       for (size_t i = 0; i < N_DIM_x; i++) {
-        if (!matching_vec(i)) {
-          Uni_x uni_x{-Vec_x::Ones(), Vec_x::Ones()};
-          x(i) = uni_x.mean()(i);
-          P(i, i) = uni_x.cov()(i, i);
-        };
+          if (!matching_vec(i)) {
+              Uni_x uni_x{-Vec_x::Ones(), Vec_x::Ones()};
+              x(i) = uni_x.mean()(i);
+              P(i, i) = uni_x.cov()(i, i);
+          }
       }
-      moment_based_preds.push_back({x, P});
-    }
-    
-    return MultiVarGauss_x(weights, moment_based_preds).reduce();
+
+      return {x, P};
   }
-    
+
+
 
     
 };
