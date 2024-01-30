@@ -32,7 +32,7 @@ public:
   // Default constructor
   MultiVarGauss() = default;
 
-  /** Calculate the probability density function of x given the Gaussian
+  /** Calculate the probability density of x given the Gaussian
    * @param x
    * @return double
    */
