@@ -52,6 +52,7 @@ public:
             x_updated.push_back(EKF::update(sen_model, x_pred, z_pred, measurement));
         }
 
+        // TODO: return gaussian mixture
         Gauss_x x_final = get_weighted_average(
             z_meas,
             x_updated, 
