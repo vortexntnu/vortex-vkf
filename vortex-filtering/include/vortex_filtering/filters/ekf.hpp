@@ -63,11 +63,7 @@ public:
   using DynModIPtr  = typename DynModI::SharedPtr;
   using SensModIPtr = typename SensModI::SharedPtr;
 
-  /** Construct a new EKF object.
-   * @tparam DynamicModelT Dynamic model type derived from `vortex::models::interface::DynamicModelLTV`
-   * @tparam SensorModelT Sensor model type derived from `vortex::models::interface::SensorModelLTV`
-   */
-  EKF() = default;
+  EKF() = delete;
 
   /** Perform one EKF prediction step
    * @param dyn_mod Dynamic model

@@ -15,8 +15,7 @@
 #include <vector>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
-namespace vortex {
-namespace prob {
+namespace vortex::prob {
 
 /**
  * A class for representing a multivariate Gaussian mixture distribution
@@ -174,17 +173,7 @@ public:
   Vec_n sample(std::mt19937 &gen) const
   {
     std::discrete_distribution<int> dist(weights().begin(), weights().end());
-    return gaussians_[dist(gen)].sample(gen);
-  }
-
-  /** Sample from the Gaussian mixture
-   * @return Vec_n
-   */
-  Vec_n sample() const
-  {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    return sample(gen);
+    return gaussian(dist(gen)).sample(gen);
   }
 
 private:
@@ -197,5 +186,4 @@ using GaussMix2d                     = GaussMix<2>;
 using GaussMix3d                     = GaussMix<3>;
 using GaussMix4d                     = GaussMix<4>;
 
-} // namespace prob
-} // namespace vortex
+} // namespace vortex::prob

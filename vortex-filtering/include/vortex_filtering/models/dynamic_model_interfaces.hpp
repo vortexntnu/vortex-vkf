@@ -88,17 +88,6 @@ public:
     return f_d(dt, x, u, v.sample(gen));
   }
 
-  /** Sample from the discrete time dynamics
-   * @param dt Time step
-   * @param x Vec_x State
-   * @return Vec_x Next state
-   */
-  Vec_x sample_f_d(double dt, const Vec_x &x) const
-  {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    return sample_f_d(dt, x, Vec_u::Zero(), gen);
-  }
 };
 
 /**

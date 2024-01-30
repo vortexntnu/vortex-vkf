@@ -1,8 +1,7 @@
 #pragma once
 #include <cmath>
 
-namespace vortex {
-namespace prob {
+namespace vortex::prob {
 
 class ChiSquared {
 public:
@@ -33,5 +32,4 @@ private:
   int n_;
 };
 
-} // namespace prob
-} // namespace vortex
+} // namespace vortex::prob

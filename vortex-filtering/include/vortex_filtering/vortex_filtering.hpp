@@ -13,7 +13,6 @@
 
 // Filters
 #include <vortex_filtering/filters/ekf.hpp>
-#include <vortex_filtering/filters/filter_base.hpp>
 #include <vortex_filtering/filters/ukf.hpp>
 
 // Models

@@ -2,8 +2,7 @@
 #include <Eigen/Dense>
 #include <random>
 
-namespace vortex {
-namespace prob {
+namespace vortex::prob {
 
 /**
  * A class for representing a multivariate Gaussian distribution
@@ -84,16 +83,6 @@ public:
     return mean() + cov().llt().matrixL() * sample;
   }
 
-  /** Sample from the Gaussian
-   * @return Vector
-   */
-  Vec_n sample() const
-  {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    return sample(gen);
-  }
-
   /** Get the number of dimensions of the Gaussian
    * @return int
    */
@@ -115,5 +104,4 @@ using Gauss2d                     = Gauss<2>;
 using Gauss3d                     = Gauss<3>;
 using Gauss4d                     = Gauss<4>;
 
-} // namespace prob
-} // namespace vortex
+} // namespace vortex::prob

@@ -29,6 +29,8 @@ public:
 
   static constexpr size_t N_MODELS = sizeof...(DynModels);
 
+  static constexpr bool SAME_DIMS_x = (DynModels::DynModI::N_DIM_x == ...);
+
   using Vec_n  = Eigen::Vector<double, N_MODELS>;
   using Mat_nn = Eigen::Matrix<double, N_MODELS, N_MODELS>;
 

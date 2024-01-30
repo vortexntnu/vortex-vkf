@@ -67,12 +67,13 @@ public:
   using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
 
   static constexpr int N_DIM_a = N_DIM_x + N_DIM_v + N_DIM_w; // Augmented state dimension
+  static constexpr size_t N_SIGMA_POINTS = 2 * N_DIM_a + 1;   // Number of sigma points
 
   using Vec_a     = Eigen::Vector<double, N_DIM_a>;                  // Augmented state vector
   using Mat_aa    = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;         // Augmented state covariance matrix
-  using Mat_x2ap1 = Eigen::Matrix<double, N_DIM_x, 2 * N_DIM_a + 1>; // Matrix for sigma points of x
-  using Mat_z2ap1 = Eigen::Matrix<double, N_DIM_z, 2 * N_DIM_a + 1>; // Matrix for sigma points of z
-  using Mat_a2ap1 = Eigen::Matrix<double, N_DIM_a, 2 * N_DIM_a + 1>; // Matrix for sigma points of a
+  using Mat_x2ap1 = Eigen::Matrix<double, N_DIM_x, N_SIGMA_POINTS>; // Matrix for sigma points of x
+  using Mat_z2ap1 = Eigen::Matrix<double, N_DIM_z, N_SIGMA_POINTS>; // Matrix for sigma points of z
+  using Mat_a2ap1 = Eigen::Matrix<double, N_DIM_a, N_SIGMA_POINTS>; // Matrix for sigma points of a
 
   // Parameters for UKF
   static constexpr double ALPHA  = alpha;
@@ -81,32 +82,26 @@ public:
   static constexpr double LAMBDA = ALPHA * ALPHA * (N_DIM_a + KAPPA) - N_DIM_a; // Parameter for spread of sigma points
   static constexpr double GAMMA  = std::sqrt(N_DIM_a + LAMBDA);                 // Scaling factor for spread of sigma points
 
-  static constexpr std::array<double, 2 * N_DIM_a + 1> W_x = []() {
-    std::array<double, 2 * N_DIM_a + 1> W_x;
+  static constexpr std::array<double, N_SIGMA_POINTS> W_x = []() {
+    std::array<double, N_SIGMA_POINTS> W_x;
     W_x[0] = LAMBDA / (N_DIM_a + LAMBDA);
-    for (int i = 1; i < 2 * N_DIM_a + 1; i++) {
+    for (size_t i = 1; i < N_SIGMA_POINTS; i++) {
       W_x[i] = 1 / (2 * (N_DIM_a + LAMBDA));
     }
     return W_x;
   }();
 
-  static constexpr std::array<double, 2 * N_DIM_a + 1> W_c = []() {
-    std::array<double, 2 * N_DIM_a + 1> W_c;
+  static constexpr std::array<double, N_SIGMA_POINTS> W_c = []() {
+    std::array<double, N_SIGMA_POINTS> W_c;
     W_c[0] = LAMBDA / (N_DIM_a + LAMBDA) + (1 - ALPHA * ALPHA + BETA);
-    for (int i = 1; i < 2 * N_DIM_a + 1; i++) {
+    for (size_t i = 1; i < N_SIGMA_POINTS; i++) {
       W_c[i] = 1 / (2 * (N_DIM_a + LAMBDA));
     }
     return W_c;
   }();
 
-  /** Unscented Kalman Filter
-   * @tparam DynModT Dynamic model type derived from `vortex::models::interface::DynamicModel`
-   * @tparam SensModT Sensor model type derived from `vortex::models::interface::SensorModel`
-   * @tparam alpha Parameter for spread of sigma points (default 1.0)
-   * @tparam beta Parameter for weighting of mean in covariance calculation (default 2.0)
-   * @tparam kappa Parameter for adding additional spread to sigma points (default 0.0)
-   */
-  UKF() = default;
+
+  UKF() = delete;
 
 private:
   /** Get sigma points
@@ -153,8 +148,8 @@ private:
    */
   static Mat_x2ap1 propagate_sigma_points_f(const DynModIPtr &dyn_mod, double dt, const Mat_a2ap1 &sigma_points, const Vec_u &u = Vec_u::Zero())
   {
-    Eigen::Matrix<double, N_DIM_x, 2 * N_DIM_a + 1> sigma_x_pred;
-    for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
+    Eigen::Matrix<double, N_DIM_x, N_SIGMA_POINTS> sigma_x_pred;
+    for (size_t i = 0; i < N_SIGMA_POINTS; i++) {
       Vec_x x_i           = sigma_points.template block<N_DIM_x, 1>(0, i);
       Vec_v v_i           = sigma_points.template block<N_DIM_v, 1>(N_DIM_x, i);
       sigma_x_pred.col(i) = dyn_mod->f_d(dt, x_i, u, v_i);
@@ -170,7 +165,7 @@ private:
   static Mat_z2ap1 propagate_sigma_points_h(const SensModIPtr &sens_mod, const Mat_a2ap1 &sigma_points)
   {
     Mat_z2ap1 sigma_z_pred;
-    for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
+    for (size_t i = 0; i < N_SIGMA_POINTS; i++) {
       Vec_x x_i           = sigma_points.template block<N_DIM_x, 1>(0, i);
       Vec_w w_i           = sigma_points.template block<N_DIM_w, 1>(N_DIM_x + N_DIM_v, i);
       sigma_z_pred.col(i) = sens_mod->h(x_i, w_i);
@@ -184,18 +179,18 @@ private:
    * @return prob::MultiVarGauss<n_dims>
    * @note This function is templated to allow for different dimensions of the gaussian
    */
-  template <int n_dims> static prob::MultiVarGauss<n_dims> estimate_gaussian(const Eigen::Matrix<double, n_dims, 2 * N_DIM_a + 1> &sigma_points)
+  template <int n_dims> static prob::MultiVarGauss<n_dims> estimate_gaussian(const Eigen::Matrix<double, n_dims, N_SIGMA_POINTS> &sigma_points)
   {
     using Vec_n  = Eigen::Vector<double, n_dims>;
     using Mat_nn = Eigen::Matrix<double, n_dims, n_dims>;
 
     // Predicted State Estimate x_k-
     Vec_n mean = Vec_n::Zero();
-    for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
+    for (size_t i = 0; i < N_SIGMA_POINTS; i++) {
       mean += W_x.at(i) * sigma_points.col(i);
     }
     Mat_nn cov = Mat_nn::Zero();
-    for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
+    for (size_t i = 0; i < N_SIGMA_POINTS; i++) {
       cov += W_c.at(i) * (sigma_points.col(i) - mean) * (sigma_points.col(i) - mean).transpose();
     }
     return {mean, cov};
@@ -241,14 +236,14 @@ public:
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, 0.0, x_est_pred);
 
     // Extract the sigma points for the state
-    Mat_x2ap1 sigma_x_pred = sigma_points.template block<N_DIM_x, 2 * N_DIM_a + 1>(0, 0);
+    Mat_x2ap1 sigma_x_pred = sigma_points.template block<N_DIM_x, N_SIGMA_POINTS>(0, 0);
 
     // Predict measurement
     Mat_z2ap1 sigma_z_pred = propagate_sigma_points_h(sens_mod, sigma_points);
 
     // Calculate cross-covariance
     Mat_xz P_xz = Mat_xz::Zero();
-    for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
+    for (size_t i = 0; i < N_SIGMA_POINTS; i++) {
       P_xz += W_c(i) * (sigma_x_pred.col(i) - x_est_pred.mean()) * (sigma_z_pred.col(i) - z_est_pred.mean()).transpose();
     }
 
@@ -288,7 +283,7 @@ public:
 
     // Calculate cross-covariance
     Mat_xz P_xz = Mat_xz::Zero();
-    for (int i = 0; i < 2 * N_DIM_a + 1; i++) {
+    for (size_t i = 0; i < N_SIGMA_POINTS; i++) {
       P_xz += W_c.at(i) * (sigma_x_pred.col(i) - x_pred.mean()) * (sigma_z_pred.col(i) - z_pred.mean()).transpose();
     }
 

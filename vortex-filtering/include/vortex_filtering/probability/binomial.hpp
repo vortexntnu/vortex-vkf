@@ -11,8 +11,7 @@
 #pragma once
 #include <cmath>
 
-namespace vortex {
-namespace prob {
+namespace vortex::prob {
 
 class Binomial {
 public:
@@ -62,5 +61,4 @@ private:
   }
 };
 
-} // namespace prob
-} // namespace vortex
+} // namespace vortex::prob

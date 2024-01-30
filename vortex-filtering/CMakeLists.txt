@@ -37,27 +37,6 @@ find_package(Boost REQUIRED
 # === Include directories ===
 include_directories(include)
 
-# === Executables ===
-# add_executable(${PROJECT_NAME}_node 
-#   src/nodes/kf_node.cpp
-# )
-# ament_target_dependencies(${PROJECT_NAME}_node 
-#   rclcpp 
-#   std_msgs
-#   geometry_msgs
-#   Gnuplot
-#   Boost
-# )
-# target_link_libraries(${PROJECT_NAME}_node 
-#   Eigen3::Eigen
-# )
-
-# install(TARGETS
-#   ${PROJECT_NAME}_node
-#   DESTINATION lib/${PROJECT_NAME}
-# )
-
-
 # === Libraries ===
 add_library(${PROJECT_NAME}_lib INTERFACE)
 
@@ -105,43 +84,8 @@ install(
   DESTINATION include
 )
 
-# === Install launch files ===
-install(DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}/
-)
-
 if(BUILD_TESTING)
-
-  find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(${PROJECT_NAME}_test 
-    test/gtest_main.cpp
-    test/gtest_assertions.cpp
-    ${lib_src}
-
-    test/dynamic_model_test.cpp
-    test/ekf_test.cpp
-    # test/filter_test.cpp
-    test/imm_test.cpp
-    test/numerical_integration_test.cpp
-    test/probability_test.cpp
-    test/sensor_model_test.cpp
-    test/ukf_test.cpp
-  )
-  target_include_directories(${PROJECT_NAME}_test PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
-  )
-  ament_target_dependencies(${PROJECT_NAME}_test
-    std_msgs
-    Gnuplot
-    Boost
-  )
-  target_link_libraries(${PROJECT_NAME}_test 
-    Eigen3::Eigen # Makes us able to use #include <Eigen/Dense> instead of #include <eigen3/Eigen/Dense>
-    OpenMP::OpenMP_CXX
-  )
-
-
+  add_subdirectory(test)
 endif()
 
 ament_package()

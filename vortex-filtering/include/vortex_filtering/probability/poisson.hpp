@@ -11,8 +11,7 @@
 #pragma once
 #include <cmath>
 
-namespace vortex {
-namespace prob {
+namespace vortex::prob {
 
 class Poisson {
 public:
@@ -46,15 +45,10 @@ private:
    * @param x
    * @return double factorial
    */
-  double factorial(int x) const
+  static constexpr double factorial(int x)
   {
-    double factorial = 1;
-    for (int i = 1; i <= x; i++) {
-      factorial *= i;
-    }
-    return factorial;
+    return (x == 1 || x == 0) ? 1 : factorial(x - 1) * x;
   }
 };
 
-} // namespace prob
-} // namespace vortex
+} // namespace vortex::prob

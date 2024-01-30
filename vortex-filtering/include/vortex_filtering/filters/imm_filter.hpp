@@ -52,11 +52,7 @@ public:
   ImmFilter()
   {
     // Check if the number of states in each dynamic model is the same as the number of states in the sensor model
-    for (size_t n_dim_x : ImmModelT::get_n_dim_x()) {
-      if (n_dim_x != N_DIM_x) {
-        throw std::invalid_argument("Number of states in dynamic models does not match the number of states in the sensor model.");
-      }
-    }
+    static_assert(ImmModelT::SAME_DIMS_x, "The number of states in each dynamic model must be the same as the number of states in the sensor model.");
   }
 
   /**
@@ -89,7 +85,7 @@ public:
   static std::vector<Gauss_x> mixing(const std::vector<Gauss_x> &x_est_prevs, const Mat_nn &mixing_probs)
   {
     std::vector<Gauss_x> moment_based_preds;
-    for (auto weights : mixing_probs.rowwise()) {
+    for (const Vec_n &weights : mixing_probs.rowwise()) {
       GaussMix_x mixture(weights, x_est_prevs);
       moment_based_preds.push_back(mixture.reduce());
     }

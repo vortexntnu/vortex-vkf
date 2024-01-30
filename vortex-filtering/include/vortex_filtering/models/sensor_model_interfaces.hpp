@@ -82,17 +82,6 @@ public:
     prob::MultiVarGauss<N_DIM_w> w = {Vec_w::Zero(), R(x)};
     return this->h(x, w.sample(gen));
   }
-
-  /** Sample from the sensor model
-   * @param x State
-   * @return Vec_z
-   */
-  Vec_z sample_h(const Vec_x &x) const
-  {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    return sample_h(x, gen);
-  }
 };
 
 /**
