@@ -150,11 +150,11 @@ private:
 };
 
 namespace concepts {
-  template <typename T>
-  concept ImmModel = requires {
-    typename T::DynModTuple;
-    typename T::DynModPtrTuple;
-  };
+template <typename T>
+concept ImmModel = requires {
+  typename T::DynModTuple;
+  typename T::DynModPtrTuple;
+};
 
 } // namespace concepts
 

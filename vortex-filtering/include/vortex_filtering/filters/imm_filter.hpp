@@ -106,7 +106,7 @@ public:
    * @return Tuple of updated states, predicted states, predicted measurements
    */
   static std::tuple<Vec_Gauss_x, Vec_Gauss_x, Vec_Gauss_z> mode_matched_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
-                                                                        const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas)
+                                                                               const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas)
   {
     return mode_matched_filter_impl(imm_model, sensor_model, dt, moment_based_preds, z_meas, std::make_index_sequence<N_MODELS>{});
   }
@@ -122,8 +122,8 @@ public:
    * @return Tuple of updated state, predicted state, predicted measurement
    */
   template <size_t i>
-  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step_kalman_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt, const Gauss_x &x_est_prev,
-                                                           const Vec_z &z_meas)
+  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step_kalman_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
+                                                                  const Gauss_x &x_est_prev, const Vec_z &z_meas)
   {
     using DynModT    = typename ImmModelT::template DynModT<i>;
     using DynModI    = typename DynModT::DynModI;
@@ -138,7 +138,7 @@ public:
     else {
       using UKF = filter::UKF<DynModI, SensModI>;
       return UKF::step(dyn_model, sensor_model, dt, x_est_prev, z_meas);
-    } 
+    }
   }
 
   /**
@@ -187,8 +187,8 @@ public:
 private:
   template <size_t... Is>
   static std::tuple<Vec_Gauss_x, Vec_Gauss_x, Vec_Gauss_z> mode_matched_filter_impl(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
-                                                                             const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas,
-                                                                             std::index_sequence<Is...>)
+                                                                                    const std::vector<Gauss_x> &moment_based_preds, const Vec_z &z_meas,
+                                                                                    std::index_sequence<Is...>)
   {
 
     // Calculate mode-matched filter outputs and save them in a vector of tuples
