@@ -66,11 +66,11 @@ public:
   using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
   using Gauss_z = prob::MultiVarGauss<N_DIM_z>;
 
-  static constexpr int N_DIM_a = N_DIM_x + N_DIM_v + N_DIM_w; // Augmented state dimension
-  static constexpr size_t N_SIGMA_POINTS = 2 * N_DIM_a + 1;   // Number of sigma points
+  static constexpr int N_DIM_a           = N_DIM_x + N_DIM_v + N_DIM_w; // Augmented state dimension
+  static constexpr size_t N_SIGMA_POINTS = 2 * N_DIM_a + 1;             // Number of sigma points
 
-  using Vec_a     = Eigen::Vector<double, N_DIM_a>;                  // Augmented state vector
-  using Mat_aa    = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;         // Augmented state covariance matrix
+  using Vec_a     = Eigen::Vector<double, N_DIM_a>;                 // Augmented state vector
+  using Mat_aa    = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;        // Augmented state covariance matrix
   using Mat_x2ap1 = Eigen::Matrix<double, N_DIM_x, N_SIGMA_POINTS>; // Matrix for sigma points of x
   using Mat_z2ap1 = Eigen::Matrix<double, N_DIM_z, N_SIGMA_POINTS>; // Matrix for sigma points of z
   using Mat_a2ap1 = Eigen::Matrix<double, N_DIM_a, N_SIGMA_POINTS>; // Matrix for sigma points of a
