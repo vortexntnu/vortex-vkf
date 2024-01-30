@@ -2,9 +2,7 @@ find_package(ament_cmake_gtest REQUIRED)
 ament_add_gtest(${PROJECT_NAME}_test 
   gtest_main.cpp
   gtest_assertions.cpp
-  
-  ../src/utils/plotting.cpp
-  ../src/utils/ellipse.cpp
+  ../${lib_src}
 
   dynamic_model_test.cpp
   ekf_test.cpp
