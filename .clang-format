@@ -1,4 +1,5 @@
 ---
+# Documentation: https://releases.llvm.org/17.0.1/tools/clang/docs/ClangFormatStyleOptions.html
 Language:        Cpp
 # BasedOnStyle:  LLVM
 AccessModifierOffset: -2
@@ -132,5 +133,5 @@ StatementMacros:
   - QT_REQUIRE_VERSION
 TabWidth:        2
 UseCRLF:         false
-UseTab:          ForIndentation
+UseTab:          Never
 ...
