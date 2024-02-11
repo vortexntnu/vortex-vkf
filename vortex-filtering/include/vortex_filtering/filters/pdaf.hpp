@@ -33,9 +33,9 @@ public:
 
   PDAF() = delete;
 
-  static std::tuple<Gauss_x, MeasurementsZd, MeasurementsZd, Gauss_x, Gauss_z, StatesXd> predict_next_state(
-      const Gauss_x& x_est, const MeasurementsZd& z_meas, double timestep, const DynModPtr& dyn_model,
-      const SensModPtr& sen_model, double gate_threshold, double prob_of_detection, double clutter_intensity)
+  static std::tuple<Gauss_x, MeasurementsZd, MeasurementsZd, Gauss_x, Gauss_z, StatesXd>
+  step(const Gauss_x& x_est, const MeasurementsZd& z_meas, double timestep, const DynModPtr& dyn_model,
+       const SensModPtr& sen_model, double gate_threshold, double prob_of_detection, double clutter_intensity)
   {
     auto [x_pred, z_pred] = EKF::predict(dyn_model, sen_model, timestep, x_est);
     auto [inside, outside] = apply_gate(z_meas, z_pred, gate_threshold);
