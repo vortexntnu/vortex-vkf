@@ -47,12 +47,12 @@ public:
     }
 
     // TODO: return gaussian mixture
-    Gauss_x x_final = get_weighted_average(z_meas, x_updated, z_pred, x_pred, prob_of_detection, clutter_intensity);
+    Gauss_x x_final = get_weighted_average(inside, x_updated, z_pred, x_pred, prob_of_detection, clutter_intensity);
     return { x_final, inside, outside, x_pred, z_pred, x_updated };
   }
 
   static std::tuple<MeasurementsZd, MeasurementsZd> apply_gate(const MeasurementsZd& z_meas, const Gauss_z& z_pred,
-                                                        double gate_threshold)
+                                                               double gate_threshold)
   {
     MeasurementsZd inside_meas;
     MeasurementsZd outside_meas;
@@ -78,8 +78,9 @@ public:
   }
 
   // Getting weighted average of the predicted states
-  static Gauss_x get_weighted_average(const MeasurementsZd& z_meas, const StatesXd& updated_states, const Gauss_z& z_pred,
-                               const Gauss_x& x_pred, double prob_of_detection, double clutter_intensity)
+  static Gauss_x get_weighted_average(const MeasurementsZd& z_meas, const StatesXd& updated_states,
+                                      const Gauss_z& z_pred, const Gauss_x& x_pred, double prob_of_detection,
+                                      double clutter_intensity)
   {
     StatesXd states;
     states.push_back(x_pred);
@@ -94,7 +95,7 @@ public:
 
   // Getting association probabilities according to textbook p. 123 "Corollary 7.3.3"
   static Eigen::VectorXd get_weights(const MeasurementsZd& z_meas, const Gauss_z& z_pred, double prob_of_detection,
-                              double clutter_intensity)
+                                     double clutter_intensity)
   {
     Eigen::VectorXd weights(z_meas.size() + 1);
 
