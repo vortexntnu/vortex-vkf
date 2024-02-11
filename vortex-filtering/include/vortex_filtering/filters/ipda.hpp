@@ -20,14 +20,15 @@ public:
   using Gauss_x = typename DynModI::Gauss_x;
   using Vec_z = typename SensModI::Vec_z;
   using GaussMix = vortex::prob::GaussianMixture<DynModI::N_DIM_x>;
-  using FAKE_PDAF = vortex::filter::PDAF<DynModT, SensModT>;
+  using PDAF = vortex::filter::PDAF<vortex::models::ConstantVelocity<2>, vortex::models::IdentitySensorModel<4, 2>>;
   IPDA() = delete;
   /// @brief
   /// @param measurements Measurements to iterate over
   /// @param probability_of_survival How likely the object is to survive (Ps)
   /// @param probability_of_detection How likely the object is to be detected (Pd)
-  /// @param standard_deviation Standard deviation of the measurements (Sk)
-  /// @param lambda Lambda value for the Poisson distribution (Lambda)
+  /// @param clutter_intensity How likely it is to have a false positive
+  /// @param z_pred The predicted measurement
+  /// @return The existence probability
   static double get_existence_probability(const std::vector<Vec_z>& measurements, double probability_of_survival,
                                           double last_detection_probability_, double probability_of_detection,
                                           double clutter_intensity, Gauss_z& z_pred)
@@ -50,7 +51,7 @@ public:
        double survive_est, double clutter_intensity)
   {
     auto [x_pred, z_pred] = EKF::predict(dyn_model, sen_model, timestep, x_est);
-    auto [inside, outside] = vortex::filter::PDAF::apply_gate(z_meas, z_pred, gate_threshold);
+    auto [inside, outside] = PDAF::apply_gate(z_meas, z_pred, gate_threshold);
 
     std::vector<Gauss_x> x_updated;
     for (const auto& measurement : inside)
@@ -58,8 +59,8 @@ public:
       x_updated.push_back(EKF::update(sen_model, x_pred, z_pred, measurement));
     }
 
-    Gauss_x x_final = vortex::filter::PDAF::get_weighted_average(inside, x_updated, z_pred, x_pred, prob_of_detection,
-                                                                 clutter_intensity);
+    Gauss_x x_final =
+        PDAF::get_weighted_average(inside, x_updated, z_pred, x_pred, prob_of_detection, clutter_intensity);
 
     double existence_probability =
         get_existence_probability(inside, prob_of_survival, survive_est, prob_of_detection, clutter_intensity, z_pred);
