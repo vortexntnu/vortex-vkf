@@ -50,17 +50,8 @@ public:
        const SensModPtr& sen_model, double gate_threshold, double prob_of_detection, double prob_of_survival,
        double survive_est, double clutter_intensity)
   {
-    auto [x_pred, z_pred] = EKF::predict(dyn_model, sen_model, timestep, x_est);
-    auto [inside, outside] = PDAF::apply_gate(z_meas, z_pred, gate_threshold);
-
-    std::vector<Gauss_x> x_updated;
-    for (const auto& measurement : inside)
-    {
-      x_updated.push_back(EKF::update(sen_model, x_pred, z_pred, measurement));
-    }
-
-    Gauss_x x_final =
-        PDAF::get_weighted_average(inside, x_updated, z_pred, x_pred, prob_of_detection, clutter_intensity);
+    auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+        PDAF::step(x_est, z_meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
 
     double existence_probability =
         get_existence_probability(inside, prob_of_survival, survive_est, prob_of_detection, clutter_intensity, z_pred);
