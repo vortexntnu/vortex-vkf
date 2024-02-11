@@ -237,8 +237,8 @@ TEST(PDAF, predict_next_state_is_calculating)
   auto dyn_model = std::make_shared<vortex::models::ConstantVelocity<2>>(1.0);
   auto sen_model = std::make_shared<vortex::models::IdentitySensorModel<4, 2>>(1.0);
 
-  auto [x_final, inside, outside, x_pred, z_pred, x_updated] = PDAF::predict_next_state(
-      x_est, meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
+  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+      PDAF::step(x_est, meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
   Gnuplot gp;
@@ -295,8 +295,8 @@ TEST(PDAF, predict_next_state_2)
   auto dyn_model = std::make_shared<vortex::models::ConstantVelocity<2>>(1.0);
   auto sen_model = std::make_shared<vortex::models::IdentitySensorModel<4, 2>>(0.5);
 
-  auto [x_final, inside, outside, x_pred, z_pred, x_updated] = PDAF::predict_next_state(
-      x_est, meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
+  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+      PDAF::step(x_est, meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
   Gnuplot gp;
@@ -353,8 +353,8 @@ TEST(PDAF, predict_next_state_3_1)
   auto dyn_model = std::make_shared<vortex::models::ConstantVelocity<2>>(0.5);
   auto sen_model = std::make_shared<vortex::models::IdentitySensorModel<4, 2>>(1.0);
 
-  auto [x_final, inside, outside, x_pred, z_pred, x_updated] = PDAF::predict_next_state(
-      x_est, meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
+  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+      PDAF::step(x_est, meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
   Gnuplot gp;
@@ -414,8 +414,8 @@ TEST(PDAF, predict_next_state_3_2)
   auto dyn_model = std::make_shared<vortex::models::ConstantVelocity<2>>(0.5);
   auto sen_model = std::make_shared<vortex::models::IdentitySensorModel<4, 2>>(1.0);
 
-  auto [x_final, inside, outside, x_pred, z_pred, x_updated] = PDAF::predict_next_state(
-      x_est, meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
+  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+      PDAF::step(x_est, meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
   Gnuplot gp;
@@ -478,8 +478,8 @@ TEST(PDAF, predict_next_state_3_3)
   auto dyn_model = std::make_shared<vortex::models::ConstantVelocity<2>>(0.5);
   auto sen_model = std::make_shared<vortex::models::IdentitySensorModel<4, 2>>(1.0);
 
-  auto [x_final, inside, outside, x_pred, z_pred, x_updated] = PDAF::predict_next_state(
-      x_est, meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
+  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+      PDAF::step(x_est, meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
   Gnuplot gp;
@@ -546,8 +546,8 @@ TEST(PDAF, predict_next_state_3_4)
   auto dyn_model = std::make_shared<vortex::models::ConstantVelocity<2>>(0.5);
   auto sen_model = std::make_shared<vortex::models::IdentitySensorModel<4, 2>>(1.0);
 
-  auto [x_final, inside, outside, x_pred, z_pred, x_updated] = PDAF::predict_next_state(
-      x_est, meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
+  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+      PDAF::step(x_est, meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
   Gnuplot gp;
