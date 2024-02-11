@@ -36,7 +36,7 @@ public:
 
         double summed = 0;
         for(const Vec_z &measurement : measurements){
-            summed += z_pred.pfd(measurement);
+            summed += z_pred.pdf(measurement);
         }
         double l_k = 1 - probability_of_detection + probability_of_detection / clutter_intensity * summed;
 
@@ -53,7 +53,7 @@ public:
         double prob_of_survival,
         double survive_est,
         double clutter_intensity
-        ) const
+        )
     {
         auto [x_pred, z_pred] = EKF::predict(dyn_model, sen_model, timestep, x_est);
         auto [inside, outside] = apply_gate(z_meas, z_pred, gate_threshold);
@@ -64,14 +64,14 @@ public:
         }
 
         Gauss_x x_final = get_weighted_average(
-            z_meas,
+            inside,
             x_updated, 
             z_pred, 
             x_pred, 
             prob_of_detection, 
             clutter_intensity);
 
-        double existence_probability = get_existence_probability(z_meas, prob_of_survival, survive_est, prob_of_detection, clutter_intensity, z_pred);
+        double existence_probability = get_existence_probability(inside, prob_of_survival, survive_est, prob_of_detection, clutter_intensity, z_pred);
         return {x_final, existence_probability, inside, outside, x_pred, z_pred, x_updated};
     }
     static std::tuple<std::vector<Vec_z>, std::vector<Vec_z>> apply_gate(
