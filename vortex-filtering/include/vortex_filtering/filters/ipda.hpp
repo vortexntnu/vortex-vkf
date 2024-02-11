@@ -1,6 +1,3 @@
-#ifndef IPDA_HPP
-#define IPDA_HPP
-
 #pragma once
 #include <vector>
 #include <Eigen/Dense>
@@ -24,9 +21,7 @@ public:
   using Vec_z = typename SensModI::Vec_z;
   using GaussMix = vortex::prob::GaussianMixture<DynModI::N_DIM_x>;
   using FAKE_PDAF = vortex::filter::PDAF<DynModT, SensModT>;
-  IPDA()
-  {
-  }
+  IPDA() = delete;
   /// @brief
   /// @param measurements Measurements to iterate over
   /// @param probability_of_survival How likely the object is to survive (Ps)
@@ -48,13 +43,14 @@ public:
 
     return (l_k * predicted_existence_probability) / (1 - (1 - l_k) * predicted_existence_probability);
   }
+
   static std::tuple<Gauss_x, double, std::vector<Vec_z>, std::vector<Vec_z>, Gauss_x, Gauss_z, std::vector<Gauss_x>>
   step(const Gauss_x& x_est, const std::vector<Vec_z>& z_meas, double timestep, const DynModPtr& dyn_model,
        const SensModPtr& sen_model, double gate_threshold, double prob_of_detection, double prob_of_survival,
        double survive_est, double clutter_intensity)
   {
     auto [x_pred, z_pred] = EKF::predict(dyn_model, sen_model, timestep, x_est);
-    auto [inside, outside] = apply_gate(z_meas, z_pred, gate_threshold);
+    auto [inside, outside] = vortex::filter::PDAF::apply_gate(z_meas, z_pred, gate_threshold);
 
     std::vector<Gauss_x> x_updated;
     for (const auto& measurement : inside)
@@ -62,32 +58,12 @@ public:
       x_updated.push_back(EKF::update(sen_model, x_pred, z_pred, measurement));
     }
 
-    Gauss_x x_final = get_weighted_average(inside, x_updated, z_pred, x_pred, prob_of_detection, clutter_intensity);
+    Gauss_x x_final = vortex::filter::PDAF::get_weighted_average(inside, x_updated, z_pred, x_pred, prob_of_detection,
+                                                                 clutter_intensity);
 
     double existence_probability =
         get_existence_probability(inside, prob_of_survival, survive_est, prob_of_detection, clutter_intensity, z_pred);
     return { x_final, existence_probability, inside, outside, x_pred, z_pred, x_updated };
   }
-  static std::tuple<std::vector<Vec_z>, std::vector<Vec_z>> apply_gate(const std::vector<Vec_z>& z_meas,
-                                                                       const Gauss_z& z_pred, double gate_threshold)
-  {
-    FAKE_PDAF pdaf;
-    return pdaf.apply_gate(z_meas, z_pred, gate_threshold);
-  }
-  static Gauss_x get_weighted_average(const std::vector<Vec_z>& z_meas, const std::vector<Gauss_x>& updated_states,
-                                      const Gauss_z& z_pred, const Gauss_x& x_pred, double prob_of_detection,
-                                      double clutter_intensity)
-  {
-    FAKE_PDAF pdaf;
-    return pdaf.get_weighted_average(z_meas, updated_states, z_pred, x_pred, prob_of_detection, clutter_intensity);
-  }
-
-  Eigen::VectorXd get_weights(const std::vector<Vec_z>& z_meas, const Gauss_z& z_pred, double prob_of_detection,
-                              double clutter_intensity)
-  {
-    FAKE_PDAF pdaf;
-    return pdaf.get_weights(z_meas, z_pred, prob_of_detection, clutter_intensity);
-  }
 };
 }  // namespace vortex::filter
-#endif  // IPDA_HPP
