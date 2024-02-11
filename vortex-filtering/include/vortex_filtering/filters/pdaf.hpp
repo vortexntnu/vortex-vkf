@@ -60,9 +60,6 @@ public:
     for (const auto& measurement : z_meas)
     {
       double distance = z_pred.mahalanobis_distance(measurement);
-      std::cout << "measurement: " << measurement << std::endl;
-      std::cout << "z_pred: " << z_pred.mean() << std::endl;
-      std::cout << "distance: " << distance << std::endl;
 
       if (distance <= gate_threshold)
       {
