@@ -1,47 +1,10 @@
 #pragma once
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
+#include <vortex_filtering/models/imm_model.hpp>
 
 namespace vortex {
 namespace models {
 
-
-template <typename T, T X, std::size_t... Is>
-constexpr auto generate_constant_sequence(std::index_sequence<Is...>)
-{
-    return std::integer_sequence<T, ((void)Is, X)...>{};
-}
-
-template <typename T, T X, std::size_t N>
-using constant_sequence = decltype(generate_constant_sequence<T, X>(std::make_index_sequence<N>{}));
-
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-enum class StateType { none, position, velocity, acceleration, turn_rate };
-
-template <StateType... state_types> struct SemanticState 
-{
-  constexpr SemanticState() = default;
-  constexpr SemanticState(StateType...) {}
-=======
-enum class StateType { position, velocity, acceleration, turn_rate };
-
-template <StateType... state_types> struct SemanticState 
-{
-  constexpr SemanticState = default;
-  constexpr SemanticState(state_types...) {}
->>>>>>> d2c9504 (started on new IMM filter)
-=======
-enum class StateType { none, position, velocity, acceleration, turn_rate };
-
-template <StateType... state_types> struct SemanticState 
-{
-  constexpr SemanticState() = default;
-  constexpr SemanticState(StateType...) {}
->>>>>>> 5b59215 (more changes...)
-  static constexpr size_t N_STATES = sizeof...(state_types);
-  static constexpr std::array<StateType, N_STATES> TYPES = {state_types...};
-};
 
 constexpr int X = 1; // For when a template parameter is required but not used.
 
@@ -55,8 +18,6 @@ public:
   using Mat_xx  = typename DynModI::Mat_xx;
   using Mat_xv  = typename DynModI::Mat_xv;
   using Mat_vv  = typename DynModI::Mat_vv;
-
-  using StateNames = SemanticState<constant_sequence<StateType, StateType::none, n_dim_x>()>;
 
   /** Identity Dynamic Model
    * @param std Standard deviation of process noise

@@ -13,7 +13,7 @@
 class EKFTestCVModel : public ::testing::Test {
 protected:
   using PosMeasModel = vortex::models::IdentitySensorModel<4, 2>;
-  using CVModel      = vortex::models::ConstantVelocity<2>;
+  using CVModel      = vortex::models::ConstantVelocity;
   using DynModI      = CVModel::DynModI;
   using Vec_x        = typename CVModel::Vec_x;
   using Vec_u        = typename CVModel::Vec_u;

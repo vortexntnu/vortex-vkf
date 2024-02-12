@@ -49,7 +49,7 @@ public:
    * @param gaussians Gaussians
    * @note The weights are automatically normalized, so they don't need to sum to 1.
    */
-    GaussianMixture(IterableOf<double> auto const& weights, IterableOf<Gauss_n> auto const& gaussians)
+    GaussianMixture(concepts::IterableOf<double> auto const& weights, concepts::IterableOf<Gauss_n> auto const& gaussians)
         : weights_(Eigen::Map<const Eigen::VectorXd>(weights.data(), std::distance(std::begin(weights), std::end(weights)))),
           gaussians_(std::begin(gaussians), std::end(gaussians)) 
     {}

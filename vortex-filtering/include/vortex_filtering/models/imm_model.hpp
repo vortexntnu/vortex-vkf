@@ -26,11 +26,20 @@ namespace concepts {
   };
 }
 
+enum class StateType { none, position, velocity, acceleration, turn_rate };
+
+template <StateType... state_types> struct SemanticState 
+{
+  constexpr SemanticState() = default;
+  constexpr SemanticState(StateType...) {}
+
+  static constexpr size_t N_STATES = sizeof...(state_types);
+  static constexpr std::array<StateType, N_STATES> TYPES = {state_types...};
+};
 
 /**
  * @brief Container class for interacting multiple models.
  * @tparam DynModels Dynamic models to use.
- * @note The models must have a `DynModI` typedef specifying the base interface (e.g. `using DynModI = ...`).
  */
 template <concepts::ImmCompatibleModel... DynModels> class ImmModel {
 public:
@@ -47,12 +56,14 @@ public:
   using Mat_nn = Eigen::Matrix<double, N_MODELS, N_MODELS>;
 
   template <size_t i> using DynModI = typename std::tuple_element<i, DynModTuple>::type::DynModI; // Get the base interface of the i'th model
+  template <size_t i> using DynModIPtr = typename DynModI<i>::SharedPtr;
   template <size_t i> using Vec_x   = typename DynModI<i>::Vec_x;
   template <size_t i> using Vec_u   = typename DynModI<i>::Vec_u;
   template <size_t i> using Vec_v   = typename DynModI<i>::Vec_v;
   template <size_t i> using Mat_xx  = typename DynModI<i>::Mat_xx;
   template <size_t i> using Mat_vv  = typename DynModI<i>::Mat_vv;
   template <size_t i> using Gauss_x = typename DynModI<i>::Gauss_x;
+  template <size_t i> using GaussMix_x = typename DynModI<i>::GaussMix_x;
 
   template <size_t i> using DynModT    = typename std::tuple_element<i, DynModTuple>::type;
   template <size_t i> using DynModTPtr = typename std::shared_ptr<DynModT<i>>;
@@ -152,22 +163,17 @@ public:
    */
   template <size_t i> Mat_vv<i> Q_d(double dt, const Vec_x<i> &x) const { return get_model<i>()->Q_d(dt, x); }
 
-  /**
-   * @brief Get the number of dimensions for the state vector of each dynamic model
-   * @return std::array<int, N_MODELS>
-   */
-  static constexpr std::array<int, N_MODELS> get_n_dim_x() { return {DynModels::DynModI::N_DIM_x...}; }
 
   static constexpr int N_DIM_x(size_t model_index) { return std::array<int, N_MODELS>{DynModels::DynModI::N_DIM_x...}.at(model_index); }
 
 
-  template <size_t model_index> static constexpr std::array<StateType, N_DIM_x(model_index)> get_state_names() { return DynModT<i>::template StateNames::Types; }
+  template <size_t model_index> static constexpr std::array<StateType, N_DIM_x(model_index)> get_state_names() { return typename DynModT<model_index>::template StateNames::Types; }
 
   template <size_t model_index_1, size_t model_index_2>
   static constexpr bool same_state_name(size_t state_index)
   {
-      int n_dim_x_1 = N_DIM_x(model_index_1);
-      int n_dim_x_2 = N_DIM_x(model_index_2);
+      size_t n_dim_x_1 = size_t(N_DIM_x(model_index_1));
+      size_t n_dim_x_2 = size_t(N_DIM_x(model_index_2));
 
       // Return false if state_index is out of bounds for either model
       if (state_index >= n_dim_x_1 || state_index >= n_dim_x_2) {
@@ -181,7 +187,7 @@ public:
   }
 
   template <size_t model_index_1, size_t model_index_2>
-  static constexpr std::array<bool, model_index_1> same_state_names()
+  static constexpr std::array<bool, model_index_1> MATCHING_STATE_NAMES()
   {
       std::array<bool, model_index_1> same_names{};
 

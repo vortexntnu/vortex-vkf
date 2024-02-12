@@ -142,7 +142,7 @@ private:
    * @param dyn_mod Dynamic model
    * @param dt Time step
    * @param sigma_points Mat_a2ap1 Sigma points
-   * @param u Vec_u Control input
+   * @param u Vec_u Control input (default 0)
    * @return Mat_x2ap1 sigma_x_pred
    */
   static Mat_x2ap1 propagate_sigma_points_f(const DynModIPtr &dyn_mod, double dt, const Mat_a2ap1 &sigma_points, const Vec_u &u = Vec_u::Zero())
@@ -201,7 +201,7 @@ public:
    * @param sens_mod Sensor model
    * @param dt Time step
    * @param x_est_prev Previous state estimate
-   * @param u Vec_u Control input
+   * @param u Vec_u Control input (default 0)
    * @return std::pair<Gauss_x, Gauss_z> Predicted state estimate, predicted measurement estimate
    */
   static std::pair<Gauss_x, Gauss_z> predict(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
@@ -229,10 +229,10 @@ public:
    * @return Gauss_x Updated state estimate
    * @note Sigma points are generated from the predicted state estimate instead of the previous state estimate as is done in the 'step' method.
    */
-  static Gauss_x update(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
+  static Gauss_x update(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
   {
     // Generate sigma points from the predicted state estimate
-    Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, 0.0, x_est_pred);
+    Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_pred);
 
     // Extract the sigma points for the state
     Mat_x2ap1 sigma_x_pred = sigma_points.template block<N_DIM_x, N_SIGMA_POINTS>(0, 0);

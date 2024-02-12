@@ -13,6 +13,7 @@
 #include <random>
 #include <vortex_filtering/numerical_integration/erk_methods.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
+#include <vortex_filtering/probability/gaussian_mixture.hpp>
 
 namespace vortex::models {
 namespace interface {
@@ -54,6 +55,7 @@ public:
 
   using Gauss_x = prob::MultiVarGauss<N_DIM_x>;
   using Gauss_v = prob::MultiVarGauss<N_DIM_v>;
+  using GaussMix_x = prob::GaussianMixture<N_DIM_x>;
 
   using SharedPtr = std::shared_ptr<DynModI>;
 

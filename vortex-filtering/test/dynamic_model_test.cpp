@@ -69,7 +69,7 @@ TEST(DynamicModel, sampleSimpleModel)
 } // namespace simple_dynamic_model_test
 
 namespace cv_model_test {
-using CVModel = vortex::models::ConstantVelocity<2>;
+using CVModel = vortex::models::ConstantVelocity;
 using Vec_x   = typename CVModel::Vec_x;
 using Mat_xx  = typename CVModel::Mat_xx;
 
