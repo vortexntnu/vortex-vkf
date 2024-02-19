@@ -93,6 +93,16 @@ public:
    */
   static MultiVarGauss Standard() { return {Vec_n::Zero(), Mat_nn::Identity()}; }
 
+  /** operator==
+   * @param lhs
+   * @param rhs
+   * @return bool true if the means and covariances are equal
+   */
+  friend bool operator==(const MultiVarGauss &lhs, const MultiVarGauss &rhs)
+  {
+    return lhs.mean() == rhs.mean() && lhs.cov() == rhs.cov();
+  }
+
 private:
   Vec_n mean_;
   Mat_nn cov_;
@@ -100,8 +110,11 @@ private:
 };
 
 template <int n_dims> using Gauss = MultiVarGauss<n_dims>;
-using Gauss2d                     = Gauss<2>;
-using Gauss3d                     = Gauss<3>;
-using Gauss4d                     = Gauss<4>;
+
+using Gauss2d = Gauss<2>;
+using Gauss3d = Gauss<3>;
+using Gauss4d = Gauss<4>;
+
+
 
 } // namespace vortex::prob

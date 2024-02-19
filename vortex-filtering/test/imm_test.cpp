@@ -15,18 +15,73 @@
 // IMM Model Tests
 ///////////////////////////////
 
+TEST(SemanticState, initWithTemplateArgs)
+{
+  using vortex::models::SemanticState;
+  using ST = vortex::models::StateType;
+  SemanticState<ST::position, ST::velocity> state_names;
+
+  EXPECT_EQ(state_names.size(), 2u);
+  EXPECT_EQ(state_names.get_name(0), ST::position);
+  EXPECT_EQ(state_names.get_name(1), ST::velocity);
+}
+
+TEST(SemanticState, initWithConstructor)
+{
+  using vortex::models::SemanticState;
+  using ST = vortex::models::StateType;
+  SemanticState state_names(ST::position, ST::velocity);
+
+  EXPECT_EQ(state_names.size(), 2u);
+  EXPECT_EQ(state_names.get_name(0), ST::position);
+  EXPECT_EQ(state_names.get_name(1), ST::velocity);
+}
+
+TEST(SemanticState, matchingStates)
+{
+  using vortex::models::SemanticState;
+  using ST = vortex::models::StateType;
+  SemanticState state_names_1(ST::position, ST::velocity);
+  SemanticState state_names_2(ST::position, ST::velocity);
+
+  EXPECT_EQ(state_names_1.get_names(), state_names_2.get_names());
+  EXPECT_EQ(matching_state_names(state_names_1.get_names(), state_names_2.get_names()), (std::array<bool, 2>{true, true}));
+}
+
+TEST(SemanticState, nonMatchingStates)
+{
+  using vortex::models::SemanticState;
+  using ST = vortex::models::StateType;
+  SemanticState state_names_1(ST::position, ST::velocity);
+  SemanticState state_names_2(ST::position, ST::acceleration);
+
+  EXPECT_EQ(state_names_1.get_name(0), state_names_2.get_name(0));
+  EXPECT_NE(state_names_1.get_name(1), state_names_2.get_name(1));
+  EXPECT_NE(state_names_1.get_names(), state_names_2.get_names());
+  EXPECT_EQ(matching_state_names(state_names_1.get_names(), state_names_2.get_names()), (std::array<bool, 2>{true, false}));
+}
+
+TEST(SemanticState, differentLengthStates)
+{
+  using vortex::models::SemanticState;
+  using ST = vortex::models::StateType;
+  SemanticState state_names_1(ST::position, ST::velocity);
+  SemanticState state_names_2(ST::position);
+
+  EXPECT_EQ(matching_state_names(state_names_1.get_names(), state_names_2.get_names()), (std::array<bool, 2>{true, false}));
+  EXPECT_EQ(matching_state_names(state_names_2.get_names(), state_names_1.get_names()), (std::array<bool, 1>{true}));
+}
+
 TEST(ImmModel, init)
 {
   using vortex::models::ConstantPosition;
   using vortex::models::ConstantVelocity;
 
-  Eigen::Matrix2d jump_mat;
-  jump_mat << 0, 1, 1, 0;
-  Eigen::Vector2d hold_times;
-  hold_times << 1, 1;
-  double std = 1.0;
+  Eigen::Matrix2d jump_mat{{0, 1}, {1, 0}};
+  Eigen::Vector2d hold_times{1, 1};
 
-  double dt;
+  double std = 1.0;
+  double dt  = 1.0;
 
 
   vortex::models::ImmModel imm_model(jump_mat, hold_times, ConstantPosition(std), ConstantVelocity(std));
@@ -34,9 +89,7 @@ TEST(ImmModel, init)
   EXPECT_EQ(typeid(*imm_model.get_model<0>()), typeid(ConstantPosition));
   EXPECT_EQ(typeid(*imm_model.get_model<1>()), typeid(ConstantVelocity));
   EXPECT_EQ(typeid(imm_model.f_d<0>(dt, Eigen::Vector2d::Zero())), typeid(Eigen::Vector2d));
-  EXPECT_EQ(typeid(imm_model.f_d<1>(dt, Eigen::Vector3d::Zero())), typeid(Eigen::Vector3d));
-  EXPECT_EQ(typeid(imm_model.Q_d<0>(dt, Eigen::Vector2d::Zero())), typeid(Eigen::Matrix2d));
-  EXPECT_EQ(typeid(imm_model.Q_d<1>(dt, Eigen::Vector3d::Zero())), typeid(Eigen::Matrix3d));
+  EXPECT_EQ(typeid(imm_model.f_d<1>(dt, Eigen::Vector4d::Zero())), typeid(Eigen::Vector4d));
 }
 
 TEST(ImmModel, piMatC)
@@ -44,24 +97,28 @@ TEST(ImmModel, piMatC)
   using vortex::models::ConstantPosition;
   using vortex::models::ConstantVelocity;
 
-  Eigen::Matrix3d jump_mat;
   // clang-format off
-  jump_mat <<     0, 1.0/2, 1.0/2,
-              1.0/3,     0, 2.0/3,
-              5.0/6, 1.0/6,     0;
+  Eigen::Matrix3d jump_mat{
+    {0    , 1.0/2, 1.0/2}, 
+    {1.0/3, 0    , 2.0/3}, 
+    {5.0/6, 1.0/6, 0    }
+  };
   // clang-format on
-  Eigen::Vector3d hold_times;
-  hold_times << 6, 12, 18;
+
+
+  Eigen::Vector3d hold_times{6, 12, 18};
   double std = 1.0;
 
   vortex::models::ImmModel imm_model(jump_mat, hold_times, ConstantPosition(std), ConstantPosition(std), ConstantPosition(std));
 
-  Eigen::Matrix3d pi_mat_c;
   // clang-format off
-  pi_mat_c << -6,   3,   3,
-               4, -12,   8,
-              15,   3, -18;
+  Eigen::Matrix3d pi_mat_c{
+    {-6,  3 ,  3 },
+    {4 , -12,  8 },
+    {15,  3 , -18}
+  };
   // clang-format on
+
 
   EXPECT_EQ(imm_model.get_pi_mat_c(), pi_mat_c);
 }
@@ -71,14 +128,14 @@ TEST(ImmModel, piMatD)
   using vortex::models::ConstantPosition;
   using vortex::models::ConstantVelocity;
 
-  Eigen::Matrix3d jump_mat;
   // clang-format off
-  jump_mat <<     0, 1.0/2, 1.0/2,
-              1.0/3,     0, 2.0/3,
-              5.0/6, 1.0/6,     0;
+  Eigen::Matrix3d jump_mat{
+    {0    , 1.0/2, 1.0/2}, 
+    {1.0/3, 0    , 2.0/3}, 
+    {5.0/6, 1.0/6, 0    }
+  };
   // clang-format on
-  Eigen::Vector3d hold_times;
-  hold_times << 6, 12, 18;
+  Eigen::Vector3d hold_times{6, 12, 18};
   double std = 1.0;
 
   using ImmModelT = vortex::models::ImmModel<ConstantPosition, ConstantPosition, ConstantPosition>;
@@ -109,7 +166,7 @@ TEST(ImmModel, stateSize)
 
   using TestModel = vortex::models::ImmModel<ConstantPosition, ConstantVelocity, ConstantAcceleration>;
 
-  EXPECT_EQ(TestModel::N_DIM_x(0), (std::array<int, 3>{3, 2, 4}));
+  EXPECT_EQ(TestModel::N_DIMS_x(), (std::array<int, 3>{2, 4, 6}));
 }
 
 ///////////////////////////////
@@ -123,7 +180,7 @@ TEST(ImmFilter, init)
   using ImmModelT  = vortex::models::ImmModel<ConstantPosition, ConstantPosition>;
   using ImmFilterT = vortex::filter::ImmFilter<SensModT, ImmModelT>;
 
-  EXPECT_EQ(ImmFilterT::N_MODELS, 2);
+  EXPECT_EQ(ImmFilterT::N_MODELS, 2u);
   EXPECT_EQ(ImmFilterT::N_DIM_z, SensModT::SensModI::N_DIM_z);
 }
 
@@ -186,8 +243,11 @@ TEST(ImmFilter, mixing)
   Eigen::Vector2d model_weights;
   model_weights << 0.5, 0.5;
 
-  std::tuple<Gauss2d, Gauss2d> x_est_prevs         = {Gauss2d::Standard(), Gauss2d::Standard()};
-  std::tuple<Gauss2d, Gauss2d> moment_based_approx = ImmFilterT::mixing(x_est_prevs, imm_model.get_pi_mat_d(dt));
+  std::tuple<Gauss2d, Gauss2d> x_est_prevs = {Gauss2d::Standard(), Gauss2d::Standard()};
+  auto [pos1, pos2] = ImmFilterT::mixing(x_est_prevs, imm_model.get_pi_mat_d(dt));
+
+  // The moment based approximation should be closer to the high std model
+  EXPECT_GT(pos1.cov().trace(), pos2.cov().trace());
 }
 
 TEST(ImmFilter, modeMatchedFilter)

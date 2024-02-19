@@ -124,3 +124,72 @@ TEST(MultiVarGauss, mahalanobisDistanceIdentityCovariance)
   EXPECT_DOUBLE_EQ(gaussian.mahalanobis_distance({0, 1}), 1);
   EXPECT_DOUBLE_EQ(gaussian.mahalanobis_distance({1, 1}), std::sqrt(2));
 }
+
+TEST(isContainerConcept, compileTimeChecks)
+{
+  static_assert(vortex::prob::concepts::is_container<std::vector<double>, double>);
+  static_assert(vortex::prob::concepts::is_container<std::array<double, 4>, double>);
+  static_assert(vortex::prob::concepts::is_container<std::vector<vortex::prob::Gauss2d>, vortex::prob::Gauss2d>);
+  static_assert(vortex::prob::concepts::is_container<Eigen::Vector2d, double>);
+  static_assert(vortex::prob::concepts::is_container<Eigen::VectorXd, double>);
+  static_assert(vortex::prob::concepts::is_container<Eigen::RowVectorXd, double>);
+
+  static_assert(!vortex::prob::concepts::is_container<double, double>);
+
+  EXPECT_TRUE(true);
+}
+
+TEST(GaussianMixture, defaultConstructor)
+{
+  vortex::prob::GaussianMixture<2> mixture;
+
+  EXPECT_EQ(mixture.size(), 0u);
+}
+
+TEST(GaussianMixture, stdVectorConstructor)
+{
+  using vortex::prob::Gauss2d;
+  std::vector<double> weights{1, 2};
+  std::vector<Gauss2d> gaussians{Gauss2d::Standard(), Gauss2d::Standard()};
+  
+  vortex::prob::GaussianMixture<2> mixture{weights, gaussians};
+
+  EXPECT_EQ(mixture.size(), 2u);
+  
+  Eigen::VectorXd weights_eigen(2);
+  weights_eigen << 1, 2;
+  EXPECT_EQ(mixture.weights(), weights_eigen);
+  EXPECT_EQ(mixture.gaussians(), gaussians);
+}
+
+TEST(GaussianMixture, stdArrayConstructor)
+{
+  using vortex::prob::Gauss2d;
+  std::array<double, 2> weights{1, 2};
+  std::array<Gauss2d, 2> gaussians{Gauss2d::Standard(), Gauss2d::Standard()};
+  
+  vortex::prob::GaussianMixture<2> mixture{weights, gaussians};
+
+  EXPECT_EQ(mixture.size(), 2u);
+
+  Eigen::VectorXd weights_eigen(2);
+  weights_eigen << 1, 2;
+  EXPECT_EQ(mixture.weights(), weights_eigen);
+  EXPECT_EQ(mixture.gaussians().at(0), gaussians.at(0));
+  EXPECT_EQ(mixture.gaussians().at(1), gaussians.at(1));
+}
+
+TEST(GaussianMixture, eigenVectorConstructor)
+{
+  using vortex::prob::Gauss2d;
+  Eigen::VectorXd weights(2);
+  weights << 1, 2;
+  std::vector<Gauss2d> gaussians{Gauss2d::Standard(), Gauss2d::Standard()}; 
+  
+  vortex::prob::GaussianMixture<2> mixture{weights, gaussians};
+
+  EXPECT_EQ(mixture.size(), 2u);
+  EXPECT_EQ(mixture.weights(), weights);
+  EXPECT_EQ(mixture.gaussians().at(0), gaussians.at(0));
+  EXPECT_EQ(mixture.gaussians().at(1), gaussians.at(1));
+}

@@ -197,16 +197,27 @@ template <typename T>
 concept SensorModel = requires {
   // Has member type SensModI
   typename T::SensModI;
-  // Derived from SensorModel
-  std::derived_from<T, interface::SensorModel<T::SensModI::N_DIM_x, T::SensModI::N_DIM_z, T::SensModI::N_DIM_w>>;
+  // Has a function h
+  { &T::h };
+  // Has a function R
+  { &T::R };
 };
 
 template <typename T>
 concept SensorModelLTV = requires {
   // Has member type SensModI
   typename T::SensModI;
-  // Derived from SensorModelLTV
-  std::derived_from<T, interface::SensorModelLTV<T::SensModI::N_DIM_x, T::SensModI::N_DIM_z, T::SensModI::N_DIM_w>>;
+  // Has a function R
+  { &T::R };
+  // Has a function H
+  { &T::H };
+  // Has a function C
+  { &T::C};
+  // Has a function pred_from_est
+  { &T::pred_from_est };
+  // Has a function pred_from_state
+  { &T::pred_from_state };
+
 };
 
 } // namespace concepts

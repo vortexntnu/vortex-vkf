@@ -35,10 +35,8 @@ public:
   static constexpr int N_DIM_v = DynModT::DynModI::N_DIM_v;
   static constexpr int N_DIM_w = SensModT::SensModI::N_DIM_w;
 
-  using DynModI     = models::interface::DynamicModel<N_DIM_x, N_DIM_u, N_DIM_v>;
-  using SensModI    = models::interface::SensorModel<N_DIM_x, N_DIM_z, N_DIM_w>;
-  using DynModIPtr  = DynModI::SharedPtr;
-  using SensModIPtr = SensModI::SharedPtr;
+  using DynModTPtr = std::shared_ptr<DynModT>;
+  using SensModTPtr = std::shared_ptr<SensModT>;
 
   using Vec_x = Eigen::Vector<double, N_DIM_x>;
   using Vec_u = Eigen::Vector<double, N_DIM_u>;
@@ -110,7 +108,7 @@ private:
    * @param x_est Gauss_x State estimate
    * @return Mat_a2ap1 sigma_points
    */
-  static Mat_a2ap1 get_sigma_points(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est)
+  static Mat_a2ap1 get_sigma_points(const DynModTPtr &dyn_mod, const SensModTPtr &sens_mod, double dt, const Gauss_x &x_est)
   {
     Mat_xx P = x_est.cov();
     Mat_vv Q = dyn_mod->Q_d(dt, x_est.mean());
@@ -145,7 +143,7 @@ private:
    * @param u Vec_u Control input (default 0)
    * @return Mat_x2ap1 sigma_x_pred
    */
-  static Mat_x2ap1 propagate_sigma_points_f(const DynModIPtr &dyn_mod, double dt, const Mat_a2ap1 &sigma_points, const Vec_u &u = Vec_u::Zero())
+  static Mat_x2ap1 propagate_sigma_points_f(const DynModTPtr &dyn_mod, double dt, const Mat_a2ap1 &sigma_points, const Vec_u &u = Vec_u::Zero())
   {
     Eigen::Matrix<double, N_DIM_x, N_SIGMA_POINTS> sigma_x_pred;
     for (size_t i = 0; i < N_SIGMA_POINTS; i++) {
@@ -161,7 +159,7 @@ private:
    * @param sigma_points Mat_a2ap1 Sigma points
    * @return Mat_z2ap1 sigma_z_pred
    */
-  static Mat_z2ap1 propagate_sigma_points_h(const SensModIPtr &sens_mod, const Mat_a2ap1 &sigma_points)
+  static Mat_z2ap1 propagate_sigma_points_h(const SensModTPtr &sens_mod, const Mat_a2ap1 &sigma_points)
   {
     Mat_z2ap1 sigma_z_pred;
     for (size_t i = 0; i < N_SIGMA_POINTS; i++) {
@@ -204,7 +202,7 @@ public:
    * @param u Vec_u Control input (default 0)
    * @return std::pair<Gauss_x, Gauss_z> Predicted state estimate, predicted measurement estimate
    */
-  static std::pair<Gauss_x, Gauss_z> predict(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
+  static std::pair<Gauss_x, Gauss_z> predict(const DynModTPtr &dyn_mod, const SensModTPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
                                              const Vec_u &u = Vec_u::Zero())
   {
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_prev);
@@ -229,7 +227,7 @@ public:
    * @return Gauss_x Updated state estimate
    * @note Sigma points are generated from the predicted state estimate instead of the previous state estimate as is done in the 'step' method.
    */
-  static Gauss_x update(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
+  static Gauss_x update(const DynModTPtr &dyn_mod, const SensModTPtr &sens_mod, double dt, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
   {
     // Generate sigma points from the predicted state estimate
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_pred);
@@ -267,7 +265,7 @@ public:
    * @param u Vec_u Control input
    * @return std::tuple<Gauss_x, Gauss_x, Gauss_z> Updated state estimate, predicted state estimate, predicted measurement estimate
    */
-  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
+  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModTPtr &dyn_mod, const SensModTPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
                                                     const Vec_z &z_meas, const Vec_u &u)
   {
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_prev);

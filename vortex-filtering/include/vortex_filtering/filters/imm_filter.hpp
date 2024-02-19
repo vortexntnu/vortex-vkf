@@ -143,12 +143,16 @@ public:
                                                                   const Gauss_x<i> &x_est_prev, const Vec_z &z_meas)
   {
     if constexpr (models::concepts::DynamicModelLTV<DynModT<i>> && models::concepts::SensorModelLTV<SensModT>) {
-      using EKF = filter::EKF<DynModI<i>, SensModI>;
-      return EKF::step(dyn_model, sensor_model, dt, x_est_prev, z_meas);
+      using ImmSensMod = models::ImmSensorModelLTV<ImmModelT::N_DIM_x(i), SensModT>;
+      using EKF = filter::EKF<DynModI<i>, ImmSensMod>;
+      auto imm_sens_mod = std::make_shared<ImmSensMod>(sensor_model);
+      return EKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
     }
     else {
-      using UKF = filter::UKF<DynModI<i>, SensModI>;
-      return UKF::step(dyn_model, sensor_model, dt, x_est_prev, z_meas);
+      using ImmSensMod = models::ImmSensorModel<ImmModelT::N_DIM_x(i), SensModT>;
+      using UKF = filter::UKF<DynModI<i>, ImmSensMod>;
+      auto imm_sens_mod = std::make_shared<ImmSensMod>(sensor_model);
+      return UKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
     }
   }
 
@@ -184,21 +188,21 @@ public:
    * @param z_meas Vec_z
    * @return Tuple of updated weights and predictions
    */
-  static std::tuple<Vec_n, GaussTuple_x> step(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt, const Vec_n &x_est_prev, const Vec_z &z_meas)
+  static std::tuple<Vec_n, GaussTuple_x> step(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt, const GaussTuple_x &x_est_prevs, const Vec_n &weights, const Vec_z &z_meas)
   {
     Mat_nn transition_matrix = imm_model.get_pi_mat_d(dt);
 
-    Mat_nn mixing_probs                         = calculate_mixing_probs(transition_matrix, x_est_prev.weights(), dt);
-    std::vector<Gauss_x> moment_based_preds     = mixing(x_est_prev.gaussians(), mixing_probs);
+    Mat_nn mixing_probs                         = calculate_mixing_probs(transition_matrix, weights, dt);
+    GaussTuple_x moment_based_preds             = mixing(x_est_prevs, mixing_probs);
     auto [x_est_upds, x_est_preds, z_est_preds] = mode_matched_filter(imm_model, sensor_model, moment_based_preds, z_meas, dt);
-    Vec_n weights_upd                           = update_probabilities(transition_matrix, dt, z_est_preds, z_meas, x_est_prev.weights());
+    Vec_n weights_upd                           = update_probabilities(transition_matrix, dt, z_est_preds, z_meas, weights);
 
     return {weights_upd, x_est_upds};
   }
 
 private:
   /**
-   * @brief Calculate the Kalman filter outputs for each mode. If the model isn't LTV, use the ukf instead of the ekf.
+   * @brief Calculate the Kalman filter outputs for each mode.
    * @tparam Is Indices of models
    * @param imm_model The IMM model.
    * @param sensor_model The sensor model.
@@ -230,7 +234,7 @@ private:
   }
 
   template <size_t... model_indices>
-  static GaussTuple_x mix_components(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs, std::integer_sequence<size_t, model_indices...>)
+  static std::tuple<Gauss_x<model_indices>...> mix_components(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs, std::integer_sequence<size_t, model_indices...>)
   {
     return {mix_one_component<model_indices>(x_est_prevs, mixing_probs.col(model_indices))...};
   }
@@ -238,10 +242,8 @@ private:
   template <size_t target_model_index>
   static Gauss_x<target_model_index> mix_one_component(const GaussTuple_x &x_est_prevs, const Vec_n &weights)
   {
-    using GaussMix_x = prob::GaussianMixture<ImmModelT::N_DIM_x(target_model_index)>;
-
+    using GaussMix_x        = prob::GaussianMixture<ImmModelT::N_DIM_x(target_model_index)>;
     auto moment_based_preds = fit_models<target_model_index>(x_est_prevs, std::make_index_sequence<N_MODELS>{});
-
     return GaussMix_x(weights, moment_based_preds).reduce();
   }
 
@@ -265,14 +267,17 @@ private:
       constexpr size_t N_DIM_x = ImmModelT::N_DIM_x(target_model_index);
       using Vec_x = Eigen::Vector<double, N_DIM_x>;
       using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-      using Gauss_x = prob::Gauss<N_DIM_x>;
+      // using Gauss_x = prob::Gauss<N_DIM_x>;
       using Uniform_x = prob::Uniform<N_DIM_x>;
       using MatchedVec = Eigen::Vector<bool, N_MODELS>;
 
-      MatchedVec matching_states = Eigen::Map<MatchedVec>(ImmModelT::template MATCHING_STATE_NAMES<target_model_index, mixing_model_index>().data());
+      auto target_state_names = ImmModelT::template get_state_names<target_model_index>();
+      auto mixing_state_names = ImmModelT::template get_state_names<mixing_model_index>();
 
-      Vec_x x = x_est_prevs.at(mixing_model_index).mean().cwiseProduct(matching_states);
-      Mat_xx P = x_est_prevs.at(mixing_model_index).cov().cwiseProduct(matching_states * matching_states.transpose());
+      MatchedVec matching_states = Eigen::Map<MatchedVec>(matching_state_names(target_state_names, mixing_state_names).data());
+
+      Vec_x x = std::get<mixing_model_index>(x_est_prevs).mean().cwiseProduct(matching_states.template cast<double>());
+      Mat_xx P = std::get<mixing_model_index>(x_est_prevs).cov().cwiseProduct((matching_states * matching_states.transpose()).template cast<double>());
 
       for (size_t i = 0; i < N_DIM_x; i++) {
           if (!matching_states(i)) {

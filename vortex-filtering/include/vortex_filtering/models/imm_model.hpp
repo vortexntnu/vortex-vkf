@@ -12,30 +12,67 @@
 #include <Eigen/Dense>
 #include <memory>
 #include <tuple>
+#include <array>
+#include <algorithm>
+#include <type_traits>
+
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
+#include <vortex_filtering/models/sensor_model_interfaces.hpp>
 
 namespace vortex::models {
-// namespace models {
-
-namespace concepts {
-  template <typename T>
-  concept ImmCompatibleModel = requires {
-    concepts::DynamicModel<T>; // Is a dynamic model
-    typename T::StateNames; // Has a list of named states
-    T::StateNames::N_STATES == T::DynModI::N_DIM_x;
-  };
-}
 
 enum class StateType { none, position, velocity, acceleration, turn_rate };
+
+
+namespace concepts {
+
+/**
+ * @brief Checks if class type T is compatible with the ImmModel.
+ * 
+ * @tparam T 
+ */
+template <typename T>
+concept ImmCompatibleModel = requires {
+  concepts::DynamicModel<T>; // Is a dynamic model
+  typename T::StateNames; // Has a list of named states
+  T::StateNames::size() == T::DynModI::N_DIM_x; // The number of states matches the state dimension
+};
+
+} // namespace concepts
+
+
 
 template <StateType... state_types> struct SemanticState 
 {
   constexpr SemanticState() = default;
   constexpr SemanticState(StateType...) {}
 
+private:
   static constexpr size_t N_STATES = sizeof...(state_types);
-  static constexpr std::array<StateType, N_STATES> TYPES = {state_types...};
+  static constexpr std::array<StateType, N_STATES> STATE_NAMES = {state_types...};
+
+public:
+  static constexpr size_t size() { return N_STATES; }
+  static constexpr std::array<StateType, N_STATES> get_names() { return STATE_NAMES; }
+  static constexpr StateType get_name(size_t i) { return get_names().at(i); }
+
 };
+
+
+template<typename Array1, typename Array2>
+constexpr auto matching_state_names(const Array1& array1, const Array2& array2)
+-> std::array<bool, std::tuple_size_v<Array1>>
+requires (std::is_same_v<typename Array1::value_type, typename Array2::value_type>) {
+    constexpr std::size_t N1 = std::tuple_size_v<Array1>;
+    constexpr std::size_t N2 = std::tuple_size_v<Array2>;
+    std::array<bool, N1> matches{};
+    for (std::size_t i = 0; i < N1; ++i) {
+        matches[i] = i < N2 && array1[i] == array2[i];
+    }
+    return matches;
+}
+
+  
 
 /**
  * @brief Container class for interacting multiple models.
@@ -164,45 +201,127 @@ public:
   template <size_t i> Mat_vv<i> Q_d(double dt, const Vec_x<i> &x) const { return get_model<i>()->Q_d(dt, x); }
 
 
-  static constexpr int N_DIM_x(size_t model_index) { return std::array<int, N_MODELS>{DynModels::DynModI::N_DIM_x...}.at(model_index); }
+  static constexpr std::array<int, N_MODELS> N_DIMS_x() { return std::array<int, N_MODELS>{DynModels::DynModI::N_DIM_x...}; }
+
+  static constexpr int N_DIM_x(size_t model_index) { return N_DIMS_x().at(model_index); }
 
 
-  template <size_t model_index> static constexpr std::array<StateType, N_DIM_x(model_index)> get_state_names() { return typename DynModT<model_index>::template StateNames::Types; }
-
-  template <size_t model_index_1, size_t model_index_2>
-  static constexpr bool same_state_name(size_t state_index)
-  {
-      size_t n_dim_x_1 = size_t(N_DIM_x(model_index_1));
-      size_t n_dim_x_2 = size_t(N_DIM_x(model_index_2));
-
-      // Return false if state_index is out of bounds for either model
-      if (state_index >= n_dim_x_1 || state_index >= n_dim_x_2) {
-          return false;
-      }
-
-      auto state_name_1 = get_state_names<model_index_1>().at(state_index);
-      auto state_name_2 = get_state_names<model_index_2>().at(state_index);
-
-      return state_name_1 == state_name_2;
-  }
-
-  template <size_t model_index_1, size_t model_index_2>
-  static constexpr std::array<bool, model_index_1> MATCHING_STATE_NAMES()
-  {
-      std::array<bool, model_index_1> same_names{};
-
-      for (size_t i = 0; i < model_index_1; i++) {
-          same_names.at(i) = same_state_name<model_index_1, model_index_2>(i);
-      }
-
-      return same_names;
-  }
+  template <size_t model_index> static constexpr std::array<StateType, N_DIM_x(model_index)> get_state_names() { return DynModT<model_index>::StateNames::get_names(); }
 
 
 private:
   DynModPtrTuple models_;
   const Mat_nn jump_matrix_;
   const Vec_n hold_times_;
+};
+
+  /**
+   * @brief Class for resizing the state vector of a sensor model to fit with multiple dynamic models.
+   * 
+   */
+template <size_t n_dim_a, concepts::SensorModel SensModT>
+class ImmSensorModel {
+public:
+  
+  using SensModI = typename SensModT::SensModI;
+
+  static constexpr int N_DIM_x = SensModI::N_DIM_x;
+  static constexpr int N_DIM_z = SensModI::N_DIM_z;
+  static constexpr int N_DIM_a = (int)n_dim_a;
+
+  using Vec_x = typename SensModI::Vec_x;
+  using Vec_z = typename SensModI::Vec_z;
+  using Vec_w = typename SensModI::Vec_w;
+  using Vec_a = Eigen::Vector<double, N_DIM_a>;
+
+  using Mat_ww = typename SensModI::Mat_ww;
+  using Mat_aa = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;
+
+  ImmSensorModel(SensModT sensor_model) : sensor_model_(sensor_model) {
+    static_assert(N_DIM_a >= SensModT::SensModI::N_DIM_x, "N_DIM_a must be greater than or equal to the state dimension of the sensor model");
+  }
+
+  Vec_z h(const Vec_a &x, const Vec_w &w) const
+  {
+    return sensor_model_->h(x.template head<N_DIM_x>(), w);
+  }
+
+  Mat_ww R(const Vec_x &x) const
+  {
+    return sensor_model_->R(x.template head<N_DIM_x>());
+  }
+  private:
+  SensModT sensor_model_;
+
+};
+
+template <size_t n_dim_a, concepts::SensorModelLTV SensModT>
+class ImmSensorModelLTV {
+public:
+  
+  using SensModI = typename SensModT::SensModI;
+  using SensModTPtr = typename std::shared_ptr<SensModT>;
+
+  static constexpr int N_DIM_x = SensModI::N_DIM_x;
+  static constexpr int N_DIM_z = SensModI::N_DIM_z;
+  static constexpr int N_DIM_a = (int)n_dim_a;
+
+  using Vec_x = typename SensModI::Vec_x;
+  using Vec_z = typename SensModI::Vec_z;
+  using Vec_w = typename SensModI::Vec_w;
+  using Vec_a = Eigen::Vector<double, N_DIM_a>;
+
+  using Mat_xx = typename SensModI::Mat_xx;
+  using Mat_ww = typename SensModI::Mat_ww;
+  using Mat_aa = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;
+  using Mat_za = Eigen::Matrix<double, N_DIM_z, N_DIM_a>;
+  using Mat_zw = typename SensModI::Mat_zw;
+  using Mat_zamx = Eigen::Matrix<double, N_DIM_z, N_DIM_a-N_DIM_x>; // 'z' by 'a-x' matrix
+
+  using Gauss_z = typename SensModI::Gauss_z;
+  using Gauss_a = typename prob::MultiVarGauss<N_DIM_a>;
+
+  ImmSensorModelLTV(SensModTPtr sensor_model) : sensor_model_(sensor_model) {
+    static_assert(N_DIM_a >= N_DIM_x, "N_DIM_a must be greater than or equal to the state dimension of the sensor model");
+  }
+
+  Vec_z h(const Vec_a &x, const Vec_w &w) const
+  {
+    return sensor_model_->h(x.template head<N_DIM_x>(), w);
+  }
+
+  Mat_za C(const Vec_a &x) const
+  {
+    Mat_za C_a;
+    C_a << sensor_model_->C(x.template head<N_DIM_x>()), Mat_zamx::Zero();
+    return C_a;
+  }
+
+  Mat_zw H(const Vec_a &x) const
+  {
+    return sensor_model_->H(x.template head<N_DIM_x>());
+  }
+
+  Mat_ww R(const Vec_a &x) const
+  {
+    return sensor_model_->R(x.template head<N_DIM_x>());
+  }
+
+  Gauss_z pred_from_est(const Gauss_a &x_est) const
+  {
+    Vec_x mean = x_est.mean().template head<N_DIM_x>();
+    Mat_xx cov = x_est.cov().template topLeftCorner<N_DIM_x, N_DIM_x>();
+    return sensor_model_->pred_from_est({mean, cov});
+  }
+
+  Gauss_z pred_from_state(const Vec_a &x) const
+  {
+    return sensor_model_->pred_from_state(x.template head<N_DIM_x>());
+  }
+
+  private:
+  SensModTPtr sensor_model_;
+
 };
 
 namespace concepts {

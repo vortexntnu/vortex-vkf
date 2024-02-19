@@ -24,8 +24,8 @@ namespace vortex::filter {
 template <models::concepts::DynamicModelLTV DynModT, models::concepts::SensorModelLTV SensModT> class EKF {
 public:
   static constexpr int N_DIM_x = DynModT::DynModI::N_DIM_x;
-  static constexpr int N_DIM_z = SensModT::SensModI::N_DIM_z;
   static constexpr int N_DIM_u = DynModT::DynModI::N_DIM_u;
+  static constexpr int N_DIM_z = SensModT::SensModI::N_DIM_z;
   static constexpr int N_DIM_v = DynModT::DynModI::N_DIM_v;
   static constexpr int N_DIM_w = SensModT::SensModI::N_DIM_w;
 
@@ -57,11 +57,9 @@ public:
   using Gauss_v = prob::MultiVarGauss<N_DIM_v>;
   using Gauss_w = prob::MultiVarGauss<N_DIM_w>;
 
-  using DynModI  = models::interface::DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v>;
-  using SensModI = models::interface::SensorModelLTV<N_DIM_x, N_DIM_z, N_DIM_w>;
+  using DynModTPtr  = std::shared_ptr<DynModT>;
+  using SensModTPtr = std::shared_ptr<SensModT>;
 
-  using DynModIPtr  = typename DynModI::SharedPtr;
-  using SensModIPtr = typename SensModI::SharedPtr;
 
   EKF() = delete;
 
@@ -74,7 +72,7 @@ public:
    * @return std::pair<Gauss_x, Gauss_z> Predicted state, predicted measurement
    * @throws std::runtime_error if dyn_mod or sens_mod are not of the DynamicModelT or SensorModelT type
    */
-  static std::pair<Gauss_x, Gauss_z> predict(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
+  static std::pair<Gauss_x, Gauss_z> predict(const DynModTPtr &dyn_mod, const SensModTPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
                                              const Vec_u &u = Vec_u::Zero())
   {
     Gauss_x x_est_pred = dyn_mod->pred_from_est(dt, x_est_prev, u);
@@ -90,14 +88,14 @@ public:
    * @return MultivarGauss Updated state
    * @throws std::runtime_error ifsens_mod is not of the SensorModelT type
    */
-  static Gauss_x update(const SensModIPtr &sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
+  static Gauss_x update(const SensModTPtr &sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
   {
-    Mat_zx C     = sens_mod->C(x_est_pred.mean());
-    Mat_ww R     = sens_mod->R(x_est_pred.mean());
-    Mat_zw H     = sens_mod->H(x_est_pred.mean());
-    Mat_xx P     = x_est_pred.cov();
-    Mat_zz S_inv = z_est_pred.cov_inv();
-    Mat_xx I     = Mat_xx::Identity(N_DIM_x, N_DIM_x);
+    Mat_zx C     = sens_mod->C(x_est_pred.mean()); // Measurement matrix
+    Mat_ww R     = sens_mod->R(x_est_pred.mean()); // Measurement noise covariance
+    Mat_zw H     = sens_mod->H(x_est_pred.mean()); // Measurement noise cross-covariance
+    Mat_xx P     = x_est_pred.cov();               // State covariance
+    Mat_zz S_inv = z_est_pred.cov_inv();           // Inverse of the predicted measurement covariance
+    Mat_xx I     = Mat_xx::Identity(N_DIM_x, N_DIM_x); 
 
     Mat_xz W         = P * C.transpose() * S_inv; // Kalman gain
     Vec_z innovation = z_meas - z_est_pred.mean();
@@ -118,7 +116,7 @@ public:
    * @param u Vec_x Input
    * @return Updated state, predicted state, predicted measurement
    */
-  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModIPtr &dyn_mod, const SensModIPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
+  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModTPtr &dyn_mod, const SensModTPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
                                                     const Vec_z &z_meas, const Vec_u &u = Vec_u::Zero())
   {
     auto [x_est_pred, z_est_pred] = predict(dyn_mod, sens_mod, dt, x_est_prev, u);

@@ -29,8 +29,8 @@ public:
    */
   IdentityDynamicModel(Mat_vv Q) : Q_(Q) {}
 
-  Mat_xx A_d(double dt, const Vec_x &) const override { return Mat_xx::Identity() * dt; }
-  Mat_vv Q_d(double, const Vec_x &) const override { return Q_; }
+  Mat_xx A_d(double dt, const Vec_x /*x*/&) const override { return Mat_xx::Identity() * dt; }
+  Mat_vv Q_d(double /*dt*/, const Vec_x /*x*/&) const override { return Q_; }
 
 private:
   Mat_vv Q_;
@@ -69,15 +69,10 @@ public:
    * @return Mat_xx
    * @note Overriding DynamicModelLTV::A_d
    */
-  Mat_xx A_d(double dt, const Vec_x & = Vec_x::Zero()) const override
+  Mat_xx A_d(double /*dt*/, const Vec_x & = Vec_x::Zero()) const override
   {
     Mat_ss I = Mat_ss::Identity();
-    Mat_xx A;
-    // clang-format off
-    A << I, I*dt,
-         I, I;
-    // clang-format on
-    return A;
+    return I;
   }
 
   /** Get the Jacobian of the continuous state transition model with respect to the process noise.
@@ -86,15 +81,10 @@ public:
    * @return Mat_xv
    * @note Overriding DynamicModelLTV::G_d
    */
-  Mat_xv G_d(double dt, const Vec_x & = Vec_x::Zero()) const override
+  Mat_xv G_d(double dt, const Vec_x /*x*/& = Vec_x::Zero()) const override
   {
     Mat_ss I = Mat_ss::Identity();
-    Mat_xv G;
-    // clang-format off
-    G << 0.5*dt*dt*I,
-                dt*I;
-    // clang-format on
-    return G;
+    return 0.5*dt*I;
   }
 
   /** Get the continuous time process noise covariance matrix.
@@ -103,15 +93,12 @@ public:
    * @return Mat_xx Process noise covariance
    * @note Overriding DynamicModelLTV::Q_d
    */
-  Mat_vv Q_d(double = 0.0, const Vec_x & = Vec_x::Zero()) const override { return Mat_vv::Identity() * std_pos_ * std_pos_; }
+  Mat_vv Q_d(double /*dt*/ = 0.0, const Vec_x /*x*/& = Vec_x::Zero()) const override { return Mat_vv::Identity() * std_pos_ * std_pos_; }
 
   private:
     double std_pos_;
 };
 
-
-
-// TODO: Update these models to use discrete time instead of continuous time.
 
 /** (Nearly) Constant Velocity Model.
  * State x = [pos, vel], where pos and vel are `n_spatial_dim`-dimensional vectors
@@ -150,7 +137,7 @@ public:
    * @return Mat_xx
    * @note Overriding DynamicModelLTV::A_d
    */
-  Mat_xx A_d(double dt, const Vec_x & = Vec_x::Zero()) const override
+  Mat_xx A_d(double dt, const Vec_x /*x*/& = Vec_x::Zero()) const override
   {
     Mat_ss I = Mat_ss::Identity();
     Mat_ss O = Mat_ss::Zero();
@@ -168,7 +155,7 @@ public:
    * @return Mat_xv
    * @note Overriding DynamicModelLTV::G_d
    */
-  Mat_xv G_d(double dt, const Vec_x & = Vec_x::Zero()) const override
+  Mat_xv G_d(double dt, const Vec_x /*x*/& = Vec_x::Zero()) const override
   {
     Mat_ss I = Mat_ss::Identity();
     Mat_xv G;
@@ -185,7 +172,7 @@ public:
    * @return Mat_xx Process noise covariance
    * @note Overriding DynamicModelLTV::Q_d
    */
-  Mat_vv Q_d(double = 0.0, const Vec_x & = Vec_x::Zero()) const override { return Mat_vv::Identity() * std_vel_ * std_vel_; }
+  Mat_vv Q_d(double /*dt*/= 0.0, const Vec_x /*x*/& = Vec_x::Zero()) const override { return Mat_vv::Identity() * std_vel_ * std_vel_; }
 
 private:
   double std_vel_;
@@ -228,7 +215,7 @@ public:
    * @return Mat_xx
    * @note Overriding DynamicModelLTV::A_d
    */
-  Mat_xx A_d(double dt, const Vec_x &) const override
+  Mat_xx A_d(double dt, const Vec_x /*x*/&) const override
   {
     Mat_ss I = Mat_ss::Identity();
     Mat_ss O = Mat_ss::Zero();
@@ -241,7 +228,7 @@ public:
     return A;
   }
 
-  Mat_xv G_d(double dt, const Vec_x & = Vec_x::Zero()) const override
+  Mat_xv G_d(double dt, const Vec_x /*x*/& = Vec_x::Zero()) const override
   {
     Mat_ss I = Mat_ss::Identity();
     Mat_ss O = Mat_ss::Zero();
@@ -260,7 +247,7 @@ public:
    * @return Mat_xx Process noise covariance
    * @note Overriding DynamicModelLTV::Q_d
    */
-  Mat_vv Q_d(double = 0.0, const Vec_x & = Vec_x::Zero()) const override
+  Mat_vv Q_d(double /*dt*/= 0.0, const Vec_x /*x*/& = Vec_x::Zero()) const override
   {
     Vec_v D;
     double var_vel = std_vel_ * std_vel_;
@@ -307,17 +294,17 @@ public:
    * @return Mat_xx
    * @note Overriding DynamicModelCTLTV::A_c
    */
-  Mat_xx A_c(const Vec_x &x) const override
+  Mat_xx A_c(const Vec_x /*x*/&x) const override
   {
-    Mat_xx A;
     // clang-format off
-    A << 0, 0, 1   , 0   , 0,
-         0, 0, 0   , 1   , 0,
-         0, 0, 0   ,-x(4), 0,
-         0, 0, x(4), 0   , 0,
-         0, 0, 0   , 0   , 0;
+    return Mat_xx{
+      {0, 0, 1   , 0   , 0},
+      {0, 0, 0   , 1   , 0},
+      {0, 0, 0   ,-x(4), 0},
+      {0, 0, x(4), 0   , 0},
+      {0, 0, 0   , 0   , 0}
+    };
     // clang-format on
-    return A;
   }
 
   /** Get the continuous time process noise matrix
@@ -325,17 +312,17 @@ public:
    * return Mat_xv Process noise matrix
    * @note Overriding DynamicModelCTLTV::G_c
    */
-  Mat_xv G_c(const Vec_x & = Vec_x::Zero()) const override
+  Mat_xv G_c(const Vec_x /*x*/& = Vec_x::Zero()) const override
   {
-    Mat_xv G;
     // clang-format off
-        G << 0, 0, 0,
-             0, 0, 0,
-             1, 0, 0,
-             0, 1, 0,
-             0, 0, 1;
+    return Mat_xv {
+     {0, 0, 0},
+     {0, 0, 0},
+     {1, 0, 0},
+     {0, 1, 0},
+     {0, 0, 1}
+    };
     // clang-format on
-    return G;
   }
 
   /** Get the continuous time process noise covariance matrix.
@@ -343,13 +330,12 @@ public:
    * @return Mat_xx Process noise covariance
    * @note Overriding DynamicModelCTLTV::Q_c
    */
-  Mat_vv Q_c(const Vec_x & = Vec_x::Zero()) const override
+  Mat_vv Q_c(const Vec_x /*x*/& = Vec_x::Zero()) const override
   {
-    Vec_v D;
     double var_vel  = std_vel_ * std_vel_;
     double var_turn = std_turn_ * std_turn_;
-    D << var_vel, var_vel, var_turn;
-    return D.asDiagonal();
+
+    return Vec_v{var_vel, var_vel, var_turn}.asDiagonal();
   }
 
 private:
