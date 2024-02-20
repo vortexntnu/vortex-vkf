@@ -31,14 +31,24 @@ public:
   using StatesXd = std::vector<Gauss_x>;
   using GaussMixZd = vortex::prob::GaussianMixture<DynModI::N_DIM_x>;
 
+  struct Config
+  {
+    double mahalanobis_threshold = 1.0;
+    double min_gate_threshold = 0.0;
+    double max_gate_threshold = HUGE_VAL;
+    double prob_of_detection = 1.0;
+    double clutter_intensity = 1.0;
+  };
+
   PDAF() = delete;
 
   static std::tuple<Gauss_x, MeasurementsZd, MeasurementsZd, Gauss_x, Gauss_z, StatesXd>
-  step(const Gauss_x& x_est, const MeasurementsZd& z_meas, double timestep, const DynModPtr& dyn_model,
-       const SensModPtr& sen_model, double gate_threshold, double prob_of_detection, double clutter_intensity)
+  step(const DynModPtr& dyn_model, const SensModPtr& sen_model, double timestep, const Gauss_x& x_est,
+       const MeasurementsZd& z_meas, const Config& config)
   {
     auto [x_pred, z_pred] = EKF::predict(dyn_model, sen_model, timestep, x_est);
-    auto [inside, outside] = apply_gate(z_meas, z_pred, gate_threshold);
+    auto [inside, outside] =
+        apply_gate(z_meas, z_pred, config.mahalanobis_threshold, config.min_gate_threshold, config.max_gate_threshold);
 
     StatesXd x_updated;
     for (const auto& measurement : inside)
@@ -46,22 +56,25 @@ public:
       x_updated.push_back(EKF::update(sen_model, x_pred, z_pred, measurement));
     }
 
-    // TODO: return gaussian mixture
-    Gauss_x x_final = get_weighted_average(inside, x_updated, z_pred, x_pred, prob_of_detection, clutter_intensity);
+    Gauss_x x_final =
+        get_weighted_average(inside, x_updated, z_pred, x_pred, config.prob_of_detection, config.clutter_intensity);
     return { x_final, inside, outside, x_pred, z_pred, x_updated };
   }
 
   static std::tuple<MeasurementsZd, MeasurementsZd> apply_gate(const MeasurementsZd& z_meas, const Gauss_z& z_pred,
-                                                               double gate_threshold)
+                                                               double mahalanobis_threshold,
+                                                               double min_gate_threshold = 0.0,
+                                                               double max_gate_threshold = HUGE_VAL)
   {
     MeasurementsZd inside_meas;
     MeasurementsZd outside_meas;
 
     for (const auto& measurement : z_meas)
     {
-      double distance = z_pred.mahalanobis_distance(measurement);
-
-      if (distance <= gate_threshold)
+      double mahalanobis_distance = z_pred.mahalanobis_distance(measurement);
+      double regular_distance = (z_pred.mean() - measurement).norm();
+      if ((mahalanobis_distance <= mahalanobis_threshold || regular_distance <= min_gate_threshold) &&
+          regular_distance <= max_gate_threshold)
       {
         inside_meas.push_back(measurement);
       }
