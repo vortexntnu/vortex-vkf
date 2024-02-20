@@ -22,6 +22,12 @@ public:
   using GaussMix = vortex::prob::GaussianMixture<DynModI::N_DIM_x>;
   using PDAF = vortex::filter::PDAF<vortex::models::ConstantVelocity<2>, vortex::models::IdentitySensorModel<4, 2>>;
   IPDA() = delete;
+
+  struct Config : public PDAF::Config
+  {
+    double prob_of_survival = 1.0;
+  };
+
   /// @brief
   /// @param measurements Measurements to iterate over
   /// @param probability_of_survival How likely the object is to survive (Ps)
@@ -46,15 +52,14 @@ public:
   }
 
   static std::tuple<Gauss_x, double, std::vector<Vec_z>, std::vector<Vec_z>, Gauss_x, Gauss_z, std::vector<Gauss_x>>
-  step(const Gauss_x& x_est, const std::vector<Vec_z>& z_meas, double timestep, const DynModPtr& dyn_model,
-       const SensModPtr& sen_model, double gate_threshold, double prob_of_detection, double prob_of_survival,
-       double survive_est, double clutter_intensity)
+  step(const DynModPtr& dyn_model, const SensModPtr& sen_model, double timestep, const Gauss_x& x_est,
+       const std::vector<Vec_z>& z_meas, double survive_est, const IPDA::Config& config)
   {
     auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
-        PDAF::step(x_est, z_meas, 1.0, dyn_model, sen_model, gate_threshold, prob_of_detection, clutter_intensity);
+        PDAF::step(dyn_model, sen_model, timestep, x_est, z_meas, static_cast<PDAF::Config>(config));
 
-    double existence_probability =
-        get_existence_probability(inside, prob_of_survival, survive_est, prob_of_detection, clutter_intensity, z_pred);
+    double existence_probability = get_existence_probability(
+        inside, config.prob_of_survival, survive_est, config.prob_of_detection, config.clutter_intensity, z_pred);
     return { x_final, existence_probability, inside, outside, x_pred, z_pred, x_updated };
   }
 };
