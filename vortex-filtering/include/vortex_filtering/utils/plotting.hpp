@@ -14,23 +14,18 @@
 #include <gnuplot-iostream.h>
 #include <vector>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
+#include <vortex_filtering/utils/ellipse.hpp>
 
 namespace vortex {
 namespace plotting {
 
-struct Ellipse {
-  double x;     // center
-  double y;     // center
-  double a;     // major axis length
-  double b;     // minor axis length
-  double angle; // angle in degrees
-};
+
 
 /** Convert a Gaussian to an ellipse.
  * @param MultiVarGauss
  * @return Ellipse
  */
-Ellipse gauss_to_ellipse(const vortex::prob::Gauss2d &gauss);
+utils::Ellipse gauss_to_ellipse(const vortex::prob::Gauss2d &gauss);
 
 /** Create a normalized-error-squared NEES series from a series of errors and a covariance matrix.
  * @param errors

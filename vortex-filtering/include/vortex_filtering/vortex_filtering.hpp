@@ -24,8 +24,9 @@
 // Numerical Integration
 #include <vortex_filtering/numerical_integration/erk_methods.hpp>
 
-// Plotting
-#include <vortex_filtering/plotting/utils.hpp>
+// Utils
+#include <vortex_filtering/utils/ellipse.hpp>
+#include <vortex_filtering/utils/plotting.hpp>
 
 // Probability
 #include <vortex_filtering/probability/gaussian_mixture.hpp>
