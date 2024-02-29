@@ -3,10 +3,7 @@
 namespace vortex {
 namespace utils {
 
-Ellipse::Ellipse(const Eigen::Vector2d &center, double a, double b, double angle)
-  : center_(center), a_(a), b_(b), angle_(angle)
-{
-}
+Ellipse::Ellipse(const Eigen::Vector2d &center, double a, double b, double angle) : center_(center), a_(a), b_(b), angle_(angle) {}
 
 Ellipse::Ellipse(const vortex::prob::Gauss2d &gauss, double scale_factor)
 {
@@ -14,9 +11,9 @@ Ellipse::Ellipse(const vortex::prob::Gauss2d &gauss, double scale_factor)
   Eigen::Vector2d eigenValues  = eigenSolver.eigenvalues();
   Eigen::Matrix2d eigenVectors = eigenSolver.eigenvectors();
 
-  a_     = scale_factor * sqrt(eigenValues(1));
-  b_     = scale_factor * sqrt(eigenValues(0));
-  angle_ = atan2(eigenVectors(1, 1), eigenVectors(0, 1));
+  a_      = scale_factor * sqrt(eigenValues(1));
+  b_      = scale_factor * sqrt(eigenValues(0));
+  angle_  = atan2(eigenVectors(1, 1), eigenVectors(0, 1));
   center_ = gauss.mean();
 }
 
@@ -31,5 +28,5 @@ Eigen::Vector2d Ellipse::axes() const { return Eigen::Vector2d(2 * a_, 2 * b_); 
 double Ellipse::angle_rad() const { return angle_; }
 double Ellipse::angle_deg() const { return angle_ * 180 / M_PI; }
 
-}  // namespace utils
-}  // namespace vortex
+} // namespace utils
+} // namespace vortex

@@ -4,11 +4,10 @@
  * @brief Ellipse class and ellipsoid class
  * @version 0.1
  * @date 2024-02-29
- * 
+ *
  * @copyright Copyright (c) 2024
- * 
+ *
  */
-
 
 #pragma once
 #include <Eigen/Dense>
@@ -18,10 +17,9 @@ namespace vortex {
 namespace utils {
 
 /** Class for representing an ellipse.
- * 
+ *
  */
-class Ellipse
-{
+class Ellipse {
 public:
   /** Construct a new Ellipse object
    * @param center
@@ -45,33 +43,32 @@ public:
   /** Get x coordinate of the center
    * @return double
    */
-    double x() const;
+  double x() const;
 
-    /** Get y coordinate of the center
-     * @return double
-     */
-    double y() const;
+  /** Get y coordinate of the center
+   * @return double
+   */
+  double y() const;
 
-    /** Get the a parameter of the ellipse
-     * @return double
-     */
-    double a() const;
+  /** Get the a parameter of the ellipse
+   * @return double
+   */
+  double a() const;
 
-    /** Get the b parameter of the ellipse
-     * @return double
-     */
-    double b() const;
+  /** Get the b parameter of the ellipse
+   * @return double
+   */
+  double b() const;
 
-    /** Get the major axis length of the ellipse
-     * @return double
-     */
-    double major_axis() const;
+  /** Get the major axis length of the ellipse
+   * @return double
+   */
+  double major_axis() const;
 
-    /** Get the minor axis length of the ellipse
-     * @return double
-     */
-    double minor_axis() const;
-  
+  /** Get the minor axis length of the ellipse
+   * @return double
+   */
+  double minor_axis() const;
 
   /** Get the axes lengths of the ellipse
    * @return Eigen::Vector2d
@@ -85,14 +82,14 @@ public:
 
   /** Get the angle in degrees
    * @return double
-  */
+   */
   double angle_deg() const;
 
 private:
-    Eigen::Vector2d center_;
-    double a_;
-    double b_;
-    double angle_;
+  Eigen::Vector2d center_;
+  double a_;
+  double b_;
+  double angle_;
 };
 
 } // namespace utils

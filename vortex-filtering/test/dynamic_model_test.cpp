@@ -60,8 +60,8 @@ TEST(DynamicModel, sampleSimpleModel)
   gp.send1d(samples);
 
   vortex::utils::Ellipse cov_ellipse = vortex::plotting::gauss_to_ellipse(true_gauss);
-  gp << "set object 1 ellipse center " << cov_ellipse.x() << "," << cov_ellipse.y() << " size " << 3 * cov_ellipse.a() << "," << 3 * cov_ellipse.b() << " angle "
-     << cov_ellipse.angle_deg() << "fs empty border lc rgb 'cyan'\n";
+  gp << "set object 1 ellipse center " << cov_ellipse.x() << "," << cov_ellipse.y() << " size " << 3 * cov_ellipse.a() << "," << 3 * cov_ellipse.b()
+     << " angle " << cov_ellipse.angle_deg() << "fs empty border lc rgb 'cyan'\n";
   gp << "replot\n";
 }
 

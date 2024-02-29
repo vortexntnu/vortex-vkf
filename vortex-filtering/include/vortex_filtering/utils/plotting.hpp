@@ -19,8 +19,6 @@
 namespace vortex {
 namespace plotting {
 
-
-
 /** Convert a Gaussian to an ellipse.
  * @param gauss 2D Gaussian
  * @param scale_factor (optional) Scale factor for the ellipse
