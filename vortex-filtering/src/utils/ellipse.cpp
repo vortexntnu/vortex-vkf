@@ -31,7 +31,5 @@ Eigen::Vector2d Ellipse::axes() const { return Eigen::Vector2d(2 * a_, 2 * b_); 
 double Ellipse::angle_rad() const { return angle_; }
 double Ellipse::angle_deg() const { return angle_ * 180 / M_PI; }
 
-Ellipse gauss_to_ellipse(const vortex::prob::Gauss2d &gauss) { return utils::Ellipse(gauss); }
-
 }  // namespace utils
 }  // namespace vortex
