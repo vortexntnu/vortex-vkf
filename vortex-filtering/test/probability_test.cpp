@@ -6,6 +6,7 @@
 #include <vortex_filtering/probability/gaussian_mixture.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 #include <vortex_filtering/probability/poisson.hpp>
+#include <vortex_filtering/utils/ellipse.hpp>
 
 #include "gtest_assertions.hpp"
 
@@ -87,15 +88,11 @@ TEST(MultiVarGauss, sample)
   }
   cov /= samples.size();
 
-  // Plot points and an ellipse for the true mean and covariance. use the gp ellipse function
-  double num_std_dev = 3.0; // Number of standard deviations to plot the ellipse at
-  Eigen::SelfAdjointEigenSolver<Eigen::Matrix2d> eigenSolver(true_cov);
-  auto eigenValues  = eigenSolver.eigenvalues();
-  auto eigenVectors = eigenSolver.eigenvectors();
+  vortex::utils::Ellipse cov_ellipse({true_mean, true_cov});
 
-  double majorAxisLength = sqrt(eigenValues(1)) * num_std_dev;
-  double minorAxisLength = sqrt(eigenValues(0)) * num_std_dev;
-  double angle           = atan2(eigenVectors(1, 1), eigenVectors(0, 1)) * 180.0 / M_PI; // Convert to degrees
+  double majorAxisLength = cov_ellipse.major_axis();
+  double minorAxisLength = cov_ellipse.minor_axis();
+  double angle           = cov_ellipse.angle_deg();
 
   Gnuplot gp;
   gp << "set xrange [-10:10]\nset yrange [-10:10]\n";

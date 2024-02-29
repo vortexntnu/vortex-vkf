@@ -12,7 +12,6 @@ if(NOT CMAKE_CXX_STANDARD)
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(
     -Wall -Wextra -Wpedantic 
-    # -Wno-unused-local-typedefs # Suppress warnings from unused typedefs
     -fopenmp # For parallel processing with Eigen
   )
 endif()
@@ -33,33 +32,34 @@ find_package(Boost REQUIRED
     filesystem
 ) # for gnuplot
 
-
-# === Include directories ===
-include_directories(include)
-
-# === Libraries ===
-add_library(${PROJECT_NAME}_lib INTERFACE)
-
-# = Specify the dependencies
+# = Specify dependencies
 set(lib_deps
   Eigen3
   OpenMP
 )
 set(lib_src
-  src/plotting/utils.cpp
+  src/utils/plotting.cpp
+  src/utils/ellipse.cpp
 )
 
-# = Specify the dependencies to link against
-ament_target_dependencies(${PROJECT_NAME}_lib INTERFACE
+# === Include directories ===
+include_directories(include)
+
+# === Libraries ===
+add_library(${PROJECT_NAME}_lib
+  ${lib_src}
+)
+# = Specify dependencies to link against
+ament_target_dependencies(${PROJECT_NAME}_lib PUBLIC
   ${lib_deps}
 )
-# = Specify the namespaced dependencies to link against
-target_link_libraries(${PROJECT_NAME}_lib INTERFACE
+# = Specify namespaced dependencies to link against
+target_link_libraries(${PROJECT_NAME}_lib PUBLIC
   Eigen3::Eigen
   OpenMP::OpenMP_CXX
 )
-# = Specify the include directories for the INTERFACE of the library
-target_include_directories(${PROJECT_NAME}_lib INTERFACE
+# = Specify the include directories for the library
+target_include_directories(${PROJECT_NAME}_lib PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
 )
@@ -84,6 +84,7 @@ install(
   DESTINATION include
 )
 
+# === Build tests ===
 if(BUILD_TESTING)
   add_subdirectory(test)
 endif()

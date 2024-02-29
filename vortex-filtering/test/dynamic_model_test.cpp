@@ -5,7 +5,7 @@
 
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/dynamic_models.hpp>
-#include <vortex_filtering/plotting/utils.hpp>
+#include <vortex_filtering/utils/plotting.hpp>
 
 #include "gtest_assertions.hpp"
 #include "test_models.hpp"
@@ -59,9 +59,9 @@ TEST(DynamicModel, sampleSimpleModel)
   gp << "plot '-' with circles title 'Samples' fs transparent solid 0.05 noborder\n";
   gp.send1d(samples);
 
-  vortex::plotting::Ellipse cov_ellipse = vortex::plotting::gauss_to_ellipse(true_gauss);
-  gp << "set object 1 ellipse center " << cov_ellipse.x << "," << cov_ellipse.y << " size " << 3 * cov_ellipse.a << "," << 3 * cov_ellipse.b << " angle "
-     << cov_ellipse.angle << "fs empty border lc rgb 'cyan'\n";
+  vortex::utils::Ellipse cov_ellipse = vortex::plotting::gauss_to_ellipse(true_gauss);
+  gp << "set object 1 ellipse center " << cov_ellipse.x() << "," << cov_ellipse.y() << " size " << 3 * cov_ellipse.a() << "," << 3 * cov_ellipse.b()
+     << " angle " << cov_ellipse.angle_deg() << "fs empty border lc rgb 'cyan'\n";
   gp << "replot\n";
 }
 

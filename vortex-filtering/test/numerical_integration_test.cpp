@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <vortex_filtering/numerical_integration/erk_methods.hpp>
-#include <vortex_filtering/plotting/utils.hpp>
+#include <vortex_filtering/utils/plotting.hpp>
 
 namespace sin_func_test {
 constexpr int N_DIM_x = 1, N_DIM_z = 1, N_DIM_u = 1, N_DIM_v = 1, N_DIM_w = 1;
