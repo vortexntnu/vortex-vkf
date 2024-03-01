@@ -22,16 +22,16 @@ namespace utils {
 class Ellipse {
 public:
   /** Construct a new Ellipse object
-   * @param center
-   * @param a
-   * @param b
-   * @param angle
+   * @param center center of the ellipse
+   * @param a half the length of the major axis (radius of the circumscribed circle)
+   * @param b half the length of the minor axis (radius of the inscribed circle)
+   * @param angle angle in radians
    */
   Ellipse(const Eigen::Vector2d &center, double a, double b, double angle);
 
   /** Construct a new Ellipse object from a Gaussian
-   * @param gauss
-   * @param scale_factor
+   * @param gauss 2D Gaussian distribution
+   * @param scale_factor scale factor for the ellipse
    */
   Ellipse(const vortex::prob::Gauss2d &gauss, double scale_factor = 1.0);
 
@@ -50,12 +50,12 @@ public:
    */
   double y() const;
 
-  /** Get the a parameter of the ellipse
+  /** Get the a parameter of the ellipse (half the length of the major axis)
    * @return double
    */
   double a() const;
 
-  /** Get the b parameter of the ellipse
+  /** Get the b parameter of the ellipse (half the length of the minor axis)
    * @return double
    */
   double b() const;
