@@ -50,15 +50,15 @@ public:
    */
   double y() const;
 
-    /** Get the a parameter of the ellipse (half the length of the major axis)
-     * @return double
-     */
-    double a() const;
+  /** Get the a parameter of the ellipse (half the length of the major axis)
+   * @return double
+   */
+  double a() const;
 
-    /** Get the b parameter of the ellipse (half the length of the minor axis)
-     * @return double
-     */
-    double b() const;
+  /** Get the b parameter of the ellipse (half the length of the minor axis)
+   * @return double
+   */
+  double b() const;
 
   /** Get the major axis length of the ellipse
    * @return double
