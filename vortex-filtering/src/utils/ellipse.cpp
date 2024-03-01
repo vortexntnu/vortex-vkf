@@ -11,9 +11,16 @@ Ellipse::Ellipse(const vortex::prob::Gauss2d &gauss, double scale_factor)
   Eigen::Vector2d eigenValues  = eigenSolver.eigenvalues();
   Eigen::Matrix2d eigenVectors = eigenSolver.eigenvectors();
 
-  a_      = scale_factor * sqrt(eigenValues(1));
-  b_      = scale_factor * sqrt(eigenValues(0));
-  angle_  = atan2(eigenVectors(1, 1), eigenVectors(0, 1));
+  // Sort eigenvalues in descending order
+  if (eigenValues(0) > eigenValues(1))
+  {
+    std::swap(eigenValues(0), eigenValues(1));
+    eigenVectors.col(0).swap(eigenVectors.col(1));
+  }
+
+  a_     = sqrt(scale_factor * eigenValues(1));
+  b_     = sqrt(scale_factor * eigenValues(0));
+  angle_ = atan2(eigenVectors(1, 1), eigenVectors(0, 1));
   center_ = gauss.mean();
 }
 
