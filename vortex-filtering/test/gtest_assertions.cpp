@@ -1,5 +1,11 @@
 #include "gtest_assertions.hpp"
 
+/** Check if two matrices are approximately equal
+ * @param a matrix a
+ * @param b matrix b
+ * @param tol tolerance
+ * @return testing::AssertionResult 
+ */
 testing::AssertionResult isApproxEqual(const Eigen::MatrixXd &a, const Eigen::MatrixXd &b, double tol)
 {
   if (a.rows() != b.rows() || a.cols() != b.cols()) {

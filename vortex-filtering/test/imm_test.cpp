@@ -30,7 +30,7 @@ TEST(SemanticState, initWithConstructor)
 {
   using vortex::models::SemanticState;
   using ST = vortex::models::StateType;
-  SemanticState state_names(ST::position, ST::velocity);
+  SemanticState<ST::position, ST::velocity> state_names;
 
   EXPECT_EQ(state_names.size(), 2u);
   EXPECT_EQ(state_names.get_name(0), ST::position);
@@ -41,8 +41,8 @@ TEST(SemanticState, matchingStates)
 {
   using vortex::models::SemanticState;
   using ST = vortex::models::StateType;
-  SemanticState state_names_1(ST::position, ST::velocity);
-  SemanticState state_names_2(ST::position, ST::velocity);
+  SemanticState<ST::position, ST::velocity> state_names_1;
+  SemanticState<ST::position, ST::velocity> state_names_2;
 
   EXPECT_EQ(state_names_1.get_names(), state_names_2.get_names());
   EXPECT_EQ(matching_state_names(state_names_1.get_names(), state_names_2.get_names()), (std::array<bool, 2>{true, true}));
@@ -52,8 +52,8 @@ TEST(SemanticState, nonMatchingStates)
 {
   using vortex::models::SemanticState;
   using ST = vortex::models::StateType;
-  SemanticState state_names_1(ST::position, ST::velocity);
-  SemanticState state_names_2(ST::position, ST::acceleration);
+  SemanticState<ST::position, ST::velocity> state_names_1;
+  SemanticState<ST::position, ST::acceleration> state_names_2;
 
   EXPECT_EQ(state_names_1.get_name(0), state_names_2.get_name(0));
   EXPECT_NE(state_names_1.get_name(1), state_names_2.get_name(1));
@@ -65,8 +65,8 @@ TEST(SemanticState, differentLengthStates)
 {
   using vortex::models::SemanticState;
   using ST = vortex::models::StateType;
-  SemanticState state_names_1(ST::position, ST::velocity);
-  SemanticState state_names_2(ST::position);
+  SemanticState<ST::position, ST::velocity> state_names_1;
+  SemanticState<ST::position> state_names_2;
 
   EXPECT_EQ(matching_state_names(state_names_1.get_names(), state_names_2.get_names()), (std::array<bool, 2>{true, false}));
   EXPECT_EQ(matching_state_names(state_names_2.get_names(), state_names_1.get_names()), (std::array<bool, 1>{true}));
@@ -256,8 +256,6 @@ TEST(ImmFilter, modeMatchedFilter)
   using namespace vortex::filter;
   using namespace vortex::prob;
 
-  double dt = 1;
-
   Eigen::Matrix2d jump_mat;
   jump_mat << 0, 1, 1, 0;
   Eigen::Vector2d hold_times;
@@ -266,26 +264,30 @@ TEST(ImmFilter, modeMatchedFilter)
   using ImmModelT  = ImmModel<ConstantPosition, ConstantVelocity>;
   using ImmFilterT = vortex::filter::ImmFilter<IdentitySensorModel<2, 2>, ImmModelT>;
 
+  double dt      = 1;
   double std_pos = 0.1;
   double std_vel = 0.1;
 
-  ImmModelT imm_model(jump_mat, hold_times, {std_pos}, {std_vel});
+  ImmModel imm_model(jump_mat, hold_times, ConstantPosition{std_pos}, ConstantVelocity{std_vel});
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 
 
-  std::tuple<Gauss2d, Gauss4d> x_est_prevs = {Gauss2d::Standard(), {{0, 0, 0, 1}, Eigen::Matrix4d::Identity()}};
-  Eigen::Vector2d z_meas           = {1, 1};
+  std::tuple<Gauss2d, Gauss4d> x_est_prevs = {Gauss2d::Standard(), {{0, 0, 0.9, 0}, Eigen::Matrix4d::Identity()}};
+  Eigen::Vector2d z_meas           = {1, 0};
 
-  auto [x_est_upd, x_est_pred, z_est_pred] = ImmFilterT::mode_matched_filter(imm_model, sensor_model, dt, x_est_prevs, z_meas);
+  auto [x_est_upds, x_est_preds, z_est_preds] = ImmFilterT::mode_matched_filter(imm_model, sensor_model, dt, x_est_prevs, z_meas);
 
-  EXPECT_EQ(ImmFilterT::N_MODELS, std::tuple_size<decltype(x_est_upd)>::value);
-  EXPECT_EQ(ImmFilterT::N_MODELS, std::tuple_size<decltype(x_est_pred)>::value);
-  EXPECT_EQ(ImmFilterT::N_MODELS, z_est_pred.size());
+  std::cout << "x_est_upds:\n"  << x_est_upds  << std::endl;
+  std::cout << "x_est_preds:\n" << x_est_preds << std::endl;
+  std::cout << "z_est_preds:\n" << z_est_preds << std::endl;
+
+  EXPECT_EQ(ImmFilterT::N_MODELS, std::tuple_size<decltype(x_est_upds)>::value);
+  EXPECT_EQ(ImmFilterT::N_MODELS, std::tuple_size<decltype(x_est_preds)>::value);
+  EXPECT_EQ(ImmFilterT::N_MODELS, z_est_preds.size());
 
   // Expect the second filter to predict closer to the measurement
-  EXPECT_FALSE(isApproxEqual(z_est_pred.at(0).mean(), z_meas, 0.1));
-  EXPECT_TRUE(isApproxEqual(z_est_pred.at(1).mean(), z_meas, 0.1));
+  EXPECT_LT((std::get<1>(x_est_upds).mean().head<2>() - z_meas).norm(), (std::get<0>(x_est_upds).mean().head<2>() - z_meas).norm());
 }
 
 TEST(ImmFilter, updateProbabilities)

@@ -59,15 +59,12 @@ public:
 };
 
 
-template<typename Array1, typename Array2>
-constexpr auto matching_state_names(const Array1& array1, const Array2& array2)
--> std::array<bool, std::tuple_size_v<Array1>>
-requires (std::is_same_v<typename Array1::value_type, typename Array2::value_type>) {
-    constexpr std::size_t N1 = std::tuple_size_v<Array1>;
-    constexpr std::size_t N2 = std::tuple_size_v<Array2>;
-    std::array<bool, N1> matches{};
-    for (std::size_t i = 0; i < N1; ++i) {
-        matches[i] = i < N2 && array1[i] == array2[i];
+template<typename T, size_t N, size_t M>
+constexpr std::array<bool, N> matching_state_names(const std::array<T, N>& array1, const std::array<T, M>& array2)
+{
+    std::array<bool, N> matches{};
+    for (std::size_t i = 0; i < N; ++i) {
+        matches[i] = i < N && i < M && array1.at(i) == array2.at(i);
     }
     return matches;
 }
@@ -113,7 +110,7 @@ public:
    * @param jump_matrix Markov jump chain matrix for the transition probabilities.
    * I.e. the probability of switching from model i to model j is `jump_matrix(i,j)`. Diagonal should be 0.
    * @param hold_times Expected holding time for each state. Parameter is the mean of an exponential distribution.
-   * @param models Models to use. The models must have a DynModI typedef specifying the base interface.
+   * @param models Models to use. The models must have a DynModI typedef specifying the base interface and a copy constructor.
    * @note - The jump matrix specifies the probability of switching to a model WHEN a switch occurs.
    * @note - The holding times specifies HOW LONG a state is expected to be held between switches.
    * @note - In order to change the properties of a model, you must get the model using `get_model<i>()`

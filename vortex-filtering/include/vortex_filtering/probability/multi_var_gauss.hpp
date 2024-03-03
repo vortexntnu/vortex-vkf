@@ -103,6 +103,19 @@ public:
     return lhs.mean() == rhs.mean() && lhs.cov() == rhs.cov();
   }
 
+  /** operator<<
+   * @param os
+   * @param gauss
+   * @return std::ostream&
+   */
+  friend std::ostream &operator<<(std::ostream &os, const MultiVarGauss &gauss)
+  {
+    os << "Mean:\n" << gauss.mean().transpose() << "\n"
+       << "Covariance:\n"
+       << gauss.cov();
+    return os;
+  }
+
 private:
   Vec_n mean_;
   Mat_nn cov_;
