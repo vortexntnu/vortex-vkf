@@ -1,16 +1,14 @@
+#include "gtest_assertions.hpp"
+
 #include <cmath>
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>
-
-#include <vortex_filtering/models/dynamic_models.hpp>
-#include <vortex_filtering/models/sensor_models.hpp>
-
 #include <vortex_filtering/filters/imm_filter.hpp>
+#include <vortex_filtering/models/dynamic_models.hpp>
 #include <vortex_filtering/models/imm_model.hpp>
+#include <vortex_filtering/models/sensor_models.hpp>
 #include <vortex_filtering/utils/printers.hpp>
-
-#include "gtest_assertions.hpp"
 
 ///////////////////////////////
 // IMM Model Tests
@@ -84,7 +82,11 @@ TEST(ImmModel, init)
   double std = 1.0;
   double dt  = 1.0;
 
-  vortex::models::ImmModel imm_model(jump_mat, hold_times, ConstantPosition(std), ConstantVelocity(std));
+  using ST = vortex::models::StateType;
+  vortex::models::ImmModel imm_model{jump_mat,
+                                     hold_times,
+                                     std::tuple{ConstantPosition(std), std::array{ST::position, ST::position}},
+                                     std::tuple{ConstantVelocity(std), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
 
   EXPECT_EQ(typeid(*imm_model.get_model<0>()), typeid(ConstantPosition));
   EXPECT_EQ(typeid(*imm_model.get_model<1>()), typeid(ConstantVelocity));
@@ -108,7 +110,11 @@ TEST(ImmModel, piMatC)
   Eigen::Vector3d hold_times{6, 12, 18};
   double std = 1.0;
 
-  vortex::models::ImmModel imm_model(jump_mat, hold_times, ConstantPosition(std), ConstantPosition(std), ConstantPosition(std));
+  using ST        = vortex::models::StateType;
+  using ImmModelT = vortex::models::ImmModel<ConstantPosition, ConstantPosition, ConstantPosition>;
+  ImmModelT::StateNames state_names{{ST::position, ST::position}, {ST::position, ST::position}, {ST::position, ST::position}};
+
+  ImmModelT imm_model(jump_mat, hold_times, ConstantPosition(std), ConstantPosition(std), ConstantPosition(std), state_names);
 
   // clang-format off
   Eigen::Matrix3d pi_mat_c{
@@ -136,8 +142,11 @@ TEST(ImmModel, piMatD)
   Eigen::Vector3d hold_times{6, 12, 18};
   double std = 1.0;
 
+  using ST        = vortex::models::StateType;
   using ImmModelT = vortex::models::ImmModel<ConstantPosition, ConstantPosition, ConstantPosition>;
-  ImmModelT imm_model(jump_mat, hold_times, {std}, {std}, {std});
+  ImmModelT::StateNames state_names{{ST::position, ST::position}, {ST::position, ST::position}, {ST::position, ST::position}};
+
+  ImmModelT imm_model(jump_mat, hold_times, ConstantPosition(std), ConstantPosition(std), ConstantPosition(std), state_names);
 
   Eigen::Matrix3d pi_mat_d_true;
   // clang-format off
@@ -193,7 +202,8 @@ TEST(ImmFilter, calculateMixingProbs)
   double std = 1.0;
 
   using ImmModelT = vortex::models::ImmModel<ConstantPosition, ConstantPosition>;
-  ImmModelT imm_model(jump_mat, hold_times, {std}, {std});
+  using ST        = vortex::models::StateType;
+  ImmModelT imm_model(jump_mat, hold_times, {{std}, {ST::position, ST::position}}, {{std}, {ST::position, ST::position}});
 
   auto sensor_model = std::make_shared<vortex::models::IdentitySensorModel<2, 1>>(dt);
 
@@ -226,7 +236,8 @@ TEST(ImmFilter, mixing_two_of_the_same_model)
   double pos_std = 1;
 
   using ImmModelT = vortex::models::ImmModel<ConstantPosition, ConstantPosition>;
-  ImmModelT imm_model(jump_mat, hold_times, {pos_std}, {pos_std});
+  using ST        = vortex::models::StateType;
+  ImmModelT imm_model(jump_mat, hold_times, {{pos_std}, {ST::position, ST::position}}, {{pos_std}, {ST::position, ST::position}});
 
   auto sensor_model = std::make_shared<vortex::models::IdentitySensorModel<2, 1>>(dt);
 
@@ -267,7 +278,11 @@ TEST(ImmFilter, mixing_two_different_models)
   double std_pos = 0.1;
   double std_vel = 0.1;
 
-  ImmModelT imm_model(jump_mat, hold_times, {std_pos}, {std_vel});
+  using ST = vortex::models::StateType;
+  vortex::models::ImmModel imm_model{jump_mat,
+                                     hold_times,
+                                     std::tuple{ConstantPosition(std_pos), std::array{ST::position, ST::position}},
+                                     std::tuple{ConstantVelocity(std_vel), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 
@@ -309,7 +324,11 @@ TEST(ImmFilter, modeMatchedFilter)
   double std_pos = 0.1;
   double std_vel = 0.1;
 
-  ImmModelT imm_model(jump_mat, hold_times, {std_pos}, {std_vel});
+  using ST = vortex::models::StateType;
+  vortex::models::ImmModel imm_model{jump_mat,
+                                     hold_times,
+                                     std::tuple{ConstantPosition(std_pos), std::array{ST::position, ST::position}},
+                                     std::tuple{ConstantVelocity(std_vel), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 
@@ -354,7 +373,11 @@ TEST(ImmFilter, updateProbabilities)
   using ImmModelT  = ImmModel<ConstantPosition, ConstantVelocity>;
   using ImmFilterT = vortex::filter::ImmFilter<IdentitySensorModel<2, 2>, ImmModelT>;
 
-  ImmModelT imm_model(jump_mat, hold_times, {std_pos}, {std_vel});
+  using ST = vortex::models::StateType;
+  vortex::models::ImmModel imm_model{jump_mat,
+                                     hold_times,
+                                     std::tuple{ConstantPosition(std_pos), std::array{ST::position, ST::position}},
+                                     std::tuple{ConstantVelocity(std_vel), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 

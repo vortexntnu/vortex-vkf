@@ -127,7 +127,10 @@ public:
    * @tparam n_dim_u  Input dimension (Default: n_dim_x)
    * @tparam n_dim_v  Process noise dimension (Default: n_dim_x)
    */
-  DynamicModelCT() : DynModI() {}
+  DynamicModelCT()
+      : DynModI()
+  {
+  }
   virtual ~DynamicModelCT() = default;
 
   /** Continuous time dynamics
@@ -208,7 +211,10 @@ public:
    * @note - Q_d
    * @note - G_d (optional if n_dim_x == n_dim_v)
    */
-  DynamicModelLTV() : DynModI() {}
+  DynamicModelLTV()
+      : DynModI()
+  {
+  }
   virtual ~DynamicModelLTV() = default;
 
   /** Discrete time dynamics
@@ -343,7 +349,10 @@ public:
    * @tparam n_dim_u  Input dimension (Default: n_dim_x)
    * @tparam n_dim_v  Process noise dimension (Default: n_dim_x)
    */
-  DynamicModelCTLTV() : DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v>() {}
+  DynamicModelCTLTV()
+      : DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v>()
+  {
+  }
   virtual ~DynamicModelCTLTV() = default;
 
   /** Continuous time dynamics

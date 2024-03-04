@@ -13,18 +13,15 @@
 #include <memory>
 #include <tuple>
 #include <vector>
-
 #include <vortex_filtering/filters/ekf.hpp>
 #include <vortex_filtering/filters/ukf.hpp>
-
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
+#include <vortex_filtering/models/dynamic_models.hpp>
 #include <vortex_filtering/models/imm_model.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
+#include <vortex_filtering/models/sensor_models.hpp>
 #include <vortex_filtering/probability/gaussian_mixture.hpp>
 #include <vortex_filtering/probability/uniform.hpp>
-
-#include <vortex_filtering/models/dynamic_models.hpp>
-#include <vortex_filtering/models/sensor_models.hpp>
 
 namespace vortex::filter {
 
@@ -281,13 +278,13 @@ private:
     using Vec_x_b  = Eigen::Vector<bool, N_DIM_target>;
     using Mat_xx_b = Eigen::Matrix<bool, N_DIM_target, N_DIM_target>;
 
-    constexpr auto target_state_names = ImmModelT::template get_state_names<target_model_index>();
-    constexpr auto mixing_state_names = ImmModelT::template get_state_names<mixing_model_index>();
-    constexpr auto matching_states    = matching_state_names(target_state_names, mixing_state_names);
+    auto target_state_names = ImmModelT::template get_state_names<target_model_index>();
+    auto mixing_state_names = ImmModelT::template get_state_names<mixing_model_index>();
+    auto matching_states    = matching_state_names(target_state_names, mixing_state_names);
 
-    constexpr bool all_states_match = std::apply([](auto... b) { return (b && ...); }, matching_states);
+    bool all_states_match = std::apply([](auto... b) { return (b && ...); }, matching_states);
 
-    if constexpr (all_states_match) {
+    if (all_states_match) {
       Vec_x x  = std::get<mixing_model_index>(x_est_prevs).mean().template head<N_DIM_target>();
       Mat_xx P = std::get<mixing_model_index>(x_est_prevs).cov().template topLeftCorner<N_DIM_target, N_DIM_target>();
       return {x, P};

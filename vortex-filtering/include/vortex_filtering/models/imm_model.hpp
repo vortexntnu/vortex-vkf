@@ -16,7 +16,6 @@
 #include <memory>
 #include <tuple>
 #include <type_traits>
-
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 
@@ -80,6 +79,7 @@ public:
   using DynModPtrTuple = std::tuple<std::shared_ptr<DynModels>...>;
 
   using GaussTuple_x = std::tuple<typename DynModels::DynModI::Gauss_x...>;
+  using StateNames   = std::tuple<std::array<StateType, DynModels::DynModI::N_DIM_x>...>;
 
   static constexpr size_t N_MODELS = sizeof...(DynModels);
 
@@ -109,13 +109,21 @@ public:
    * @param jump_matrix Markov jump chain matrix for the transition probabilities.
    * I.e. the probability of switching from model i to model j is `jump_matrix(i,j)`. Diagonal should be 0.
    * @param hold_times Expected holding time for each state. Parameter is the mean of an exponential distribution.
-   * @param models Models to use. The models must have a DynModI typedef specifying the base interface and a copy constructor.
+   * @param models_and_state_names Tuple of dynamic models and their state names.
    * @note - The jump matrix specifies the probability of switching to a model WHEN a switch occurs.
    * @note - The holding times specifies HOW LONG a state is expected to be held between switches.
    * @note - In order to change the properties of a model, you must get the model using `get_model<i>()`
    */
-  ImmModel(Mat_nn jump_matrix, Vec_n hold_times, DynModels... models)
-      : models_(std::make_shared<DynModels>(models)...), jump_matrix_(jump_matrix), hold_times_(hold_times)
+  ImmModel(Mat_nn jump_matrix, Vec_n hold_times, std::tuple<DynModels, std::array<StateType, DynModels::DynModI::N_DIM_x>>... models_and_state_names)
+      : ImmModel(jump_matrix, hold_times, std::get<0>(models_and_state_names)..., {std::get<1>(models_and_state_names)...})
+  {
+  }
+
+  ImmModel(Mat_nn jump_matrix, Vec_n hold_times, DynModels... models, StateNames state_names)
+      : models_(std::make_shared<DynModels>(models)...)
+      , jump_matrix_(jump_matrix)
+      , hold_times_(hold_times)
+      , state_names_(state_names)
   {
     if (!jump_matrix_.diagonal().isZero()) {
       throw std::invalid_argument("Jump matrix diagonal should be zero");
@@ -200,17 +208,18 @@ public:
 
   static constexpr int N_DIM_x(size_t model_index) { return N_DIMS_x().at(model_index); }
 
-  template <size_t model_index> static constexpr std::array<StateType, N_DIM_x(model_index)> get_state_names()
+  template <size_t model_index> std::array<StateType, N_DIM_x(model_index)> get_state_names()
   {
-    return DynModT<model_index>::StateNames::get_names();
+    return std::get<model_index>(state_names_);
   }
 
-  template <size_t model_index> static constexpr StateType get_state_name(size_t i) { return DynModT<model_index>::StateNames::get_name(i); }
+  template <size_t model_index> StateType get_state_name(size_t i) { return get_state_names<model_index>().at(i); }
 
 private:
   DynModPtrTuple models_;
-  const Mat_nn jump_matrix_;
-  const Vec_n hold_times_;
+  Mat_nn jump_matrix_;
+  Vec_n hold_times_;
+  StateNames state_names_;
 };
 
 /**
@@ -233,7 +242,8 @@ public:
   using Mat_ww = typename SensModI::Mat_ww;
   using Mat_aa = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;
 
-  ImmSensorModel(SensModT sensor_model) : sensor_model_(sensor_model)
+  ImmSensorModel(SensModT sensor_model)
+      : sensor_model_(sensor_model)
   {
     static_assert(N_DIM_a >= SensModT::SensModI::N_DIM_x, "N_DIM_a must be greater than or equal to the state dimension of the sensor model");
   }
@@ -270,7 +280,8 @@ public:
   using Gauss_z = typename SensModI::Gauss_z;
   using Gauss_a = typename prob::MultiVarGauss<N_DIM_a>;
 
-  ImmSensorModelLTV(SensModTPtr sensor_model) : sensor_model_(sensor_model)
+  ImmSensorModelLTV(SensModTPtr sensor_model)
+      : sensor_model_(sensor_model)
   {
     static_assert(N_DIM_a >= N_DIM_x, "N_DIM_a must be greater than or equal to the state dimension of the sensor model");
   }
