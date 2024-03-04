@@ -84,7 +84,6 @@ TEST(ImmModel, init)
   double std = 1.0;
   double dt  = 1.0;
 
-
   vortex::models::ImmModel imm_model(jump_mat, hold_times, ConstantPosition(std), ConstantVelocity(std));
 
   EXPECT_EQ(typeid(*imm_model.get_model<0>()), typeid(ConstantPosition));
@@ -106,7 +105,6 @@ TEST(ImmModel, piMatC)
   };
   // clang-format on
 
-
   Eigen::Vector3d hold_times{6, 12, 18};
   double std = 1.0;
 
@@ -119,7 +117,6 @@ TEST(ImmModel, piMatC)
     {15,  3 , -18}
   };
   // clang-format on
-
 
   EXPECT_EQ(imm_model.get_pi_mat_c(), pi_mat_c);
 }
@@ -161,9 +158,9 @@ TEST(ImmModel, piMatD)
 
 TEST(ImmModel, stateSize)
 {
+  using vortex::models::ConstantAcceleration;
   using vortex::models::ConstantPosition;
   using vortex::models::ConstantVelocity;
-  using vortex::models::ConstantAcceleration;
 
   using TestModel = vortex::models::ImmModel<ConstantPosition, ConstantVelocity, ConstantAcceleration>;
 
@@ -192,7 +189,7 @@ TEST(ImmFilter, calculateMixingProbs)
   Eigen::Matrix2d jump_mat{{0, 1}, {1, 0}};
   Eigen::Vector2d hold_times{1, 1};
 
-  double dt = 1.0;
+  double dt  = 1.0;
   double std = 1.0;
 
   using ImmModelT = vortex::models::ImmModel<ConstantPosition, ConstantPosition>;
@@ -210,7 +207,7 @@ TEST(ImmFilter, calculateMixingProbs)
   EXPECT_EQ(isApproxEqual(mixing_probs, mixing_probs_true, 1e-6), true);
 
   // When all of the weight is in the first model, the probability that the previous model was the second model should be 0
-  model_weights = {1, 0};
+  model_weights     = {1, 0};
   mixing_probs_true = Eigen::Matrix2d{{1, 1}, {0, 0}};
 
   mixing_probs = ImmFilterT::calculate_mixing_probs(imm_model.get_pi_mat_d(dt), model_weights);
@@ -244,7 +241,7 @@ TEST(ImmFilter, mixing_two_of_the_same_model)
 
   auto [x_est_1, x_est_2] = ImmFilterT::mixing(x_est_prevs, imm_model.get_pi_mat_d(dt));
 
-  // The high uncertainty in the second model should make it's position estimate move more towards the first 
+  // The high uncertainty in the second model should make it's position estimate move more towards the first
   // model than the first model moves towards the second
   std::cout << "x_est_prev_1:\n" << x_est_prev_1 << std::endl;
   std::cout << "x_est_prev_2:\n" << x_est_prev_2 << std::endl;
@@ -316,13 +313,12 @@ TEST(ImmFilter, modeMatchedFilter)
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 
-
   std::tuple<Gauss2d, Gauss4d> x_est_prevs = {Gauss2d::Standard(), {{0, 0, 0.9, 0}, Eigen::Matrix4d::Identity()}};
-  Eigen::Vector2d z_meas           = {1, 0};
+  Eigen::Vector2d z_meas                   = {1, 0};
 
   auto [x_est_upds, x_est_preds, z_est_preds] = ImmFilterT::mode_matched_filter(imm_model, sensor_model, dt, x_est_prevs, z_meas);
 
-  std::cout << "x_est_upds:\n"  << x_est_upds  << std::endl;
+  std::cout << "x_est_upds:\n" << x_est_upds << std::endl;
   std::cout << "x_est_preds:\n" << x_est_preds << std::endl;
   std::cout << "z_est_preds:\n" << z_est_preds << std::endl;
 
@@ -355,7 +351,7 @@ TEST(ImmFilter, updateProbabilities)
   double std_pos = 1;
   double std_vel = 1;
 
-  using ImmModelT = ImmModel<ConstantPosition, ConstantVelocity>;
+  using ImmModelT  = ImmModel<ConstantPosition, ConstantVelocity>;
   using ImmFilterT = vortex::filter::ImmFilter<IdentitySensorModel<2, 2>, ImmModelT>;
 
   ImmModelT imm_model(jump_mat, hold_times, {std_pos}, {std_vel});

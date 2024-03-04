@@ -198,9 +198,13 @@ concept SensorModel = requires {
   // Has member type SensModI
   typename T::SensModI;
   // Has a function h
-  { &T::h };
+  {
+    &T::h
+  };
   // Has a function R
-  { &T::R };
+  {
+    &T::R
+  };
 };
 
 template <typename T>
@@ -208,16 +212,25 @@ concept SensorModelLTV = requires {
   // Has member type SensModI
   typename T::SensModI;
   // Has a function R
-  { &T::R };
+  {
+    &T::R
+  };
   // Has a function H
-  { &T::H };
+  {
+    &T::H
+  };
   // Has a function C
-  { &T::C};
+  {
+    &T::C
+  };
   // Has a function pred_from_est
-  { &T::pred_from_est };
+  {
+    &T::pred_from_est
+  };
   // Has a function pred_from_state
-  { &T::pred_from_state };
-
+  {
+    &T::pred_from_state
+  };
 };
 
 } // namespace concepts

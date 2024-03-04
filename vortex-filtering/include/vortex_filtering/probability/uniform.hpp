@@ -1,12 +1,12 @@
 /**
  * @file uniform.hpp
  * @author Eirik Kolås
- * @brief 
+ * @brief
  * @version 0.1
  * @date 2024-01-20
- * 
+ *
  * @copyright Copyright (c) 2024
- * 
+ *
  */
 #pragma once
 #include <Eigen/Dense>
@@ -14,15 +14,12 @@
 
 namespace vortex::prob {
 
-template <size_t n_dims>
-class Uniform {
+template <size_t n_dims> class Uniform {
 public:
   using Vec_n  = Eigen::Vector<double, n_dims>;
   using Mat_nn = Eigen::Matrix<double, n_dims, n_dims>;
 
-  constexpr Uniform(Vec_n lower, Vec_n upper)
-      : lower_(lower), upper_(upper)
-  {}
+  constexpr Uniform(Vec_n lower, Vec_n upper) : lower_(lower), upper_(upper) {}
 
   double pr(Vec_n x) const
   {
@@ -45,11 +42,11 @@ public:
   }
 
   Vec_n mean() const { return (upper_ + lower_) / 2; }
-  Mat_nn cov() const 
-  { 
+  Mat_nn cov() const
+  {
     Vec_n diff = upper_ - lower_;
     for (double &d : diff) {
-      d *= d/12;
+      d *= d / 12;
     }
     return diff.asDiagonal();
   }
@@ -57,19 +54,14 @@ public:
   const Vec_n &lower() const { return lower_; }
   const Vec_n &upper() const { return upper_; }
 
-
-
-  private:
-    Vec_n lower_;
-    Vec_n upper_;
+private:
+  Vec_n lower_;
+  Vec_n upper_;
 };
 
-template<>
-class Uniform<1> {
+template <> class Uniform<1> {
 public:
-  constexpr Uniform(double lower, double upper)
-      : lower_(lower), upper_(upper)
-  {}
+  constexpr Uniform(double lower, double upper) : lower_(lower), upper_(upper) {}
 
   double pr(double x) const
   {

@@ -9,10 +9,10 @@
  *
  */
 
+#include <array>
 #include <memory>
 #include <tuple>
 #include <vector>
-#include <array>
 
 #include <vortex_filtering/filters/ekf.hpp>
 #include <vortex_filtering/filters/ukf.hpp>
@@ -28,8 +28,6 @@
 
 namespace vortex::filter {
 
-
-
 template <models::concepts::SensorModel SensModT, models::concepts::ImmModel ImmModelT> class ImmFilter {
 public:
   using SensModTPtr = std::shared_ptr<SensModT>;
@@ -37,7 +35,7 @@ public:
 
   static constexpr size_t N_MODELS = ImmModelT::N_MODELS;
 
-  static constexpr int N_DIM_z     = SensModI::N_DIM_z;
+  static constexpr int N_DIM_z = SensModI::N_DIM_z;
 
   using Vec_n  = typename ImmModelT::Vec_n;
   using Mat_nn = typename ImmModelT::Mat_nn;
@@ -48,20 +46,18 @@ public:
   using Mat_xz = typename SensModI::Mat_xz;
   using Mat_zz = typename SensModI::Mat_zz;
 
-
-  using Gauss_z = typename SensModI::Gauss_z;
+  using Gauss_z    = typename SensModI::Gauss_z;
   using GaussArr_z = std::array<Gauss_z, N_MODELS>;
-
 
   using GaussMix_z = prob::GaussianMixture<N_DIM_z>;
 
-  template<size_t i> using DynModT    = typename ImmModelT::template DynModT<i>;
-  template<size_t i> using DynModTPtr = typename ImmModelT::template DynModTPtr<i>;
-  template<size_t i> using DynModI    = typename ImmModelT::template DynModI<i>;
-  template<size_t i> using DynModIPtr = typename ImmModelT::template DynModIPtr<i>;
+  template <size_t i> using DynModT    = typename ImmModelT::template DynModT<i>;
+  template <size_t i> using DynModTPtr = typename ImmModelT::template DynModTPtr<i>;
+  template <size_t i> using DynModI    = typename ImmModelT::template DynModI<i>;
+  template <size_t i> using DynModIPtr = typename ImmModelT::template DynModIPtr<i>;
 
-  template<size_t i> using Gauss_x    = typename ImmModelT::template Gauss_x<i>;
-  template<size_t i> using GaussMix_x = typename ImmModelT::template GaussMix_x<i>;
+  template <size_t i> using Gauss_x    = typename ImmModelT::template Gauss_x<i>;
+  template <size_t i> using GaussMix_x = typename ImmModelT::template GaussMix_x<i>;
 
   using GaussTuple_x = typename ImmModelT::GaussTuple_x;
 
@@ -125,11 +121,10 @@ public:
    * @return Tuple of updated states, predicted states, predicted measurements
    */
   static std::tuple<GaussTuple_x, GaussTuple_x, GaussArr_z> mode_matched_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
-                                                                               const GaussTuple_x &moment_based_preds, const Vec_z &z_meas)
+                                                                                const GaussTuple_x &moment_based_preds, const Vec_z &z_meas)
   {
     return step_kalman_filters(imm_model, sensor_model, dt, moment_based_preds, z_meas, std::make_index_sequence<N_MODELS>{});
   }
-
 
   /**
    * @brief Update the mode probabilites based on how well the predictions matched the measurements.
@@ -163,7 +158,8 @@ public:
    * @param z_meas Vec_z
    * @return Tuple of updated weights and predictions
    */
-  static std::tuple<Vec_n, GaussTuple_x> step(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt, const GaussTuple_x &x_est_prevs, const Vec_n &weights, const Vec_z &z_meas)
+  static std::tuple<Vec_n, GaussTuple_x> step(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt, const GaussTuple_x &x_est_prevs,
+                                              const Vec_n &weights, const Vec_z &z_meas)
   {
     Mat_nn transition_matrix = imm_model.get_pi_mat_d(dt);
 
@@ -201,14 +197,14 @@ private:
     GaussTuple_x x_est_preds;
     GaussArr_z z_est_preds;
 
-    ((std::get<Is>(x_est_upds)  = std::get<0>(std::get<Is>(ekf_outs))), ...);
+    ((std::get<Is>(x_est_upds) = std::get<0>(std::get<Is>(ekf_outs))), ...);
     ((std::get<Is>(x_est_preds) = std::get<1>(std::get<Is>(ekf_outs))), ...);
-    ((z_est_preds.at(Is)        = std::get<2>(std::get<Is>(ekf_outs))), ...);
+    ((z_est_preds.at(Is) = std::get<2>(std::get<Is>(ekf_outs))), ...);
 
     return {x_est_upds, x_est_preds, z_est_preds};
   }
 
-    /**
+  /**
    * @brief Calculate the Kalman filter outputs for one mode. If the model isn't LTV, use the ukf instead of the ekf.
    * @tparam i Index of model
    * @param imm_model The IMM model.
@@ -220,24 +216,25 @@ private:
    */
   template <size_t i>
   static std::tuple<Gauss_x<i>, Gauss_x<i>, Gauss_z> step_kalman_filter(const DynModTPtr<i> &dyn_model, const SensModTPtr &sensor_model, double dt,
-                                                                  const Gauss_x<i> &x_est_prev, const Vec_z &z_meas)
+                                                                        const Gauss_x<i> &x_est_prev, const Vec_z &z_meas)
   {
     if constexpr (models::concepts::DynamicModelLTV<DynModT<i>> && models::concepts::SensorModelLTV<SensModT>) {
-      using ImmSensMod = models::ImmSensorModelLTV<ImmModelT::N_DIM_x(i), SensModT>;
-      using EKF = filter::EKF<DynModI<i>, ImmSensMod>;
+      using ImmSensMod  = models::ImmSensorModelLTV<ImmModelT::N_DIM_x(i), SensModT>;
+      using EKF         = filter::EKF<DynModI<i>, ImmSensMod>;
       auto imm_sens_mod = std::make_shared<ImmSensMod>(sensor_model);
       return EKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
     }
     else {
-      using ImmSensMod = models::ImmSensorModel<ImmModelT::N_DIM_x(i), SensModT>;
-      using UKF = filter::UKF<DynModI<i>, ImmSensMod>;
+      using ImmSensMod  = models::ImmSensorModel<ImmModelT::N_DIM_x(i), SensModT>;
+      using UKF         = filter::UKF<DynModI<i>, ImmSensMod>;
       auto imm_sens_mod = std::make_shared<ImmSensMod>(sensor_model);
       return UKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
     }
   }
 
   template <size_t... model_indices>
-  static std::tuple<Gauss_x<model_indices>...> mix_components(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs, const models::StateMap &states_min_max, std::integer_sequence<size_t, model_indices...>)
+  static std::tuple<Gauss_x<model_indices>...> mix_components(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs,
+                                                              const models::StateMap &states_min_max, std::integer_sequence<size_t, model_indices...>)
   {
     return {mix_one_component<model_indices>(x_est_prevs, mixing_probs.col(model_indices), states_min_max)...};
   }
@@ -252,18 +249,19 @@ private:
   }
 
   template <size_t target_model_index, size_t... mixing_model_indices>
-  static std::array<Gauss_x<target_model_index>, N_MODELS> prepare_models(const GaussTuple_x &x_est_prevs, const models::StateMap &states_min_max, std::integer_sequence<size_t, mixing_model_indices...>)
+  static std::array<Gauss_x<target_model_index>, N_MODELS> prepare_models(const GaussTuple_x &x_est_prevs, const models::StateMap &states_min_max,
+                                                                          std::integer_sequence<size_t, mixing_model_indices...>)
   {
     return {prepare_mixing_model<target_model_index, mixing_model_indices>(x_est_prevs, states_min_max)...};
   }
 
   /**
-   * @brief Fit the size of the mixing_model in case it doesn't have the same dimensions or states as the target model 
-   * 
+   * @brief Fit the size of the mixing_model in case it doesn't have the same dimensions or states as the target model
+   *
    * @tparam target_model_index The model to fit to
    * @tparam mixing_model_index The model to fit
-   * @param x_est_prevs 
-   * @return Gauss_x<target_model_index> 
+   * @param x_est_prevs
+   * @return Gauss_x<target_model_index>
    */
   template <size_t target_model_index, size_t mixing_model_index>
   static Gauss_x<target_model_index> prepare_mixing_model(const GaussTuple_x &x_est_prevs, const models::StateMap &states_min_max = {})
@@ -276,7 +274,7 @@ private:
     constexpr size_t N_DIM_mixing = ImmModelT::N_DIM_x(mixing_model_index);
     constexpr size_t N_DIM_min    = std::min(N_DIM_target, N_DIM_mixing);
 
-    using ST       = models::StateType; 
+    using ST       = models::StateType;
     using Vec_x    = Eigen::Vector<double, N_DIM_target>;
     using Mat_xx   = Eigen::Matrix<double, N_DIM_target, N_DIM_target>;
     using Uniform  = prob::Uniform<1>;
@@ -287,7 +285,7 @@ private:
     constexpr auto mixing_state_names = ImmModelT::template get_state_names<mixing_model_index>();
     constexpr auto matching_states    = matching_state_names(target_state_names, mixing_state_names);
 
-    constexpr bool all_states_match   = std::apply([](auto... b) { return (b && ...); }, matching_states);
+    constexpr bool all_states_match = std::apply([](auto... b) { return (b && ...); }, matching_states);
 
     if constexpr (all_states_match) {
       Vec_x x  = std::get<mixing_model_index>(x_est_prevs).mean().template head<N_DIM_target>();
@@ -295,11 +293,10 @@ private:
       return {x, P};
     }
 
-    Vec_x x  = Vec_x::Zero();
-    Mat_xx P = Mat_xx::Zero();
+    Vec_x x                                          = Vec_x::Zero();
+    Mat_xx P                                         = Mat_xx::Zero();
     x.template head<N_DIM_min>()                     = std::get<mixing_model_index>(x_est_prevs).mean().template head<N_DIM_min>();
     P.template topLeftCorner<N_DIM_min, N_DIM_min>() = std::get<mixing_model_index>(x_est_prevs).cov().template topLeftCorner<N_DIM_min, N_DIM_min>();
-
 
     Vec_x_b matching_states_vec_b = Eigen::Map<Vec_x_b>(matching_state_names(target_state_names, mixing_state_names).data());
     Vec_x matching_states_vec     = matching_states_vec_b.template cast<double>();
@@ -311,10 +308,11 @@ private:
     P = P.cwiseProduct(matching_states_mat);
 
     for (size_t i = 0; i < N_DIM_target; i++) {
-      if (matching_states_vec(i)) continue;
+      if (matching_states_vec(i))
+        continue;
       ST state_name = ImmModelT::template get_state_name<target_model_index>(i);
       if (!states_min_max.contains(state_name)) {
-        x(i) = std::get<target_model_index>(x_est_prevs).mean()(i);
+        x(i)    = std::get<target_model_index>(x_est_prevs).mean()(i);
         P(i, i) = std::get<target_model_index>(x_est_prevs).cov()(i, i);
         continue;
       }
@@ -327,7 +325,6 @@ private:
 
     return {x, P};
   }
-
 };
 
 } // namespace vortex::filter

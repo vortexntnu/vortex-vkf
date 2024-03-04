@@ -60,7 +60,6 @@ public:
   using DynModTPtr  = std::shared_ptr<DynModT>;
   using SensModTPtr = std::shared_ptr<SensModT>;
 
-
   EKF() = delete;
 
   /** Perform one EKF prediction step
@@ -95,7 +94,7 @@ public:
     Mat_zw H     = sens_mod->H(x_est_pred.mean()); // Measurement noise cross-covariance
     Mat_xx P     = x_est_pred.cov();               // State covariance
     Mat_zz S_inv = z_est_pred.cov_inv();           // Inverse of the predicted measurement covariance
-    Mat_xx I     = Mat_xx::Identity(N_DIM_x, N_DIM_x); 
+    Mat_xx I     = Mat_xx::Identity(N_DIM_x, N_DIM_x);
 
     Mat_xz W         = P * C.transpose() * S_inv; // Kalman gain
     Vec_z innovation = z_meas - z_est_pred.mean();

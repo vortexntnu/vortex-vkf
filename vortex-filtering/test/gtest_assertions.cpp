@@ -4,7 +4,7 @@
  * @param a matrix a
  * @param b matrix b
  * @param tol tolerance
- * @return testing::AssertionResult 
+ * @return testing::AssertionResult
  */
 testing::AssertionResult isApproxEqual(const Eigen::MatrixXd &a, const Eigen::MatrixXd &b, double tol)
 {

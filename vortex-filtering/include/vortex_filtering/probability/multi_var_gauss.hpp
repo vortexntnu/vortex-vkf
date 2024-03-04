@@ -98,10 +98,7 @@ public:
    * @param rhs
    * @return bool true if the means and covariances are equal
    */
-  friend bool operator==(const MultiVarGauss &lhs, const MultiVarGauss &rhs)
-  {
-    return lhs.mean() == rhs.mean() && lhs.cov() == rhs.cov();
-  }
+  friend bool operator==(const MultiVarGauss &lhs, const MultiVarGauss &rhs) { return lhs.mean() == rhs.mean() && lhs.cov() == rhs.cov(); }
 
   /** operator<<
    * @param os
@@ -110,7 +107,8 @@ public:
    */
   friend std::ostream &operator<<(std::ostream &os, const MultiVarGauss &gauss)
   {
-    os << "Mean:\n" << gauss.mean().transpose() << "\n"
+    os << "Mean:\n"
+       << gauss.mean().transpose() << "\n"
        << "Covariance:\n"
        << gauss.cov();
     return os;
@@ -127,7 +125,5 @@ template <int n_dims> using Gauss = MultiVarGauss<n_dims>;
 using Gauss2d = Gauss<2>;
 using Gauss3d = Gauss<3>;
 using Gauss4d = Gauss<4>;
-
-
 
 } // namespace vortex::prob

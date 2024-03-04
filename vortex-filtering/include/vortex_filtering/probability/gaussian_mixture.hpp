@@ -10,16 +10,13 @@
  *
  */
 #pragma once
+#include <concepts>
+#include <cstddef>
 #include <eigen3/Eigen/Dense>
 #include <numeric> // std::accumulate
+#include <type_traits>
 #include <vector>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
-#include <concepts>
-#include <type_traits>
-#include <cstddef>
-
-
-
 
 namespace vortex::prob {
 
@@ -27,12 +24,16 @@ namespace concepts {
 
 template <typename Container, typename ValueType>
 concept is_container = requires(Container c) {
-    // The container must have a value_type.
-    typename Container::value_type;
-    // The size of the container must be convertible to std::size_t.
-    { std::size(c) } -> std::convertible_to<std::size_t>;
-    // Accessing an element by index must return a reference to ValueType.
-    { c[std::declval<std::size_t>()] } -> std::same_as<ValueType&>;
+  // The container must have a value_type.
+  typename Container::value_type;
+  // The size of the container must be convertible to std::size_t.
+  {
+    std::size(c)
+  } -> std::convertible_to<std::size_t>;
+  // Accessing an element by index must return a reference to ValueType.
+  {
+    c[std::declval<std::size_t>()]
+  } -> std::same_as<ValueType &>;
 };
 
 } // namespace concepts
@@ -54,10 +55,11 @@ public:
    * @param gaussians Gaussians
    * @note The weights are automatically normalized, so they don't need to sum to 1.
    */
-    GaussianMixture(concepts::is_container<double> auto const& weights, concepts::is_container<Gauss_n> auto const& gaussians)
-        : weights_(Eigen::Map<const Eigen::VectorXd>(weights.data(), std::distance(std::begin(weights), std::end(weights)))),
-          gaussians_(std::begin(gaussians), std::end(gaussians)) 
-    {}
+  GaussianMixture(concepts::is_container<double> auto const &weights, concepts::is_container<Gauss_n> auto const &gaussians)
+      : weights_(Eigen::Map<const Eigen::VectorXd>(weights.data(), std::distance(std::begin(weights), std::end(weights)))),
+        gaussians_(std::begin(gaussians), std::end(gaussians))
+  {
+  }
 
   /** Default Constructor
    * weights and gaussians are empty
@@ -180,7 +182,7 @@ public:
   size_t num_components() const { return gaussians_.size(); }
 
   /** Number of components
-   * 
+   *
    */
   size_t size() const { return num_components(); }
 

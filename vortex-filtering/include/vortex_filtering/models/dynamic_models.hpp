@@ -5,7 +5,6 @@
 namespace vortex {
 namespace models {
 
-
 constexpr int X = 1; // For when a template parameter is required but not used.
 
 /** Identity Dynamic Model
@@ -29,8 +28,8 @@ public:
    */
   IdentityDynamicModel(Mat_vv Q) : Q_(Q) {}
 
-  Mat_xx A_d(double dt, const Vec_x /*x*/&) const override { return Mat_xx::Identity() * dt; }
-  Mat_vv Q_d(double /*dt*/, const Vec_x /*x*/&) const override { return Q_; }
+  Mat_xx A_d(double dt, const Vec_x /*x*/ &) const override { return Mat_xx::Identity() * dt; }
+  Mat_vv Q_d(double /*dt*/, const Vec_x /*x*/ &) const override { return Q_; }
 
 private:
   Mat_vv Q_;
@@ -53,9 +52,7 @@ public:
   using Vec_s  = Eigen::Matrix<double, 2, 1>;
   using Mat_ss = Eigen::Matrix<double, 2, 2>;
 
-  using StateNames = SemanticState<
-    StateType::position,
-    StateType::position>;
+  using StateNames = SemanticState<StateType::position, StateType::position>;
 
   /** Constant Position Model in 2D
    * x = [x, y]
@@ -81,10 +78,10 @@ public:
    * @return Mat_xv
    * @note Overriding DynamicModelLTV::G_d
    */
-  Mat_xv G_d(double dt, const Vec_x /*x*/& = Vec_x::Zero()) const override
+  Mat_xv G_d(double dt, const Vec_x /*x*/ & = Vec_x::Zero()) const override
   {
     Mat_ss I = Mat_ss::Identity();
-    return 0.5*dt*I;
+    return 0.5 * dt * I;
   }
 
   /** Get the continuous time process noise covariance matrix.
@@ -93,19 +90,17 @@ public:
    * @return Mat_xx Process noise covariance
    * @note Overriding DynamicModelLTV::Q_d
    */
-  Mat_vv Q_d(double /*dt*/ = 0.0, const Vec_x /*x*/& = Vec_x::Zero()) const override { return Mat_vv::Identity() * std_pos_ * std_pos_; }
+  Mat_vv Q_d(double /*dt*/ = 0.0, const Vec_x /*x*/ & = Vec_x::Zero()) const override { return Mat_vv::Identity() * std_pos_ * std_pos_; }
 
-  private:
-    double std_pos_;
+private:
+  double std_pos_;
 };
-
 
 /** (Nearly) Constant Velocity Model.
  * State x = [pos, vel], where pos and vel are `n_spatial_dim`-dimensional vectors
  * @tparam n_spatial_dim Number of spatial dimensions
  */
-class ConstantVelocity : public interface::DynamicModelLTV<4, X, 2>
-{
+class ConstantVelocity : public interface::DynamicModelLTV<4, X, 2> {
 public:
   static constexpr int N_SPATIAL_DIM = 2;
 
@@ -118,11 +113,7 @@ public:
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
   using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
 
-  using StateNames = SemanticState<
-  StateType::position,
-  StateType::position,
-  StateType::velocity,
-  StateType::velocity>;
+  using StateNames = SemanticState<StateType::position, StateType::position, StateType::velocity, StateType::velocity>;
 
   /**
    * @brief Constant Velocity Model in 2D
@@ -137,7 +128,7 @@ public:
    * @return Mat_xx
    * @note Overriding DynamicModelLTV::A_d
    */
-  Mat_xx A_d(double dt, const Vec_x /*x*/& = Vec_x::Zero()) const override
+  Mat_xx A_d(double dt, const Vec_x /*x*/ & = Vec_x::Zero()) const override
   {
     Mat_ss I = Mat_ss::Identity();
     Mat_ss O = Mat_ss::Zero();
@@ -155,7 +146,7 @@ public:
    * @return Mat_xv
    * @note Overriding DynamicModelLTV::G_d
    */
-  Mat_xv G_d(double dt, const Vec_x /*x*/& = Vec_x::Zero()) const override
+  Mat_xv G_d(double dt, const Vec_x /*x*/ & = Vec_x::Zero()) const override
   {
     Mat_ss I = Mat_ss::Identity();
     Mat_xv G;
@@ -172,7 +163,7 @@ public:
    * @return Mat_xx Process noise covariance
    * @note Overriding DynamicModelLTV::Q_d
    */
-  Mat_vv Q_d(double /*dt*/= 0.0, const Vec_x /*x*/& = Vec_x::Zero()) const override { return Mat_vv::Identity() * std_vel_ * std_vel_; }
+  Mat_vv Q_d(double /*dt*/ = 0.0, const Vec_x /*x*/ & = Vec_x::Zero()) const override { return Mat_vv::Identity() * std_vel_ * std_vel_; }
 
 private:
   double std_vel_;
@@ -185,7 +176,7 @@ private:
 class ConstantAcceleration : public interface::DynamicModelLTV<3 * 2, X, 2 * 2> {
 public:
   static constexpr int N_SPATIAL_DIM = 2;
-  using DynModI = interface::DynamicModelLTV<3 * N_SPATIAL_DIM, X, 2 * N_SPATIAL_DIM>;
+  using DynModI                      = interface::DynamicModelLTV<3 * N_SPATIAL_DIM, X, 2 * N_SPATIAL_DIM>;
   using typename DynModI::Vec_v;
   using typename DynModI::Vec_x;
 
@@ -196,13 +187,8 @@ public:
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
   using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
 
-  using StateNames = SemanticState<
-    StateType::position,
-    StateType::position,
-    StateType::velocity,
-    StateType::velocity,
-    StateType::acceleration,
-    StateType::acceleration>;
+  using StateNames =
+      SemanticState<StateType::position, StateType::position, StateType::velocity, StateType::velocity, StateType::acceleration, StateType::acceleration>;
 
   /** Constant Acceleration Model
    * @param std_vel Standard deviation of velocity
@@ -215,7 +201,7 @@ public:
    * @return Mat_xx
    * @note Overriding DynamicModelLTV::A_d
    */
-  Mat_xx A_d(double dt, const Vec_x /*x*/&) const override
+  Mat_xx A_d(double dt, const Vec_x /*x*/ &) const override
   {
     Mat_ss I = Mat_ss::Identity();
     Mat_ss O = Mat_ss::Zero();
@@ -228,7 +214,7 @@ public:
     return A;
   }
 
-  Mat_xv G_d(double dt, const Vec_x /*x*/& = Vec_x::Zero()) const override
+  Mat_xv G_d(double dt, const Vec_x /*x*/ & = Vec_x::Zero()) const override
   {
     Mat_ss I = Mat_ss::Identity();
     Mat_ss O = Mat_ss::Zero();
@@ -247,7 +233,7 @@ public:
    * @return Mat_xx Process noise covariance
    * @note Overriding DynamicModelLTV::Q_d
    */
-  Mat_vv Q_d(double /*dt*/= 0.0, const Vec_x /*x*/& = Vec_x::Zero()) const override
+  Mat_vv Q_d(double /*dt*/ = 0.0, const Vec_x /*x*/ & = Vec_x::Zero()) const override
   {
     Vec_v D;
     double var_vel = std_vel_ * std_vel_;
@@ -274,13 +260,7 @@ public:
   using typename DynModI::Mat_xv;
   using typename DynModI::Mat_xx;
 
-  using StateNames = SemanticState<
-    StateType::position,
-    StateType::position,
-    StateType::velocity,
-    StateType::velocity,
-    StateType::turn_rate>;
-    
+  using StateNames = SemanticState<StateType::position, StateType::position, StateType::velocity, StateType::velocity, StateType::turn_rate>;
 
   /** (Nearly) Coordinated Turn Model in 2D. (Nearly constant speed, nearly constant turn rate)
    * State = [x, y, x_dot, y_dot, omega]
@@ -294,7 +274,7 @@ public:
    * @return Mat_xx
    * @note Overriding DynamicModelCTLTV::A_c
    */
-  Mat_xx A_c(const Vec_x /*x*/&x) const override
+  Mat_xx A_c(const Vec_x /*x*/ &x) const override
   {
     // clang-format off
     return Mat_xx{
@@ -312,7 +292,7 @@ public:
    * return Mat_xv Process noise matrix
    * @note Overriding DynamicModelCTLTV::G_c
    */
-  Mat_xv G_c(const Vec_x /*x*/& = Vec_x::Zero()) const override
+  Mat_xv G_c(const Vec_x /*x*/ & = Vec_x::Zero()) const override
   {
     // clang-format off
     return Mat_xv {
@@ -330,7 +310,7 @@ public:
    * @return Mat_xx Process noise covariance
    * @note Overriding DynamicModelCTLTV::Q_c
    */
-  Mat_vv Q_c(const Vec_x /*x*/& = Vec_x::Zero()) const override
+  Mat_vv Q_c(const Vec_x /*x*/ & = Vec_x::Zero()) const override
   {
     double var_vel  = std_vel_ * std_vel_;
     double var_turn = std_turn_ * std_turn_;

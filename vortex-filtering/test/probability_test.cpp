@@ -151,11 +151,11 @@ TEST(GaussianMixture, stdVectorConstructor)
   using vortex::prob::Gauss2d;
   std::vector<double> weights{1, 2};
   std::vector<Gauss2d> gaussians{Gauss2d::Standard(), Gauss2d::Standard()};
-  
+
   vortex::prob::GaussianMixture<2> mixture{weights, gaussians};
 
   EXPECT_EQ(mixture.size(), 2u);
-  
+
   Eigen::VectorXd weights_eigen(2);
   weights_eigen << 1, 2;
   EXPECT_EQ(mixture.weights(), weights_eigen);
@@ -167,7 +167,7 @@ TEST(GaussianMixture, stdArrayConstructor)
   using vortex::prob::Gauss2d;
   std::array<double, 2> weights{1, 2};
   std::array<Gauss2d, 2> gaussians{Gauss2d::Standard(), Gauss2d::Standard()};
-  
+
   vortex::prob::GaussianMixture<2> mixture{weights, gaussians};
 
   EXPECT_EQ(mixture.size(), 2u);
@@ -184,8 +184,8 @@ TEST(GaussianMixture, eigenVectorConstructor)
   using vortex::prob::Gauss2d;
   Eigen::VectorXd weights(2);
   weights << 1, 2;
-  std::vector<Gauss2d> gaussians{Gauss2d::Standard(), Gauss2d::Standard()}; 
-  
+  std::vector<Gauss2d> gaussians{Gauss2d::Standard(), Gauss2d::Standard()};
+
   vortex::prob::GaussianMixture<2> mixture{weights, gaussians};
 
   EXPECT_EQ(mixture.size(), 2u);

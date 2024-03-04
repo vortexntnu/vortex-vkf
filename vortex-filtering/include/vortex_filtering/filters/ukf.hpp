@@ -35,7 +35,7 @@ public:
   static constexpr int N_DIM_v = DynModT::DynModI::N_DIM_v;
   static constexpr int N_DIM_w = SensModT::SensModI::N_DIM_w;
 
-  using DynModTPtr = std::shared_ptr<DynModT>;
+  using DynModTPtr  = std::shared_ptr<DynModT>;
   using SensModTPtr = std::shared_ptr<SensModT>;
 
   using Vec_x = Eigen::Vector<double, N_DIM_x>;
@@ -227,7 +227,8 @@ public:
    * @return Gauss_x Updated state estimate
    * @note Sigma points are generated from the predicted state estimate instead of the previous state estimate as is done in the 'step' method.
    */
-  static Gauss_x update(const DynModTPtr &dyn_mod, const SensModTPtr &sens_mod, double dt, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
+  static Gauss_x update(const DynModTPtr &dyn_mod, const SensModTPtr &sens_mod, double dt, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred,
+                        const Vec_z &z_meas)
   {
     // Generate sigma points from the predicted state estimate
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_pred);
