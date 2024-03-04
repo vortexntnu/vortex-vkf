@@ -91,11 +91,8 @@ public:
 
   using GaussTuple_x = typename ImmModelT::GaussTuple_x;
 
-  ImmFilter()
-  {
-    // Check if the number of states in each dynamic model is the same as the number of states in the sensor model
-    // static_assert(ImmModelT::SAME_DIMS_x, "The number of states in each dynamic model must be the same as the number of states in the sensor model.");
-  }
+  /// No need to instantiate this class. All methods are static.
+  ImmFilter() = delete;
 
   /**
    * Calculates the mixing probabilities for the IMM filter, following step 1 in (6.4.1) in the book.
@@ -120,11 +117,12 @@ public:
    * @brief Calculate moment-based approximation, following step 2 in (6.4.1) in the book
    * @param x_est_prev Gaussians from previous time step
    * @param mixing_probs Mixing probabilities
+   * @param states_min_max The minimum and maximum value each state can take
    * @return tuple of moment-based predictions, i.e. update each model based on the state of all of the other models.
    */
-  static GaussTuple_x mixing(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs)
+  static GaussTuple_x mixing(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs, const models::StateMap &states_min_max)
   {
-    return mix_components(x_est_prevs, mixing_probs, std::make_index_sequence<N_MODELS>{});
+    return mix_components(x_est_prevs, mixing_probs, states_min_max, std::make_index_sequence<N_MODELS>{});
   }
 
   /**
@@ -264,27 +262,28 @@ private:
   }
 
   template <size_t... model_indices>
-  static std::tuple<Gauss_x<model_indices>...> mix_components(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs, std::integer_sequence<size_t, model_indices...>)
+  static std::tuple<Gauss_x<model_indices>...> mix_components(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs, const models::StateMap &states_min_max, std::integer_sequence<size_t, model_indices...>)
   {
-    return {mix_one_component<model_indices>(x_est_prevs, mixing_probs.col(model_indices))...};
+    return {mix_one_component<model_indices>(x_est_prevs, mixing_probs.col(model_indices), states_min_max)...};
   }
 
   template <size_t target_model_index>
-  static Gauss_x<target_model_index> mix_one_component(const GaussTuple_x &x_est_prevs, const Vec_n &weights)
+  static Gauss_x<target_model_index> mix_one_component(const GaussTuple_x &x_est_prevs, const Vec_n &weights, const models::StateMap &states_min_max)
   {
-    using GaussMix_x        = prob::GaussianMixture<ImmModelT::N_DIM_x(target_model_index)>;
-    auto moment_based_preds = fit_models<target_model_index>(x_est_prevs, std::make_index_sequence<N_MODELS>{});
-    return GaussMix_x(weights, moment_based_preds).reduce();
+    constexpr size_t N_DIM_x = ImmModelT::N_DIM_x(target_model_index);
+    using GaussMix_x         = prob::GaussianMixture<N_DIM_x>;
+    auto moment_based_preds  = fit_models<target_model_index>(x_est_prevs, states_min_max, std::make_index_sequence<N_MODELS>{});
+    return GaussMix_x{weights, moment_based_preds}.reduce();
   }
 
-  template <size_t target_model_index, size_t... model_indices>
-  static std::array<Gauss_x<target_model_index>, N_MODELS> fit_models(const GaussTuple_x &x_est_prevs, std::integer_sequence<size_t, model_indices...>)
+  template <size_t target_model_index, size_t... mixing_model_indices>
+  static std::array<Gauss_x<target_model_index>, N_MODELS> fit_models(const GaussTuple_x &x_est_prevs, const models::StateMap &states_min_max, std::integer_sequence<size_t, mixing_model_indices...>)
   {
-    return {fit_one_model<target_model_index, model_indices>(x_est_prevs)...};
+    return {fit_one_model<target_model_index, mixing_model_indices>(x_est_prevs, states_min_max)...};
   }
 
   /**
-   * @brief Fit the mixing_model in case it doesn't have the same dimensions or states as the target model 
+   * @brief Fit the size of the mixing_model in case it doesn't have the same dimensions or states as the target model 
    * 
    * @tparam target_model_index The model to fit to
    * @tparam mixing_model_index The model to fit
@@ -292,32 +291,44 @@ private:
    * @return Gauss_x<target_model_index> 
    */
   template <size_t target_model_index, size_t mixing_model_index>
-  static Gauss_x<target_model_index> fit_one_model(const GaussTuple_x &x_est_prevs)
+  static Gauss_x<target_model_index> fit_one_model(const GaussTuple_x &x_est_prevs, const models::StateMap &states_min_max)
   {
-      constexpr size_t N_DIM_x = ImmModelT::N_DIM_x(target_model_index);
-      using Vec_x = Eigen::Vector<double, N_DIM_x>;
-      using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-      // using Gauss_x = prob::Gauss<N_DIM_x>;
-      using Uniform_x = prob::Uniform<N_DIM_x>;
-      using MatchedVec = Eigen::Vector<bool, N_MODELS>;
+    if constexpr (target_model_index == mixing_model_index) {
+      return std::get<mixing_model_index>(x_est_prevs);
+    }
+    
+    constexpr auto target_state_names = ImmModelT::template get_state_names<target_model_index>();
+    constexpr auto mixing_state_names = ImmModelT::template get_state_names<mixing_model_index>();
 
-      auto target_state_names = ImmModelT::template get_state_names<target_model_index>();
-      auto mixing_state_names = ImmModelT::template get_state_names<mixing_model_index>();
+    if constexpr (target_state_names.size() == mixing_state_names.size() && target_state_names == mixing_state_names) {
+      return std::get<mixing_model_index>(x_est_prevs);
+    }
 
-      MatchedVec matching_states = Eigen::Map<MatchedVec>(matching_state_names(target_state_names, mixing_state_names).data());
+    constexpr size_t N_DIM_x = ImmModelT::N_DIM_x(target_model_index);
+    using Vec_x = Eigen::Vector<double, N_DIM_x>;
+    using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
+    // using Gauss_x = prob::Gauss<N_DIM_x>;
+    using Uniform = prob::Uniform<1>;
+    using MatchedVec = Eigen::Vector<bool, N_MODELS>;
 
-      Vec_x x = std::get<mixing_model_index>(x_est_prevs).mean().cwiseProduct(matching_states.template cast<double>());
-      Mat_xx P = std::get<mixing_model_index>(x_est_prevs).cov().cwiseProduct((matching_states * matching_states.transpose()).template cast<double>());
 
-      for (size_t i = 0; i < N_DIM_x; i++) {
-          if (!matching_states(i)) {
-              Uniform_x initial_estimate{-Vec_x::Ones(), Vec_x::Ones()};
-              x(i) = initial_estimate.mean()(i);
-              P(i, i) = initial_estimate.cov()(i, i);
-          }
+    MatchedVec matching_states = Eigen::Map<MatchedVec>(matching_state_names(target_state_names, mixing_state_names).data());
+
+    Vec_x x = std::get<mixing_model_index>(x_est_prevs).mean().cwiseProduct(matching_states.template cast<double>());
+    Mat_xx P = std::get<mixing_model_index>(x_est_prevs).cov().cwiseProduct((matching_states * matching_states.transpose()).template cast<double>());
+
+    for (size_t i = 0; i < N_DIM_x; i++) {
+      if (!matching_states(i)) {
+        models::StateType stateName = ImmModelT::template get_state_name<target_model_index>(i);
+        double min = states_min_max.at(stateName).min;
+        double max = states_min_max.at(stateName).max;
+        Uniform initial_estimate{min, max};
+        x(i) = initial_estimate.mean();
+        P(i, i) = initial_estimate.cov();
       }
+    }
 
-      return {x, P};
+    return {x, P};
   }
 
 

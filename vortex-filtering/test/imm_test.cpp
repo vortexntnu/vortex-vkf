@@ -187,14 +187,11 @@ TEST(ImmFilter, init)
 TEST(ImmFilter, calculateMixingProbs)
 {
   using vortex::models::ConstantPosition;
-  using namespace vortex::prob;
+
+  Eigen::Matrix2d jump_mat{{0, 1}, {1, 0}};
+  Eigen::Vector2d hold_times{1, 1};
 
   double dt = 1.0;
-
-  Eigen::Matrix2d jump_mat;
-  jump_mat << 0, 1, 1, 0;
-  Eigen::Vector2d hold_times;
-  hold_times << 1, 1;
   double std = 1.0;
 
   using ImmModelT = vortex::models::ImmModel<ConstantPosition, ConstantPosition>;
@@ -204,17 +201,17 @@ TEST(ImmFilter, calculateMixingProbs)
 
   using ImmFilterT = vortex::filter::ImmFilter<vortex::models::IdentitySensorModel<2, 1>, ImmModelT>;
 
-  Eigen::Vector2d model_weights;
+  Eigen::Vector2d model_weights = {0.5, 0.5};
 
-  model_weights << 0.5, 0.5;
   // Since the weights are equal, the mixing probabilities should be equal to the discrete time Markov chain
   Eigen::Matrix2d mixing_probs_true = imm_model.get_pi_mat_d(dt);
   Eigen::Matrix2d mixing_probs      = ImmFilterT::calculate_mixing_probs(imm_model.get_pi_mat_d(dt), model_weights);
   EXPECT_EQ(isApproxEqual(mixing_probs, mixing_probs_true, 1e-6), true);
 
   // When all of the weight is in the first model, the probability that the previous model was the second model should be 0
-  model_weights << 1, 0;
-  mixing_probs_true << 1, 1, 0, 0;
+  model_weights = {1, 0};
+  mixing_probs_true = Eigen::Matrix2d{{1, 1}, {0, 0}};
+
   mixing_probs = ImmFilterT::calculate_mixing_probs(imm_model.get_pi_mat_d(dt), model_weights);
   EXPECT_EQ(isApproxEqual(mixing_probs, mixing_probs_true, 1e-6), true);
 }
@@ -222,32 +219,40 @@ TEST(ImmFilter, calculateMixingProbs)
 TEST(ImmFilter, mixing)
 {
   using vortex::models::ConstantPosition;
-  using namespace vortex::prob;
+  using vortex::prob::Gauss2d;
 
-  double dt = 1;
 
-  Eigen::Matrix2d jump_mat;
-  jump_mat << 0, 1, 1, 0;
-  Eigen::Vector2d hold_times;
-  hold_times << 1, 1;
-  double high_std = 10;
-  double low_std  = 0.1;
+  Eigen::Matrix2d jump_mat{{0, 1}, {1, 0}};
+  Eigen::Vector2d hold_times{1, 1};
+
+  double dt      = 1;
+  double pos_std = 1;
 
   using ImmModelT = vortex::models::ImmModel<ConstantPosition, ConstantPosition>;
-  ImmModelT imm_model(jump_mat, hold_times, {high_std}, {low_std});
+  ImmModelT imm_model(jump_mat, hold_times, {pos_std}, {pos_std});
 
   auto sensor_model = std::make_shared<vortex::models::IdentitySensorModel<2, 1>>(dt);
 
   using ImmFilterT = vortex::filter::ImmFilter<vortex::models::IdentitySensorModel<2, 1>, ImmModelT>;
 
-  Eigen::Vector2d model_weights;
-  model_weights << 0.5, 0.5;
+  Eigen::Vector2d model_weights{0.5, 0.5};
 
-  std::tuple<Gauss2d, Gauss2d> x_est_prevs = {Gauss2d::Standard(), Gauss2d::Standard()};
-  auto [pos1, pos2] = ImmFilterT::mixing(x_est_prevs, imm_model.get_pi_mat_d(dt));
+  Gauss2d x_est_prev_1{Gauss2d::Standard()};
+  Gauss2d x_est_prev_2{{1, 0}, Eigen::Matrix2d::Identity() * 100};
 
-  // The moment based approximation should be closer to the high std model
-  EXPECT_GT(pos1.cov().trace(), pos2.cov().trace());
+  std::tuple<Gauss2d, Gauss2d> x_est_prevs{x_est_prev_1, x_est_prev_2};
+  vortex::models::StateMap state_map{{vortex::models::StateType::position, {-10, 10}}};
+
+  auto [x_est_1, x_est_2] = ImmFilterT::mixing(x_est_prevs, imm_model.get_pi_mat_d(dt), state_map);
+
+  // The high uncertainty in the second model should make it's position estimate move more towards the first 
+  // model than the first model moves towards the second
+  std::cout << "x_est_prev_1:\n" << x_est_prev_1 << std::endl;
+  std::cout << "x_est_prev_2:\n" << x_est_prev_2 << std::endl;
+  std::cout << "x_est_1:\n" << x_est_1 << std::endl;
+  std::cout << "x_est_2:\n" << x_est_2 << std::endl;
+
+  EXPECT_LT((x_est_2.mean() - x_est_prev_2.mean()).norm(), (x_est_1.mean() - x_est_prev_1.mean()).norm());
 }
 
 TEST(ImmFilter, modeMatchedFilter)
@@ -256,10 +261,8 @@ TEST(ImmFilter, modeMatchedFilter)
   using namespace vortex::filter;
   using namespace vortex::prob;
 
-  Eigen::Matrix2d jump_mat;
-  jump_mat << 0, 1, 1, 0;
-  Eigen::Vector2d hold_times;
-  hold_times << 1, 1;
+  Eigen::Matrix2d jump_mat{{0, 1}, {1, 0}};
+  Eigen::Vector2d hold_times{1, 1};
 
   using ImmModelT  = ImmModel<ConstantPosition, ConstantVelocity>;
   using ImmFilterT = vortex::filter::ImmFilter<IdentitySensorModel<2, 2>, ImmModelT>;
@@ -268,7 +271,7 @@ TEST(ImmFilter, modeMatchedFilter)
   double std_pos = 0.1;
   double std_vel = 0.1;
 
-  ImmModel imm_model(jump_mat, hold_times, ConstantPosition{std_pos}, ConstantVelocity{std_vel});
+  ImmModelT imm_model(jump_mat, hold_times, {std_pos}, {std_vel});
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 
@@ -287,7 +290,10 @@ TEST(ImmFilter, modeMatchedFilter)
   EXPECT_EQ(ImmFilterT::N_MODELS, z_est_preds.size());
 
   // Expect the second filter to predict closer to the measurement
-  EXPECT_LT((std::get<1>(x_est_upds).mean().head<2>() - z_meas).norm(), (std::get<0>(x_est_upds).mean().head<2>() - z_meas).norm());
+  double dist_to_meas_0 = (std::get<0>(x_est_preds).mean().head<2>() - z_meas).norm();
+  double dist_to_meas_1 = (std::get<1>(x_est_preds).mean().head<2>() - z_meas).norm();
+
+  EXPECT_LT(dist_to_meas_1, dist_to_meas_0);
 }
 
 TEST(ImmFilter, updateProbabilities)

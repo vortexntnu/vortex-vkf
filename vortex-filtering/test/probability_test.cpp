@@ -193,3 +193,51 @@ TEST(GaussianMixture, eigenVectorConstructor)
   EXPECT_EQ(mixture.gaussians().at(0), gaussians.at(0));
   EXPECT_EQ(mixture.gaussians().at(1), gaussians.at(1));
 }
+
+TEST(GaussianMixture, mixTwoEqualWeightEqualCovarianceComponents)
+{
+  using vortex::prob::Gauss2d;
+  std::vector<double> weights{0.5, 0.5};
+
+  Gauss2d gaussian1{{0, 0}, Eigen::Matrix2d::Identity()};
+  Gauss2d gaussian2{{10, 0}, Eigen::Matrix2d::Identity()};
+  std::vector<Gauss2d> gaussians{gaussian1, gaussian2};
+
+  Eigen::Vector2d center{5, 0};
+
+  vortex::prob::GaussianMixture<2> mixture{weights, gaussians};
+
+  EXPECT_TRUE(isApproxEqual(mixture.reduce().mean(), center, 1e-15));
+}
+
+TEST(GaussianMixture, mixTwoEqualWeightDifferentCovarianceComponents)
+{
+  using vortex::prob::Gauss2d;
+  std::vector<double> weights{0.5, 0.5};
+
+  Gauss2d gaussian1{{0, 0}, Eigen::Matrix2d::Identity()};
+  Gauss2d gaussian2{{10, 0}, Eigen::Matrix2d::Identity() * 2};
+  std::vector<Gauss2d> gaussians{gaussian1, gaussian2};
+
+  vortex::prob::GaussianMixture<2> mixture{weights, gaussians};
+
+  Eigen::Vector2d center{5, 0};
+
+  EXPECT_TRUE(isApproxEqual(mixture.reduce().mean(), center, 1e-15));
+}
+
+TEST(GaussianMixture, mixTwoDifferentWeightEqualCovarianceComponents)
+{
+  using vortex::prob::Gauss2d;
+  std::vector<double> weights{0.25, 0.75};
+
+  Gauss2d gaussian1{{0, 0}, Eigen::Matrix2d::Identity()};
+  Gauss2d gaussian2{{10, 0}, Eigen::Matrix2d::Identity()};
+  std::vector<Gauss2d> gaussians{gaussian1, gaussian2};
+
+  vortex::prob::GaussianMixture<2> mixture{weights, gaussians};
+
+  Eigen::Vector2d center{7.5, 0};
+
+  EXPECT_TRUE(isApproxEqual(mixture.reduce().mean(), center, 1e-15));
+}

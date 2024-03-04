@@ -44,13 +44,6 @@ public:
     return sample;
   }
 
-  Vec_n sample() const 
-  {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    return sample(gen);
-  }
-
   Vec_n mean() const { return (upper_ + lower_) / 2; }
   Mat_nn cov() const 
   { 
@@ -69,6 +62,41 @@ public:
   private:
     Vec_n lower_;
     Vec_n upper_;
+};
+
+template<>
+class Uniform<1> {
+public:
+  using Vec_1  = Eigen::Vector<double, 1>;
+  using Mat_11 = Eigen::Matrix<double, 1, 1>;
+
+  constexpr Uniform(double lower, double upper)
+      : lower_(lower), upper_(upper)
+  {}
+
+  double pr(double x) const
+  {
+    if (x < lower_ || x > upper_) {
+      return 0;
+    }
+    return 1.0 / (upper_ - lower_);
+  }
+
+  double sample(std::mt19937 &gen) const
+  {
+    std::uniform_real_distribution<double> dist(lower_, upper_);
+    return dist(gen);
+  }
+
+  double mean() const { return (upper_ + lower_) / 2; }
+  double cov() const { return (upper_ - lower_) * (upper_ - lower_) / 12; }
+
+  double lower() const { return lower_; }
+  double upper() const { return upper_; }
+
+private:
+  double lower_;
+  double upper_;
 };
 
 } // namespace vortex::prob

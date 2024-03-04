@@ -13,6 +13,7 @@
 #include <memory>
 #include <tuple>
 #include <array>
+#include <map>
 #include <algorithm>
 #include <type_traits>
 
@@ -69,7 +70,13 @@ constexpr std::array<bool, N> matching_state_names(const std::array<T, N>& array
     return matches;
 }
 
-  
+// struct for min and max val
+struct StateMinMax
+{
+  double min;
+  double max;
+};
+using StateMap = std::map<StateType, StateMinMax>;
 
 /**
  * @brief Container class for interacting multiple models.
@@ -205,6 +212,7 @@ public:
 
   template <size_t model_index> static constexpr std::array<StateType, N_DIM_x(model_index)> get_state_names() { return DynModT<model_index>::StateNames::get_names(); }
 
+  template <size_t model_index> static constexpr StateType get_state_name(size_t i) { return DynModT<model_index>::StateNames::get_name(i); }
 
 private:
   DynModPtrTuple models_;
