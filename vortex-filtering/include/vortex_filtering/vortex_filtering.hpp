@@ -27,6 +27,7 @@
 // Utils
 #include <vortex_filtering/utils/ellipse.hpp>
 #include <vortex_filtering/utils/plotting.hpp>
+#include <vortex_filtering/utils/printers.hpp>
 
 // Probability
 #include <vortex_filtering/probability/gaussian_mixture.hpp>

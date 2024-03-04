@@ -67,9 +67,6 @@ public:
 template<>
 class Uniform<1> {
 public:
-  using Vec_1  = Eigen::Vector<double, 1>;
-  using Mat_11 = Eigen::Matrix<double, 1, 1>;
-
   constexpr Uniform(double lower, double upper)
       : lower_(lower), upper_(upper)
   {}

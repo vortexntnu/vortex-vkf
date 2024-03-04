@@ -8,6 +8,7 @@
 
 #include <vortex_filtering/filters/imm_filter.hpp>
 #include <vortex_filtering/models/imm_model.hpp>
+#include <vortex_filtering/utils/printers.hpp>
 
 #include "gtest_assertions.hpp"
 
@@ -216,11 +217,10 @@ TEST(ImmFilter, calculateMixingProbs)
   EXPECT_EQ(isApproxEqual(mixing_probs, mixing_probs_true, 1e-6), true);
 }
 
-TEST(ImmFilter, mixing)
+TEST(ImmFilter, mixing_two_of_the_same_model)
 {
   using vortex::models::ConstantPosition;
   using vortex::prob::Gauss2d;
-
 
   Eigen::Matrix2d jump_mat{{0, 1}, {1, 0}};
   Eigen::Vector2d hold_times{1, 1};
@@ -241,9 +241,8 @@ TEST(ImmFilter, mixing)
   Gauss2d x_est_prev_2{{1, 0}, Eigen::Matrix2d::Identity() * 100};
 
   std::tuple<Gauss2d, Gauss2d> x_est_prevs{x_est_prev_1, x_est_prev_2};
-  vortex::models::StateMap state_map{{vortex::models::StateType::position, {-10, 10}}};
 
-  auto [x_est_1, x_est_2] = ImmFilterT::mixing(x_est_prevs, imm_model.get_pi_mat_d(dt), state_map);
+  auto [x_est_1, x_est_2] = ImmFilterT::mixing(x_est_prevs, imm_model.get_pi_mat_d(dt));
 
   // The high uncertainty in the second model should make it's position estimate move more towards the first 
   // model than the first model moves towards the second
@@ -253,6 +252,48 @@ TEST(ImmFilter, mixing)
   std::cout << "x_est_2:\n" << x_est_2 << std::endl;
 
   EXPECT_LT((x_est_2.mean() - x_est_prev_2.mean()).norm(), (x_est_1.mean() - x_est_prev_1.mean()).norm());
+}
+
+TEST(ImmFilter, mixing_two_different_models)
+{
+  using namespace vortex::models;
+  using namespace vortex::filter;
+  using namespace vortex::prob;
+
+  Eigen::Matrix2d jump_mat{{0, 1}, {1, 0}};
+  Eigen::Vector2d hold_times{1, 1};
+
+  using ImmModelT  = ImmModel<ConstantPosition, ConstantVelocity>;
+  using ImmFilterT = vortex::filter::ImmFilter<IdentitySensorModel<2, 2>, ImmModelT>;
+
+  double dt      = 1;
+  double std_pos = 0.1;
+  double std_vel = 0.1;
+
+  ImmModelT imm_model(jump_mat, hold_times, {std_pos}, {std_vel});
+
+  auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
+
+  Gauss2d x_est_prev_1{Gauss2d::Standard()};
+  Gauss4d x_est_prev_2{{1, 0, 0, 0}, Eigen::Matrix4d::Identity() * 100};
+
+  std::tuple<Gauss2d, Gauss4d> x_est_prevs{x_est_prev_1, x_est_prev_2};
+
+  // clang-format off
+  using ST = vortex::models::StateType;
+  vortex::models::StateMap states_min_max{
+    {ST::velocity, {-100 , 100}}
+  };
+  // clang-format on
+
+  auto [x_est_1, x_est_2] = ImmFilterT::mixing(x_est_prevs, imm_model.get_pi_mat_d(dt), states_min_max);
+
+  std::cout << "x_est_prev_1:\n" << x_est_prev_1 << std::endl;
+  std::cout << "x_est_prev_2:\n" << x_est_prev_2 << std::endl;
+  std::cout << "x_est_1:\n" << x_est_1 << std::endl;
+  std::cout << "x_est_2:\n" << x_est_2 << std::endl;
+
+  // EXPECT_LT((x_est_2.mean().head<2>() - x_est_prev_2.mean().head<2>()).norm(), (x_est_1.mean() - x_est_prev_1).norm());
 }
 
 TEST(ImmFilter, modeMatchedFilter)

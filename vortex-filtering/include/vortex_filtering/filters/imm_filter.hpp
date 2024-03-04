@@ -11,6 +11,8 @@
 
 #include <memory>
 #include <tuple>
+#include <vector>
+#include <array>
 
 #include <vortex_filtering/filters/ekf.hpp>
 #include <vortex_filtering/filters/ukf.hpp>
@@ -25,34 +27,6 @@
 #include <vortex_filtering/models/sensor_models.hpp>
 
 namespace vortex::filter {
-
-  namespace detail
-{
-  template<typename ...Ts, size_t ...Is>
-  std::ostream & println_tuple_impl(std::ostream& os, std::tuple<Ts...> tuple, std::index_sequence<Is...>)
-  {
-    static_assert(sizeof...(Is)==sizeof...(Ts),"Indices must have same number of elements as tuple types!");
-    static_assert(sizeof...(Ts)>0, "Cannot insert empty tuple into stream.");
-    size_t last = sizeof...(Ts)-1; // assuming index sequence 0,...,N-1
-    
-    return ((os << std::get<Is>(tuple) << (Is != last ? "\r\n" : "")),...);
-  }
-}
-
-template<typename ...Ts>
-std::ostream & operator<<(std::ostream& os, const std::tuple<Ts...> & tuple) {
-    return detail::println_tuple_impl(os, tuple, std::index_sequence_for<Ts...>{});
-}
-
-template<typename T, std::size_t N>
-std::ostream& operator<<(std::ostream& os, const std::array<T, N>& arr) {
-  size_t last = N - 1;
-  for (std::size_t i = 0; i < N; ++i) {
-    os << arr[i] << (i != last ? "\r\n" : "");
-  }
-  return os;
-}
-
 
 
 
@@ -120,7 +94,7 @@ public:
    * @param states_min_max The minimum and maximum value each state can take
    * @return tuple of moment-based predictions, i.e. update each model based on the state of all of the other models.
    */
-  static GaussTuple_x mixing(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs, const models::StateMap &states_min_max)
+  static GaussTuple_x mixing(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs, const models::StateMap &states_min_max = {})
   {
     return mix_components(x_est_prevs, mixing_probs, states_min_max, std::make_index_sequence<N_MODELS>{});
   }
@@ -156,33 +130,6 @@ public:
     return step_kalman_filters(imm_model, sensor_model, dt, moment_based_preds, z_meas, std::make_index_sequence<N_MODELS>{});
   }
 
-  /**
-   * @brief Calculate the Kalman filter outputs for one mode. If the model isn't LTV, use the ukf instead of the ekf.
-   * @tparam i Index of model
-   * @param imm_model The IMM model.
-   * @param sensor_model The sensor model.
-   * @param dt double Time step
-   * @param x_est_prev Moment-based prediction
-   * @param z_meas Vec_z Measurement
-   * @return Tuple of updated state, predicted state, predicted measurement
-   */
-  template <size_t i>
-  static std::tuple<Gauss_x<i>, Gauss_x<i>, Gauss_z> step_kalman_filter(const DynModTPtr<i> &dyn_model, const SensModTPtr &sensor_model, double dt,
-                                                                  const Gauss_x<i> &x_est_prev, const Vec_z &z_meas)
-  {
-    if constexpr (models::concepts::DynamicModelLTV<DynModT<i>> && models::concepts::SensorModelLTV<SensModT>) {
-      using ImmSensMod = models::ImmSensorModelLTV<ImmModelT::N_DIM_x(i), SensModT>;
-      using EKF = filter::EKF<DynModI<i>, ImmSensMod>;
-      auto imm_sens_mod = std::make_shared<ImmSensMod>(sensor_model);
-      return EKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
-    }
-    else {
-      using ImmSensMod = models::ImmSensorModel<ImmModelT::N_DIM_x(i), SensModT>;
-      using UKF = filter::UKF<DynModI<i>, ImmSensMod>;
-      auto imm_sens_mod = std::make_shared<ImmSensMod>(sensor_model);
-      return UKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
-    }
-  }
 
   /**
    * @brief Update the mode probabilites based on how well the predictions matched the measurements.
@@ -261,6 +208,34 @@ private:
     return {x_est_upds, x_est_preds, z_est_preds};
   }
 
+    /**
+   * @brief Calculate the Kalman filter outputs for one mode. If the model isn't LTV, use the ukf instead of the ekf.
+   * @tparam i Index of model
+   * @param imm_model The IMM model.
+   * @param sensor_model The sensor model.
+   * @param dt double Time step
+   * @param x_est_prev Moment-based prediction
+   * @param z_meas Vec_z Measurement
+   * @return Tuple of updated state, predicted state, predicted measurement
+   */
+  template <size_t i>
+  static std::tuple<Gauss_x<i>, Gauss_x<i>, Gauss_z> step_kalman_filter(const DynModTPtr<i> &dyn_model, const SensModTPtr &sensor_model, double dt,
+                                                                  const Gauss_x<i> &x_est_prev, const Vec_z &z_meas)
+  {
+    if constexpr (models::concepts::DynamicModelLTV<DynModT<i>> && models::concepts::SensorModelLTV<SensModT>) {
+      using ImmSensMod = models::ImmSensorModelLTV<ImmModelT::N_DIM_x(i), SensModT>;
+      using EKF = filter::EKF<DynModI<i>, ImmSensMod>;
+      auto imm_sens_mod = std::make_shared<ImmSensMod>(sensor_model);
+      return EKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
+    }
+    else {
+      using ImmSensMod = models::ImmSensorModel<ImmModelT::N_DIM_x(i), SensModT>;
+      using UKF = filter::UKF<DynModI<i>, ImmSensMod>;
+      auto imm_sens_mod = std::make_shared<ImmSensMod>(sensor_model);
+      return UKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
+    }
+  }
+
   template <size_t... model_indices>
   static std::tuple<Gauss_x<model_indices>...> mix_components(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs, const models::StateMap &states_min_max, std::integer_sequence<size_t, model_indices...>)
   {
@@ -268,18 +243,18 @@ private:
   }
 
   template <size_t target_model_index>
-  static Gauss_x<target_model_index> mix_one_component(const GaussTuple_x &x_est_prevs, const Vec_n &weights, const models::StateMap &states_min_max)
+  static Gauss_x<target_model_index> mix_one_component(const GaussTuple_x &x_est_prevs, const Vec_n &weights, const models::StateMap &states_min_max = {})
   {
     constexpr size_t N_DIM_x = ImmModelT::N_DIM_x(target_model_index);
     using GaussMix_x         = prob::GaussianMixture<N_DIM_x>;
-    auto moment_based_preds  = fit_models<target_model_index>(x_est_prevs, states_min_max, std::make_index_sequence<N_MODELS>{});
+    auto moment_based_preds  = prepare_models<target_model_index>(x_est_prevs, states_min_max, std::make_index_sequence<N_MODELS>{});
     return GaussMix_x{weights, moment_based_preds}.reduce();
   }
 
   template <size_t target_model_index, size_t... mixing_model_indices>
-  static std::array<Gauss_x<target_model_index>, N_MODELS> fit_models(const GaussTuple_x &x_est_prevs, const models::StateMap &states_min_max, std::integer_sequence<size_t, mixing_model_indices...>)
+  static std::array<Gauss_x<target_model_index>, N_MODELS> prepare_models(const GaussTuple_x &x_est_prevs, const models::StateMap &states_min_max, std::integer_sequence<size_t, mixing_model_indices...>)
   {
-    return {fit_one_model<target_model_index, mixing_model_indices>(x_est_prevs, states_min_max)...};
+    return {prepare_mixing_model<target_model_index, mixing_model_indices>(x_est_prevs, states_min_max)...};
   }
 
   /**
@@ -291,49 +266,68 @@ private:
    * @return Gauss_x<target_model_index> 
    */
   template <size_t target_model_index, size_t mixing_model_index>
-  static Gauss_x<target_model_index> fit_one_model(const GaussTuple_x &x_est_prevs, const models::StateMap &states_min_max)
+  static Gauss_x<target_model_index> prepare_mixing_model(const GaussTuple_x &x_est_prevs, const models::StateMap &states_min_max = {})
   {
     if constexpr (target_model_index == mixing_model_index) {
       return std::get<mixing_model_index>(x_est_prevs);
     }
-    
+
+    constexpr size_t N_DIM_target = ImmModelT::N_DIM_x(target_model_index);
+    constexpr size_t N_DIM_mixing = ImmModelT::N_DIM_x(mixing_model_index);
+    constexpr size_t N_DIM_min    = std::min(N_DIM_target, N_DIM_mixing);
+
+    using ST       = models::StateType; 
+    using Vec_x    = Eigen::Vector<double, N_DIM_target>;
+    using Mat_xx   = Eigen::Matrix<double, N_DIM_target, N_DIM_target>;
+    using Uniform  = prob::Uniform<1>;
+    using Vec_x_b  = Eigen::Vector<bool, N_DIM_target>;
+    using Mat_xx_b = Eigen::Matrix<bool, N_DIM_target, N_DIM_target>;
+
     constexpr auto target_state_names = ImmModelT::template get_state_names<target_model_index>();
     constexpr auto mixing_state_names = ImmModelT::template get_state_names<mixing_model_index>();
+    constexpr auto matching_states    = matching_state_names(target_state_names, mixing_state_names);
 
-    if constexpr (target_state_names.size() == mixing_state_names.size() && target_state_names == mixing_state_names) {
-      return std::get<mixing_model_index>(x_est_prevs);
+    constexpr bool all_states_match   = std::apply([](auto... b) { return (b && ...); }, matching_states);
+
+    if constexpr (all_states_match) {
+      Vec_x x  = std::get<mixing_model_index>(x_est_prevs).mean().template head<N_DIM_target>();
+      Mat_xx P = std::get<mixing_model_index>(x_est_prevs).cov().template topLeftCorner<N_DIM_target, N_DIM_target>();
+      return {x, P};
     }
 
-    constexpr size_t N_DIM_x = ImmModelT::N_DIM_x(target_model_index);
-    using Vec_x = Eigen::Vector<double, N_DIM_x>;
-    using Mat_xx = Eigen::Matrix<double, N_DIM_x, N_DIM_x>;
-    // using Gauss_x = prob::Gauss<N_DIM_x>;
-    using Uniform = prob::Uniform<1>;
-    using MatchedVec = Eigen::Vector<bool, N_MODELS>;
+    Vec_x x  = Vec_x::Zero();
+    Mat_xx P = Mat_xx::Zero();
+    x.template head<N_DIM_min>()                     = std::get<mixing_model_index>(x_est_prevs).mean().template head<N_DIM_min>();
+    P.template topLeftCorner<N_DIM_min, N_DIM_min>() = std::get<mixing_model_index>(x_est_prevs).cov().template topLeftCorner<N_DIM_min, N_DIM_min>();
 
 
-    MatchedVec matching_states = Eigen::Map<MatchedVec>(matching_state_names(target_state_names, mixing_state_names).data());
+    Vec_x_b matching_states_vec_b = Eigen::Map<Vec_x_b>(matching_state_names(target_state_names, mixing_state_names).data());
+    Vec_x matching_states_vec     = matching_states_vec_b.template cast<double>();
 
-    Vec_x x = std::get<mixing_model_index>(x_est_prevs).mean().cwiseProduct(matching_states.template cast<double>());
-    Mat_xx P = std::get<mixing_model_index>(x_est_prevs).cov().cwiseProduct((matching_states * matching_states.transpose()).template cast<double>());
+    Mat_xx_b matching_states_mat_b = matching_states_vec_b * matching_states_vec_b.transpose();
+    Mat_xx matching_states_mat     = matching_states_mat_b.template cast<double>();
 
-    for (size_t i = 0; i < N_DIM_x; i++) {
-      if (!matching_states(i)) {
-        models::StateType stateName = ImmModelT::template get_state_name<target_model_index>(i);
-        double min = states_min_max.at(stateName).min;
-        double max = states_min_max.at(stateName).max;
-        Uniform initial_estimate{min, max};
-        x(i) = initial_estimate.mean();
-        P(i, i) = initial_estimate.cov();
+    x = x.cwiseProduct(matching_states_vec);
+    P = P.cwiseProduct(matching_states_mat);
+
+    for (size_t i = 0; i < N_DIM_target; i++) {
+      if (matching_states_vec(i)) continue;
+      ST state_name = ImmModelT::template get_state_name<target_model_index>(i);
+      if (!states_min_max.contains(state_name)) {
+        x(i) = std::get<target_model_index>(x_est_prevs).mean()(i);
+        P(i, i) = std::get<target_model_index>(x_est_prevs).cov()(i, i);
+        continue;
       }
+      double min = states_min_max.at(state_name).min;
+      double max = states_min_max.at(state_name).max;
+      Uniform initial_estimate{min, max};
+      x(i)    = initial_estimate.mean();
+      P(i, i) = initial_estimate.cov();
     }
 
     return {x, P};
   }
 
-
-
-    
 };
 
 } // namespace vortex::filter
