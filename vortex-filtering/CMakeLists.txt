@@ -36,9 +36,6 @@ find_package(Boost REQUIRED
 # === Include directories ===
 include_directories(include)
 
-# === Libraries ===
-add_library(${PROJECT_NAME}_lib INTERFACE)
-
 # = Specify the dependencies
 set(lib_deps
   Eigen3
