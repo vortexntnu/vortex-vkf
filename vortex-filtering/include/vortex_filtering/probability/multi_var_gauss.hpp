@@ -125,5 +125,7 @@ template <int n_dims> using Gauss = MultiVarGauss<n_dims>;
 using Gauss2d = Gauss<2>;
 using Gauss3d = Gauss<3>;
 using Gauss4d = Gauss<4>;
+using Gauss5d = Gauss<5>;
+using Gauss6d = Gauss<6>;
 
 } // namespace vortex::prob

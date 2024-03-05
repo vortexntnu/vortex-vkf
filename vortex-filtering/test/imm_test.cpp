@@ -301,8 +301,6 @@ TEST(ImmFilter, updateProbabilities)
   using namespace vortex::filter;
   using namespace vortex::prob;
 
-  auto const_pos = std::make_shared<ConstantPosition>(1);
-  auto const_vel = std::make_shared<ConstantVelocity>(1);
 
   double dt = 1;
 
@@ -340,32 +338,45 @@ TEST(ImmFilter, step)
   using namespace vortex::filter;
   using namespace vortex::prob;
 
-  auto const_pos = std::make_shared<ConstantPosition>(1);
-  auto const_vel = std::make_shared<ConstantVelocity>(1);
-
   double dt = 1;
+  // clang-format off
+  Eigen::Matrix3d jump_mat{
+    {0, 0.5, 0.5}, 
+    {0.5, 0, 0.5}, 
+    {0.5, 0.5, 0}};
+  // clang-format on
+  Eigen::Vector3d hold_times{10, 10, 10};
+  double std_pos       = 0.1;
+  double std_vel       = 0.1;
+  double std_turn_rate = 0.1;
 
-  Eigen::Matrix2d jump_mat{{0, 1}, {1, 0}};
-  Eigen::Vector2d hold_times{1, 1};
-  double std_pos = 1;
-  double std_vel = 1;
-
-  using ImmModelT  = ImmModel<ConstantPosition, ConstantVelocity>;
+  using ImmModelT  = ImmModel<ConstantPosition, ConstantVelocity, CoordinatedTurn>;
   using ImmFilterT = vortex::filter::ImmFilter<IdentitySensorModel<2, 2>, ImmModelT>;
 
-  vortex::models::ImmModel imm_model{jump_mat,
-                                     hold_times,
-                                     std::tuple{ConstantPosition(std_pos), ConstantPosition::StateNames},
-                                     std::tuple{ConstantVelocity(std_vel), ConstantVelocity::StateNames}};
+  ImmModelT imm_model{jump_mat,
+                      hold_times,
+                      {ConstantPosition(std_pos), ConstantPosition::StateNames},
+                      {ConstantVelocity(std_vel), ConstantVelocity::StateNames},
+                      {CoordinatedTurn(std_vel, std_turn_rate), CoordinatedTurn::StateNames}};
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 
-  Eigen::Vector2d model_weights{0.5, 0.5};
+  Eigen::Vector3d model_weights{1/3.0, 1/3.0, 1/3.0};
 
-  std::tuple<Gauss2d, Gauss4d> x_est_prevs = {Gauss2d::Standard(), {{0, 0, 0.9, 0}, Eigen::Matrix4d::Identity()}};
-  Eigen::Vector2d z_meas                   = {1, 0};
+  std::tuple<Gauss2d, Gauss4d, Gauss5d> x_est_prevs = {
+      Gauss2d::Standard(), {{0, 0, 0.9, 0}, Eigen::Matrix4d::Identity()}, {{0, 0, 0.9, 0, 1}, Eigen::Matrix<double, 5, 5>::Identity()}};
+  Eigen::Vector2d z_meas = {1, 0};
 
-  auto [weights_upd, x_est_upds, z_est_preds, x_est_preds] = ImmFilterT::step(imm_model, sensor_model, dt, x_est_prevs, z_meas, model_weights);
+  StateMap states_min_max{
+      {StateType::velocity, {-10, 10}},
+      {StateType::turn_rate, {-M_PI, M_PI}}};
+
+  auto [weights_upd, x_est_upds, z_est_preds, x_est_preds] = ImmFilterT::step(imm_model, sensor_model, dt, x_est_prevs, z_meas, model_weights, states_min_max);
+
+  for (int i = 2; i < 50; i++) {
+    z_meas << i, 0;
+    std::tie(weights_upd, x_est_upds, z_est_preds, x_est_preds) = ImmFilterT::step(imm_model, sensor_model, dt, x_est_upds, z_meas, weights_upd, states_min_max);
+  }
 
   std::cout << "weights_upd:\n" << weights_upd << std::endl;
   std::cout << "x_est_upds:\n" << x_est_upds << std::endl;
@@ -376,4 +387,8 @@ TEST(ImmFilter, step)
   EXPECT_EQ(ImmFilterT::N_MODELS, std::tuple_size<decltype(x_est_preds)>::value);
   EXPECT_EQ(ImmFilterT::N_MODELS, z_est_preds.size());
   EXPECT_EQ(ImmFilterT::N_MODELS, weights_upd.size());
+
+  // Expect the constant velocity model to have the highest probability
+  EXPECT_GT(weights_upd(1), weights_upd(0));
+  EXPECT_GT(weights_upd(1), weights_upd(2));
 }

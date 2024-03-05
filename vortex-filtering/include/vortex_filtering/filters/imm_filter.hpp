@@ -145,15 +145,16 @@ public:
    * @param z_meas Vec_z Measurement
    * @param states_min_max The minimum and maximum value each state can take (optional, but can lead to better performance)
    */
-  static std::tuple<Vec_n, GaussTuple_x, GaussArr_z, GaussTuple_x> step(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt, const GaussTuple_x &x_est_prevs,
-                                              const Vec_n &weights, const Vec_z &z_meas, const models::StateMap &states_min_max = {})
+  static std::tuple<Vec_n, GaussTuple_x, GaussArr_z, GaussTuple_x> step(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
+                                                                        const GaussTuple_x &x_est_prevs, const Vec_z &z_meas, const Vec_n &weights,
+                                                                        const models::StateMap &states_min_max = {})
   {
     Mat_nn transition_matrix = imm_model.get_pi_mat_d(dt);
 
     Mat_nn mixing_probs                         = calculate_mixing_probs(transition_matrix, weights);
     GaussTuple_x moment_based_preds             = mixing(x_est_prevs, mixing_probs, imm_model.get_all_state_names(), states_min_max);
     auto [x_est_upds, x_est_preds, z_est_preds] = mode_matched_filter(imm_model, sensor_model, dt, moment_based_preds, z_meas);
-    Vec_n weights_upd                           = update_probabilities(transition_matrix, z_est_preds, z_meas, weights);
+    Vec_n weights_upd                           = update_probabilities(mixing_probs, z_est_preds, z_meas, weights);
 
     return {weights_upd, x_est_upds, z_est_preds, x_est_preds};
   }
@@ -260,7 +261,7 @@ private:
    * @param x_est_prevs Gaussians from previous time step
    * @param state_names Names of the states
    * @param states_min_max The minimum and maximum value each state can take
-   * @return std::array<Gauss_x<target_model_index>, N_MODELS> 
+   * @return std::array<Gauss_x<target_model_index>, N_MODELS>
    */
   template <size_t target_model_index, size_t... mixing_model_indices>
   static std::array<Gauss_x<target_model_index>, N_MODELS> prepare_models(const GaussTuple_x &x_est_prevs, const ImmModelT::StateNames &state_names,
@@ -270,7 +271,7 @@ private:
     return {prepare_mixing_model<target_model_index, mixing_model_indices>(x_est_prevs, state_names, states_min_max)...};
   }
 
-  /** Fit the size of the mixing_model in case it doesn't have the same dimensions or states as the target model. 
+  /** Fit the size of the mixing_model in case it doesn't have the same dimensions or states as the target model.
    * @tparam target_model_index The model to mix the other models into
    * @tparam mixing_model_index The model to mix into the target model
    * @param x_est_prevs Gaussians from previous time step
@@ -278,7 +279,7 @@ private:
    * @param states_min_max The minimum and maximum value each state can take (optional, but can lead to better performance)
    * @return Gauss_x<target_model_index> Modified `mixing_model` to fit the size and types of `target_model`
    * @note - If the sizes and state names of the mixing model and the target model are the same, the mixing model is returned as is.
-   * @note - If the sizes are different, the mixing model is modified to fit the size of the target model and the possibly missing states 
+   * @note - If the sizes are different, the mixing model is modified to fit the size of the target model and the possibly missing states
    * are initialized with the mean and covariance from the target model or with a uniform distribution if `states_min_max` is provided.
    */
   template <size_t target_model_index, size_t mixing_model_index>
