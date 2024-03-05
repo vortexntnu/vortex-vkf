@@ -10,7 +10,7 @@
  */
 #pragma once
 #include <cmath>
-#include <eigen3/Eigen/Eigen>
+#include <Eigen/Dense>
 #include <functional>
 
 namespace vortex {
