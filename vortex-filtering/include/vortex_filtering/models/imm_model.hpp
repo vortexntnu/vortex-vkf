@@ -15,43 +15,11 @@
 #include <map>
 #include <memory>
 #include <tuple>
-#include <type_traits>
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 
 namespace vortex::models {
 
-enum class StateType { none, position, velocity, acceleration, turn_rate };
-
-namespace concepts {
-
-/**
- * @brief Checks if class type T is compatible with the ImmModel.
- *
- * @tparam T
- */
-template <typename T>
-concept ImmCompatibleModel = requires {
-  concepts::DynamicModel<T>;                    // Is a dynamic model
-  typename T::StateNames;                       // Has a list of named states
-  T::StateNames::size() == T::DynModI::N_DIM_x; // The number of states matches the state dimension
-};
-
-} // namespace concepts
-
-template <StateType... state_types> struct SemanticState {
-  constexpr SemanticState() = default;
-  constexpr SemanticState(StateType...) {}
-
-private:
-  static constexpr size_t N_STATES                             = sizeof...(state_types);
-  static constexpr std::array<StateType, N_STATES> STATE_NAMES = {state_types...};
-
-public:
-  static constexpr size_t size() { return N_STATES; }
-  static constexpr std::array<StateType, N_STATES> get_names() { return STATE_NAMES; }
-  static constexpr StateType get_name(size_t i) { return get_names().at(i); }
-};
 
 template <typename T, size_t N, size_t M> constexpr std::array<bool, N> matching_state_names(const std::array<T, N> &array1, const std::array<T, M> &array2)
 {
@@ -62,7 +30,8 @@ template <typename T, size_t N, size_t M> constexpr std::array<bool, N> matching
   return matches;
 }
 
-// struct for min and max val
+// structs for the type of state
+enum class StateType { none, position, velocity, acceleration, turn_rate };
 struct StateMinMax {
   double min;
   double max;
@@ -73,7 +42,7 @@ using StateMap = std::map<StateType, StateMinMax>;
  * @brief Container class for interacting multiple models.
  * @tparam DynModels Dynamic models to use.
  */
-template <concepts::ImmCompatibleModel... DynModels> class ImmModel {
+template <concepts::DynamicModel... DynModels> class ImmModel {
 public:
   using DynModTuple    = std::tuple<DynModels...>;
   using DynModPtrTuple = std::tuple<std::shared_ptr<DynModels>...>;
@@ -207,6 +176,8 @@ public:
   static constexpr std::array<int, N_MODELS> N_DIMS_x() { return std::array<int, N_MODELS>{DynModels::DynModI::N_DIM_x...}; }
 
   static constexpr int N_DIM_x(size_t model_index) { return N_DIMS_x().at(model_index); }
+
+  StateNames get_all_state_names() const { return state_names_; }
 
   template <size_t model_index> std::array<StateType, N_DIM_x(model_index)> get_state_names()
   {

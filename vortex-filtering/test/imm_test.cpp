@@ -14,63 +14,6 @@
 // IMM Model Tests
 ///////////////////////////////
 
-TEST(SemanticState, initWithTemplateArgs)
-{
-  using vortex::models::SemanticState;
-  using ST = vortex::models::StateType;
-  SemanticState<ST::position, ST::velocity> state_names;
-
-  EXPECT_EQ(state_names.size(), 2u);
-  EXPECT_EQ(state_names.get_name(0), ST::position);
-  EXPECT_EQ(state_names.get_name(1), ST::velocity);
-}
-
-TEST(SemanticState, initWithConstructor)
-{
-  using vortex::models::SemanticState;
-  using ST = vortex::models::StateType;
-  SemanticState<ST::position, ST::velocity> state_names;
-
-  EXPECT_EQ(state_names.size(), 2u);
-  EXPECT_EQ(state_names.get_name(0), ST::position);
-  EXPECT_EQ(state_names.get_name(1), ST::velocity);
-}
-
-TEST(SemanticState, matchingStates)
-{
-  using vortex::models::SemanticState;
-  using ST = vortex::models::StateType;
-  SemanticState<ST::position, ST::velocity> state_names_1;
-  SemanticState<ST::position, ST::velocity> state_names_2;
-
-  EXPECT_EQ(state_names_1.get_names(), state_names_2.get_names());
-  EXPECT_EQ(matching_state_names(state_names_1.get_names(), state_names_2.get_names()), (std::array<bool, 2>{true, true}));
-}
-
-TEST(SemanticState, nonMatchingStates)
-{
-  using vortex::models::SemanticState;
-  using ST = vortex::models::StateType;
-  SemanticState<ST::position, ST::velocity> state_names_1;
-  SemanticState<ST::position, ST::acceleration> state_names_2;
-
-  EXPECT_EQ(state_names_1.get_name(0), state_names_2.get_name(0));
-  EXPECT_NE(state_names_1.get_name(1), state_names_2.get_name(1));
-  EXPECT_NE(state_names_1.get_names(), state_names_2.get_names());
-  EXPECT_EQ(matching_state_names(state_names_1.get_names(), state_names_2.get_names()), (std::array<bool, 2>{true, false}));
-}
-
-TEST(SemanticState, differentLengthStates)
-{
-  using vortex::models::SemanticState;
-  using ST = vortex::models::StateType;
-  SemanticState<ST::position, ST::velocity> state_names_1;
-  SemanticState<ST::position> state_names_2;
-
-  EXPECT_EQ(matching_state_names(state_names_1.get_names(), state_names_2.get_names()), (std::array<bool, 2>{true, false}));
-  EXPECT_EQ(matching_state_names(state_names_2.get_names(), state_names_1.get_names()), (std::array<bool, 1>{true}));
-}
-
 TEST(ImmModel, init)
 {
   using vortex::models::ConstantPosition;
@@ -250,7 +193,7 @@ TEST(ImmFilter, mixing_two_of_the_same_model)
 
   std::tuple<Gauss2d, Gauss2d> x_est_prevs{x_est_prev_1, x_est_prev_2};
 
-  auto [x_est_1, x_est_2] = ImmFilterT::mixing(x_est_prevs, imm_model.get_pi_mat_d(dt));
+  auto [x_est_1, x_est_2] = ImmFilterT::mixing(x_est_prevs, imm_model.get_pi_mat_d(dt), imm_model.get_all_state_names());
 
   // The high uncertainty in the second model should make it's position estimate move more towards the first
   // model than the first model moves towards the second
@@ -298,7 +241,7 @@ TEST(ImmFilter, mixing_two_different_models)
   };
   // clang-format on
 
-  auto [x_est_1, x_est_2] = ImmFilterT::mixing(x_est_prevs, imm_model.get_pi_mat_d(dt), states_min_max);
+  auto [x_est_1, x_est_2] = ImmFilterT::mixing(x_est_prevs, imm_model.get_pi_mat_d(dt), imm_model.get_all_state_names(), states_min_max);
 
   std::cout << "x_est_prev_1:\n" << x_est_prev_1 << std::endl;
   std::cout << "x_est_prev_2:\n" << x_est_prev_2 << std::endl;
@@ -363,10 +306,8 @@ TEST(ImmFilter, updateProbabilities)
 
   double dt = 1;
 
-  Eigen::Matrix2d jump_mat;
-  jump_mat << 0, 1, 1, 0;
-  Eigen::Vector2d hold_times;
-  hold_times << 1, 1;
+  Eigen::Matrix2d jump_mat{{0, 1}, {1, 0}};
+  Eigen::Vector2d hold_times{1, 1};
   double std_pos = 1;
   double std_vel = 1;
 
@@ -386,9 +327,53 @@ TEST(ImmFilter, updateProbabilities)
 
   Eigen::Vector2d z_meas = {1, 1};
 
-  std::vector<Gauss2d> z_preds = {Gauss2d::Standard(), {{1, 1}, Eigen::Matrix2d::Identity()}};
+  std::array<Gauss2d, 2> z_preds = {Gauss2d::Standard(), {{1, 1}, Eigen::Matrix2d::Identity()}};
 
   Eigen::Vector2d upd_weights = ImmFilterT::update_probabilities(imm_model.get_pi_mat_d(dt), z_preds, z_meas, model_weights);
 
   EXPECT_GT(upd_weights(1), upd_weights(0));
+}
+
+TEST(ImmFilter, step)
+{
+  using namespace vortex::models;
+  using namespace vortex::filter;
+  using namespace vortex::prob;
+
+  auto const_pos = std::make_shared<ConstantPosition>(1);
+  auto const_vel = std::make_shared<ConstantVelocity>(1);
+
+  double dt = 1;
+
+  Eigen::Matrix2d jump_mat{{0, 1}, {1, 0}};
+  Eigen::Vector2d hold_times{1, 1};
+  double std_pos = 1;
+  double std_vel = 1;
+
+  using ImmModelT  = ImmModel<ConstantPosition, ConstantVelocity>;
+  using ImmFilterT = vortex::filter::ImmFilter<IdentitySensorModel<2, 2>, ImmModelT>;
+
+  vortex::models::ImmModel imm_model{jump_mat,
+                                     hold_times,
+                                     std::tuple{ConstantPosition(std_pos), ConstantPosition::StateNames},
+                                     std::tuple{ConstantVelocity(std_vel), ConstantVelocity::StateNames}};
+
+  auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
+
+  Eigen::Vector2d model_weights{0.5, 0.5};
+
+  std::tuple<Gauss2d, Gauss4d> x_est_prevs = {Gauss2d::Standard(), {{0, 0, 0.9, 0}, Eigen::Matrix4d::Identity()}};
+  Eigen::Vector2d z_meas                   = {1, 0};
+
+  auto [weights_upd, x_est_upds, z_est_preds, x_est_preds] = ImmFilterT::step(imm_model, sensor_model, dt, x_est_prevs, z_meas, model_weights);
+
+  std::cout << "weights_upd:\n" << weights_upd << std::endl;
+  std::cout << "x_est_upds:\n" << x_est_upds << std::endl;
+  std::cout << "z_est_preds:\n" << z_est_preds << std::endl;
+  std::cout << "x_est_preds:\n" << x_est_preds << std::endl;
+
+  EXPECT_EQ(ImmFilterT::N_MODELS, std::tuple_size<decltype(x_est_upds)>::value);
+  EXPECT_EQ(ImmFilterT::N_MODELS, std::tuple_size<decltype(x_est_preds)>::value);
+  EXPECT_EQ(ImmFilterT::N_MODELS, z_est_preds.size());
+  EXPECT_EQ(ImmFilterT::N_MODELS, weights_upd.size());
 }

@@ -5,7 +5,7 @@
 namespace vortex {
 namespace models {
 
-constexpr int X = 1; // For when a template parameter is required but not used.
+constexpr int UNUSED = 1; // For when a template parameter is required but not used.
 
 /** Identity Dynamic Model
  * @tparam n_dim_x Number of dimensions in state vector
@@ -21,12 +21,18 @@ public:
   /** Identity Dynamic Model
    * @param std Standard deviation of process noise
    */
-  IdentityDynamicModel(double std) : Q_(Mat_xx::Identity() * std * std) {}
+  IdentityDynamicModel(double std)
+      : Q_(Mat_xx::Identity() * std * std)
+  {
+  }
 
   /** Identity Dynamic Model
    * @param Q Process noise covariance
    */
-  IdentityDynamicModel(Mat_vv Q) : Q_(Q) {}
+  IdentityDynamicModel(Mat_vv Q)
+      : Q_(Q)
+  {
+  }
 
   Mat_xx A_d(double dt, const Vec_x /*x*/ &) const override { return Mat_xx::Identity() * dt; }
   Mat_vv Q_d(double /*dt*/, const Vec_x /*x*/ &) const override { return Q_; }
@@ -39,9 +45,10 @@ private:
  * State x = [pos], where pos is a `n_spatial_dim`-dimensional vector
  * @tparam n_spatial_dim Number of spatial dimensions
  */
-class ConstantPosition : public interface::DynamicModelLTV<2, X, 2> {
+class ConstantPosition : public interface::DynamicModelLTV<2, UNUSED, 2> {
 public:
-  using DynModI = interface::DynamicModelLTV<2, X, 2>;
+  static constexpr int N_STATES = 2;
+  using DynModI                 = interface::DynamicModelLTV<N_STATES, UNUSED, N_STATES>;
   using typename DynModI::Vec_v;
   using typename DynModI::Vec_x;
 
@@ -49,16 +56,20 @@ public:
   using typename DynModI::Mat_xv;
   using typename DynModI::Mat_xx;
 
-  using Vec_s  = Eigen::Matrix<double, 2, 1>;
-  using Mat_ss = Eigen::Matrix<double, 2, 2>;
+  using Vec_s  = Eigen::Vector<double, N_STATES>;
+  using Mat_ss = Eigen::Matrix<double, N_STATES, N_STATES>;
 
-  using StateNames = SemanticState<StateType::position, StateType::position>;
+  using ST = StateType;
+  static constexpr std::array<ST, N_STATES> StateNames{ST::position, ST::position};
 
   /** Constant Position Model in 2D
    * x = [x, y]
    * @param std_pos Standard deviation of position
    */
-  ConstantPosition(double std_pos) : std_pos_(std_pos) {}
+  ConstantPosition(double std_pos)
+      : std_pos_(std_pos)
+  {
+  }
 
   /** Get the Jacobian of the continuous state transition model with respect to the state.
    * @param dt Time step
@@ -100,11 +111,12 @@ private:
  * State x = [pos, vel], where pos and vel are `n_spatial_dim`-dimensional vectors
  * @tparam n_spatial_dim Number of spatial dimensions
  */
-class ConstantVelocity : public interface::DynamicModelLTV<4, X, 2> {
+class ConstantVelocity : public interface::DynamicModelLTV<4, UNUSED, 2> {
 public:
   static constexpr int N_SPATIAL_DIM = 2;
+  static constexpr int N_STATES      = 2 * N_SPATIAL_DIM;
 
-  using DynModI = interface::DynamicModelLTV<2 * N_SPATIAL_DIM, X, N_SPATIAL_DIM>;
+  using DynModI = interface::DynamicModelLTV<N_STATES, UNUSED, N_SPATIAL_DIM>;
   using typename DynModI::Mat_vv;
   using typename DynModI::Mat_xv;
   using typename DynModI::Mat_xx;
@@ -113,14 +125,18 @@ public:
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
   using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
 
-  using StateNames = SemanticState<StateType::position, StateType::position, StateType::velocity, StateType::velocity>;
+  using ST = StateType;
+  static constexpr std::array<ST, N_STATES> StateNames{ST::position, ST::position, ST::velocity, ST::velocity};
 
   /**
    * @brief Constant Velocity Model in 2D
    * x = [x, y, x_dot, y_dot]
    * @param std_vel Standard deviation of velocity
    */
-  ConstantVelocity(double std_vel) : std_vel_(std_vel) {}
+  ConstantVelocity(double std_vel)
+      : std_vel_(std_vel)
+  {
+  }
 
   /** Get the Jacobian of the continuous state transition model with respect to the state.
    * @param dt Time step
@@ -173,10 +189,12 @@ private:
  * State vector x = [pos, vel, acc], where pos, vel and acc are `n_spatial_dim`-dimensional vectors
  * @tparam n_spatial_dim Number of spatial dimensions
  */
-class ConstantAcceleration : public interface::DynamicModelLTV<3 * 2, X, 2 * 2> {
+class ConstantAcceleration : public interface::DynamicModelLTV<3 * 2, UNUSED, 2 * 2> {
 public:
   static constexpr int N_SPATIAL_DIM = 2;
-  using DynModI                      = interface::DynamicModelLTV<3 * N_SPATIAL_DIM, X, 2 * N_SPATIAL_DIM>;
+  static constexpr int N_STATES      = 3 * N_SPATIAL_DIM;
+
+  using DynModI = interface::DynamicModelLTV<N_STATES, UNUSED, 2 * N_SPATIAL_DIM>;
   using typename DynModI::Vec_v;
   using typename DynModI::Vec_x;
 
@@ -187,14 +205,17 @@ public:
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
   using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
 
-  using StateNames =
-      SemanticState<StateType::position, StateType::position, StateType::velocity, StateType::velocity, StateType::acceleration, StateType::acceleration>;
-
+  using ST = StateType;
+  static constexpr std::array<ST, N_STATES> StateNames{ST::position, ST::position, ST::velocity, ST::velocity, ST::acceleration, ST::acceleration};
   /** Constant Acceleration Model
    * @param std_vel Standard deviation of velocity
    * @param std_acc Standard deviation of acceleration
    */
-  ConstantAcceleration(double std_vel, double std_acc) : std_vel_(std_vel), std_acc_(std_acc) {}
+  ConstantAcceleration(double std_vel, double std_acc)
+      : std_vel_(std_vel)
+      , std_acc_(std_acc)
+  {
+  }
 
   /** Get the Jacobian of the continuous state transition model with respect to the state.
    * @param x State
@@ -250,9 +271,10 @@ private:
 /** Coordinated Turn Model in 2D.
  * x = [x_pos, y_pos, x_vel, y_vel, turn_rate]
  */
-class CoordinatedTurn : public interface::DynamicModelCTLTV<5, X, 3> {
+class CoordinatedTurn : public interface::DynamicModelCTLTV<5, UNUSED, 3> {
 public:
-  using DynModI = interface::DynamicModelCTLTV<5, X, 3>;
+  static constexpr int N_STATES = 5;
+  using DynModI                 = interface::DynamicModelCTLTV<N_STATES, UNUSED, 3>;
   using typename DynModI::Vec_v;
   using typename DynModI::Vec_x;
 
@@ -260,14 +282,18 @@ public:
   using typename DynModI::Mat_xv;
   using typename DynModI::Mat_xx;
 
-  using StateNames = SemanticState<StateType::position, StateType::position, StateType::velocity, StateType::velocity, StateType::turn_rate>;
-
+  using ST = StateType;
+  static constexpr std::array<ST, N_STATES> StateNames{ST::position, ST::position, ST::velocity, ST::velocity, ST::turn_rate};
   /** (Nearly) Coordinated Turn Model in 2D. (Nearly constant speed, nearly constant turn rate)
    * State = [x, y, x_dot, y_dot, omega]
    * @param std_vel Standard deviation of velocity
    * @param std_turn Standard deviation of turn rate
    */
-  CoordinatedTurn(double std_vel, double std_turn) : std_vel_(std_vel), std_turn_(std_turn) {}
+  CoordinatedTurn(double std_vel, double std_turn)
+      : std_vel_(std_vel)
+      , std_turn_(std_turn)
+  {
+  }
 
   /** Get the Jacobian of the continuous state transition model with respect to the state.
    * @param x State
