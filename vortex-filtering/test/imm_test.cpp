@@ -50,7 +50,7 @@ TEST(ImmModel, piMatC)
   };
   // clang-format on
 
-  Eigen::Vector3d hold_times{6, 12, 18};
+  Eigen::Vector3d hold_times{1.0 / 6, 1.0 / 12, 1.0 / 18};
   double std = 1.0;
 
   using ST        = vortex::models::StateType;
@@ -82,7 +82,7 @@ TEST(ImmModel, piMatD)
     {5.0/6, 1.0/6, 0    }
   };
   // clang-format on
-  Eigen::Vector3d hold_times{6, 12, 18};
+  Eigen::Vector3d hold_times{1.0 / 6, 1.0 / 12, 1.0 / 18};
   double std = 1.0;
 
   using ST        = vortex::models::StateType;
@@ -301,7 +301,6 @@ TEST(ImmFilter, updateProbabilities)
   using namespace vortex::filter;
   using namespace vortex::prob;
 
-
   double dt = 1;
 
   Eigen::Matrix2d jump_mat{{0, 1}, {1, 0}};
@@ -361,32 +360,29 @@ TEST(ImmFilter, step)
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 
-  Eigen::Vector3d model_weights{1/3.0, 1/3.0, 1/3.0};
+  Eigen::Vector3d model_weights{1 / 3.0, 1 / 3.0, 1 / 3.0};
 
   std::tuple<Gauss2d, Gauss4d, Gauss5d> x_est_prevs = {
       Gauss2d::Standard(), {{0, 0, 0.9, 0}, Eigen::Matrix4d::Identity()}, {{0, 0, 0.9, 0, 1}, Eigen::Matrix<double, 5, 5>::Identity()}};
   Eigen::Vector2d z_meas = {1, 0};
 
-  StateMap states_min_max{
-      {StateType::velocity, {-10, 10}},
-      {StateType::turn_rate, {-M_PI, M_PI}}};
+  StateMap states_min_max{{StateType::velocity, {-10, 10}}, {StateType::turn_rate, {-M_PI, M_PI}}};
 
   auto [weights_upd, x_est_upds, z_est_preds, x_est_preds] = ImmFilterT::step(imm_model, sensor_model, dt, x_est_prevs, z_meas, model_weights, states_min_max);
-
-  for (int i = 2; i < 50; i++) {
-    z_meas << i, 0;
-    std::tie(weights_upd, x_est_upds, z_est_preds, x_est_preds) = ImmFilterT::step(imm_model, sensor_model, dt, x_est_upds, z_meas, weights_upd, states_min_max);
-  }
-
-  std::cout << "weights_upd:\n" << weights_upd << std::endl;
-  std::cout << "x_est_upds:\n" << x_est_upds << std::endl;
-  std::cout << "z_est_preds:\n" << z_est_preds << std::endl;
-  std::cout << "x_est_preds:\n" << x_est_preds << std::endl;
 
   EXPECT_EQ(ImmFilterT::N_MODELS, std::tuple_size<decltype(x_est_upds)>::value);
   EXPECT_EQ(ImmFilterT::N_MODELS, std::tuple_size<decltype(x_est_preds)>::value);
   EXPECT_EQ(ImmFilterT::N_MODELS, z_est_preds.size());
   EXPECT_EQ(ImmFilterT::N_MODELS, weights_upd.size());
+
+  for (int i = 2; i < 50; i++) {
+    z_meas << i, 0;
+    std::tie(weights_upd, x_est_upds, std::ignore, std::ignore) =
+        ImmFilterT::step(imm_model, sensor_model, dt, x_est_upds, z_meas, weights_upd, states_min_max);
+  }
+
+  std::cout << "weights_upd:\n" << weights_upd << std::endl;
+  std::cout << "x_est_upds:\n" << x_est_upds << std::endl;
 
   // Expect the constant velocity model to have the highest probability
   EXPECT_GT(weights_upd(1), weights_upd(0));

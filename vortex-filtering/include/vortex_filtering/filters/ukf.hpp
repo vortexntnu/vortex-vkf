@@ -114,12 +114,16 @@ private:
     Mat_vv Q = dyn_mod->Q_d(dt, x_est.mean());
     Mat_ww R = sens_mod->R(x_est.mean());
     // Make augmented covariance matrix
-    Mat_aa P_a;
-    // clang-format off
-    P_a << P	           , Mat_xv::Zero() , Mat_xw::Zero(),
-           Mat_vx::Zero(), Q              , Mat_vw::Zero(),
-           Mat_wx::Zero(), Mat_wv::Zero() , R;
-    // clang-format on
+    Mat_aa P_a = Mat_aa::Zero();
+    /*
+      P_a = | P  0  0 |
+            | 0  Q  0 |
+            | 0  0  R |
+    */
+    P_a.template topLeftCorner<N_DIM_x, N_DIM_x>()         = P;
+    P_a.template block<N_DIM_v, N_DIM_v>(N_DIM_x, N_DIM_x) = Q;
+    P_a.template bottomRightCorner<N_DIM_w, N_DIM_w>()     = R;
+
     Mat_aa sqrt_P_a = P_a.llt().matrixLLT();
 
     // Make augmented state vector

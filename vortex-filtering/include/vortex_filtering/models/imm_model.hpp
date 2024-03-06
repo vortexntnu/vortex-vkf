@@ -20,7 +20,6 @@
 
 namespace vortex::models {
 
-
 template <typename T, size_t N, size_t M> constexpr std::array<bool, N> matching_state_names(const std::array<T, N> &array1, const std::array<T, M> &array2)
 {
   std::array<bool, N> matches{};
@@ -113,13 +112,14 @@ public:
    */
   Mat_nn get_pi_mat_c() const
   {
-    Mat_nn pi_mat_c = hold_times_.replicate(1, N_MODELS);
+    Vec_n hold_rates = hold_times_.cwiseInverse();
+    Mat_nn pi_mat_c  = hold_rates.replicate(1, N_MODELS);
 
     // Multiply the jump matrix with the hold times
     pi_mat_c = pi_mat_c.cwiseProduct(jump_matrix_);
 
     // Each row should sum to zero
-    pi_mat_c -= hold_times_.asDiagonal();
+    pi_mat_c -= hold_rates.asDiagonal();
 
     return pi_mat_c;
   }
@@ -128,7 +128,17 @@ public:
    * @brief Compute the discrete-time transition matrix
    * @return Matrix Discrete-time transition matrix
    */
-  Mat_nn get_pi_mat_d(double dt) const { return (get_pi_mat_c() * dt).exp(); }
+  Mat_nn get_pi_mat_d(double dt) const
+  {
+    // Cache the pi matrix for the same time step as it is likely to be reused and is expensive to compute
+    static double prev_dt  = dt;
+    static Mat_nn pi_mat_d = (get_pi_mat_c() * dt).exp();
+    if (dt != prev_dt) {
+      pi_mat_d = (get_pi_mat_c() * dt).exp();
+      prev_dt  = dt;
+    }
+    return pi_mat_d;
+  }
 
   /**
    * @brief Get the dynamic models
@@ -179,10 +189,7 @@ public:
 
   StateNames get_all_state_names() const { return state_names_; }
 
-  template <size_t model_index> std::array<StateType, N_DIM_x(model_index)> get_state_names()
-  {
-    return std::get<model_index>(state_names_);
-  }
+  template <size_t model_index> std::array<StateType, N_DIM_x(model_index)> get_state_names() { return std::get<model_index>(state_names_); }
 
   template <size_t model_index> StateType get_state_name(size_t i) { return get_state_names<model_index>().at(i); }
 
