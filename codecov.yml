@@ -17,24 +17,4 @@ flag_management:
        statuses:
         - type: project
           target: auto
-          threshold: 1%
-
-
-component_management:
-  individual_components:
-    - component_id: vortex-filtering-models
-      paths:
-        - vortex-filtering/include/vortex_filtering/models
-    - component_id: vortex-filtering-filters
-      paths:
-        - vortex-filtering/include/vortex_filtering/filters
-    - component_id: vortex-filtering-numerical-integration
-      paths:
-        - vortex-filtering/include/vortex_filtering/numerical_integration
-    - component_id: vortex-filtering-probability
-      paths:
-        - vortex-filtering/include/vortex_filtering/probability
-    - component_id: vortex-filtering-utils
-      paths:
-        - vortex-filtering/include/vortex_filtering/utils
-        - vortex-filtering/src/utils      
+          threshold: 1% 
