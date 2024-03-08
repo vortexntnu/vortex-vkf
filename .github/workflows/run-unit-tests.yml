@@ -17,6 +17,7 @@ jobs:
   test_docker: # Iterates on all ROS 1 and ROS 2 distributions.
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         ros_distribution:
           - humble
@@ -31,11 +32,6 @@ jobs:
         # https://ros.org/reps/rep-0003.html
         # https://ros.org/reps/rep-2000.html
         include:
-          # Noetic Ninjemys (May 2020 - May 2025)
-          #- docker_image: ubuntu:focal
-          #  ros_distribution: noetic
-          #  ros_version: 1
-
           # Humble Hawksbill (May 2022 - May 2027)
           - docker_image: ubuntu:jammy
             ros_distribution: humble
@@ -47,58 +43,48 @@ jobs:
             ros_version: 2
 
           # Rolling Ridley (No End-Of-Life)
-          #- docker_image: ubuntu:jammy
-          #  ros_distribution: rolling
-          #  ros_version: 2
+          - docker_image: ubuntu:jammy
+           ros_distribution: rolling
+           ros_version: 2
 
     container:
       image: ${{ matrix.docker_image }}
     steps:
-      - name: setup ROS environment
-
-
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Setup ROS environment
         uses: ros-tooling/setup-ros@v0.7
         with:
           required-ros-distributions: ${{ matrix.ros_distribution }}
-      - name: build and test ROS 1
-        if: ${{ matrix.ros_version == 1 }}
+      - name: Build and test ROS 2 packages
         uses: ros-tooling/action-ros-ci@v0.3
+        id: action_ros_ci_step
         with:
           colcon-defaults: |
             {
               "build": {
-                "mixin": ["asan-gcc", "coverage-gcc", "coverage-pytest"]
+                "mixin": ["coverage-gcc", "coverage-pytest"]
               },
               "test": {
                 "mixin": ["coverage-pytest"]
               }
             }
-          package-name: ${{ env.PACKAGES }}
-          target-ros1-distro: ${{ matrix.ros_distribution }}
-      - name: build and test ROS 2
-        if: ${{ matrix.ros_version == 2 }}
-        uses: ros-tooling/action-ros-ci@v0.3
-        with:
-          colcon-defaults: |
-            {
-              "build": {
-                "mixin": ["asan-gcc", "coverage-gcc", "coverage-pytest"]
-              },
-              "test": {
-                "mixin": ["coverage-pytest"]
-              }
-            }
+          # If possible, pin the repository in the workflow to a specific commit to avoid
+          # changes in colcon-mixin-repository from breaking your tests.
+          colcon-mixin-repository: https://raw.githubusercontent.com/colcon/colcon-mixin-repository/1ddb69bedfd1f04c2f000e95452f7c24a4d6176b/index.yaml
+
           package-name: ${{ env.PACKAGES }}
           target-ros2-distro: ${{ matrix.ros_distribution }}
+          
       - uses: codecov/codecov-action@v1.2.1
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}  # only needed for private repos
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ros_ws/lcov/total_coverage.info,ros_ws/coveragepy/.coverage
           flags: unittests
           name: codecov-umbrella
       - uses: actions/upload-artifact@v1
         with:
-          name: colcon-logs
+          name: Colcon-logs
           path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/log
         if: always() # upload the logs even when the build fails
 

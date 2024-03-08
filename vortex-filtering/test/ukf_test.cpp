@@ -105,7 +105,6 @@ TEST_F(UKFtest, Convergence)
   double tol = 1e-1;
 
   // Plot results
-  Gnuplot gp;
 
   std::vector<double> x_est_mean, z_est_mean, x_est_std, x_p_std, x_m_std;
   for (int i = 0; i < n_steps; i++) {
@@ -116,6 +115,8 @@ TEST_F(UKFtest, Convergence)
     x_m_std.push_back(x_est.at(i).mean()(0) - std::sqrt(x_est.at(i).cov()(0, 0))); // x_est - std
   }
 
+  #ifdef GNUPLOT_ENABLE
+  Gnuplot gp;
   gp << "set terminal wxt size 1200,800\n";
   gp << "set title 'UKF convergence'\n";
   gp << "set xlabel 'Time [s]'\n";
@@ -130,6 +131,7 @@ TEST_F(UKFtest, Convergence)
   gp.send1d(std::make_tuple(time, x_true));
   gp.send1d(std::make_tuple(time, x_est_mean));
   gp.send1d(std::make_tuple(time, z_meas));
+  #endif
 
   // Check convergence
 

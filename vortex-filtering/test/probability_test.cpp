@@ -94,6 +94,7 @@ TEST(MultiVarGauss, sample)
   double minorAxisLength = cov_ellipse.minor_axis();
   double angle           = cov_ellipse.angle_deg();
 
+  #ifdef GNUPLOT_ENABLE
   Gnuplot gp;
   gp << "set xrange [-10:10]\nset yrange [-10:10]\n";
   gp << "set style circle radius 0.05\n";
@@ -103,9 +104,14 @@ TEST(MultiVarGauss, sample)
   gp << "set object 1 ellipse center " << true_mean(0) << "," << true_mean(1) << " size " << majorAxisLength << "," << minorAxisLength << " angle " << angle
      << "fs empty border lc rgb 'cyan'\n";
   gp << "replot\n";
+  #endif
 
   EXPECT_TRUE(isApproxEqual(mean, true_mean, 0.5));
   EXPECT_TRUE(isApproxEqual(cov, true_cov, 0.5));
+
+  (void)majorAxisLength;
+  (void)minorAxisLength;
+  (void)angle;
 }
 
 TEST(MultiVarGauss, mahalanobisDistanceIdentityCovariance)
