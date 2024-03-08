@@ -17,11 +17,11 @@ jobs:
   test_docker: # Iterates on all ROS 1 and ROS 2 distributions.
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         ros_distribution:
           - humble
           - iron
-      fail-fast: false
 
         # Define the Docker image(s) associated with each ROS distribution.
         # The include syntax allows additional variables to be defined, like
