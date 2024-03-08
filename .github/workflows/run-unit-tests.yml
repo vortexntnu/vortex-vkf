@@ -92,7 +92,7 @@ jobs:
           target-ros2-distro: ${{ matrix.ros_distribution }}
       - uses: codecov/codecov-action@v1.2.1
         with:
-          # token: ${{ secrets.CODECOV_TOKEN }}  # only needed for private repos
+          token: ${{ secrets.CODECOV_TOKEN }}  # only needed for private repos
           files: ros_ws/lcov/total_coverage.info,ros_ws/coveragepy/.coverage
           flags: unittests
           name: codecov-umbrella
