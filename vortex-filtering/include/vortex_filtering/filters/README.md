@@ -84,7 +84,6 @@ The workings of the IMM filter can be summarized in the following four steps:
 
 which can be visualized in the following flowchart and will be explained in more detail below.
 
-Diagram can be viewed in vscode or at https://mermaid.live/
 ```mermaid
 flowchart TD
 
@@ -93,7 +92,7 @@ subgraph mixing_probabilities[Calculate Mixing Probabilities]
 end
 mixing_probabilities --> Mixing
 subgraph Mixing
-    A_1[Model A]
+    A_1["`Model A_1`"]
     B_1[Model B]
     C_1[Model C]
     A_2[Model A]
@@ -124,13 +123,14 @@ end
 update_mixing_probs --> Repeat
 ```
 
-#### 1 - Calculate Mixing Probabilities
+##### 1 - Calculate Mixing Probabilities
 The mixing probabilities are the probabilities of each model being the correct one. These are calculated based on the previous mixing probabilities and the transition model. The transition model is a matrix that specifies the probability of switching from one model to another and is specified when creating the [IMM model](../models/README.md#imm-model).
 
-#### 2 - The Mixing Step
+##### 2 - The Mixing Step
 The mixing step is the most important part of the IMM filter. It is the step where the estimates from the different models are combined and mixed together. Essentially, the IMM filter calculates the next state for each model based on a weighted average of the estimates from the other models. The weights are determined by the probability of each model being the correct one.
 
 __The Mixing of Non-Comparable States__
+
 In order to estimate the states when mixing the models together, the IMM filter needs to know which states are comparable to each other. For example if the states of the models are
 
 $$
@@ -150,10 +150,10 @@ For example when mixing the states of model A into model B, the states $v_x$ and
 
 This feature is the main reason the implementation is so much more complex than for the EKF and UKF. 
 
-#### 3 - Mode Matching
+##### 3 - Mode Matching
 The mode matching step is where the Kalman filter is run for each model. This is done in the same way as for the EKF and UKF, but for each model separately.
 
-#### 4 - Update Mixing Probabilities
+##### 4 - Update Mixing Probabilities
 The mixing probabilities are updated based on the measurements and the estimates from the mode matching step. This is done using the measurement model and the estimates from the mode matching step as well as the previous mixing probabilities.
 #### Usage
 The IMM filter is used in the same way as the EKF and UKF. The main difference is that the IMM filter needs initial state probabilities as well as an initial state estimate. And instead of returning a single state estimate, it returns a tuple of state estimates and weights for each model.
@@ -217,5 +217,4 @@ Vec2d z_meas{48, 65};
 using ImmFilter = vortex::filters::IMMFilter<SensModT, IMM>;
 auto [weights_upd, x_est_upds, x_est_preds, z_est_preds] = 
     IMM::step(imm_model, sensor_model, dt, x_est_prevs, z_meas, model_weights, states_min_max);
-
 ```
