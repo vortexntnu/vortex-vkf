@@ -101,6 +101,13 @@ std::array<ST, 2> cp_names{ST::pos, ST::pos};
 std::array<ST, 4> cv_names{ST::pos, ST::pos, ST::vel, ST::vel};
 std::array<ST, 5> ct_names{ST::pos, ST::pos, ST::vel, ST::vel, ST::turn};
 
+/* Note: for the models in this example, you can use the already defined state names instead:
+    auto cp_names = CP::StateNames;
+    auto cv_names = CV::StateNames;
+    auto ct_names = CT::StateNames;
+But for custom models, you will have to define the state names yourself.
+*/
+
 // initialize IMM with the hold times, switching probabilities, dynamic models and state names
 IMM imm_model(hold_times, switch_probs, 
               {CP(std_pos), cp_names}, 
