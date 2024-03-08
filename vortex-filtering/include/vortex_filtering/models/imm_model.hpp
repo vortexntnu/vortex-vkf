@@ -156,23 +156,25 @@ public:
 
   /**
    * @brief Get the dynamic models
-   * @return Reference to tuple of shared pointers to dynamic models
+   * @return Reference to tuple of dynamic models
    */
   const DynModTuple &get_models() const { return models_; }
 
   /**
-   * @brief Get specific dynamic model
-   * @tparam i Index of model
-   * @return ModelT<i> shared pointer to model
+   * @brief Get the dynamic models (non-const)
+   * @return Reference to tuple of dynamic models
    */
-  template <size_t i> const DynModT<i> &get_model() const { return std::get<i>(models_); }
+  DynModTuple &get_models() { return models_; }
+  {
+    return std::get<i>(models_);
+  }
 
   /**
    * @brief Get specific dynamic model (non-const)
    * @tparam i Index of model
-   * @return ModelT<i> shared pointer to model
+   * @return DynModT<i> model reference
    */
-  template <size_t i> DynModT<i> get_model() { return std::get<i>(models_); }
+  template <size_t i> DynModT<i> &get_model() { return std::get<i>(models_); }
 
   /**
    * @brief f_d of specific dynamic model
