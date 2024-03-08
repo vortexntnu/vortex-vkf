@@ -165,9 +165,13 @@ public:
    * @return Reference to tuple of dynamic models
    */
   DynModTuple &get_models() { return models_; }
-  {
-    return std::get<i>(models_);
-  }
+
+  /**
+   * @brief Get specific dynamic model
+   * @tparam i Index of model
+   * @return DynModT<i> model reference
+   */
+  template <size_t i> const DynModT<i> &get_model() const { return std::get<i>(models_); }
 
   /**
    * @brief Get specific dynamic model (non-const)
