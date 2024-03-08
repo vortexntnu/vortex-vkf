@@ -50,13 +50,13 @@ jobs:
     container:
       image: ${{ matrix.docker_image }}
     steps:
-      - name: setup ROS environment
-
-
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Setup ROS environment
         uses: ros-tooling/setup-ros@v0.7
         with:
           required-ros-distributions: ${{ matrix.ros_distribution }}
-      - name: build and test ROS 2 packages
+      - name: Build and test ROS 2 packages
         uses: ros-tooling/action-ros-ci@v0.3
         id: action_ros_ci_step
         with:
@@ -71,6 +71,7 @@ jobs:
             }
           package-name: ${{ env.PACKAGES }}
           target-ros2-distro: ${{ matrix.ros_distribution }}
+          
       - uses: codecov/codecov-action@v1.2.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -79,7 +80,7 @@ jobs:
           name: codecov-umbrella
       - uses: actions/upload-artifact@v1
         with:
-          name: colcon-logs
+          name: Colcon-logs
           path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/log
         if: always() # upload the logs even when the build fails
 

@@ -108,6 +108,10 @@ TEST(MultiVarGauss, sample)
 
   EXPECT_TRUE(isApproxEqual(mean, true_mean, 0.5));
   EXPECT_TRUE(isApproxEqual(cov, true_cov, 0.5));
+
+  (void)majorAxisLength;
+  (void)minorAxisLength;
+  (void)angle;
 }
 
 TEST(MultiVarGauss, mahalanobisDistanceIdentityCovariance)

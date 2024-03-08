@@ -1,3 +1,3 @@
 fixes:
-  # For each package in your repo
+  # For each package in the repo
   - "ros_ws/src/*/vortex-vkf/vortex-filtering/::"
