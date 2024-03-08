@@ -102,7 +102,7 @@ public:
    * @note - In order to change the properties of a model, you must get the model using `get_model<i>()`
    */
   ImmModel(Mat_nn jump_matrix, Vec_n hold_times, DynModels... models, StateNames state_names)
-      : models_(std::make_shared<DynModels>(models)...)
+      : models_(models...)
       , jump_matrix_(jump_matrix)
       , hold_times_(hold_times)
       , state_names_(state_names)
@@ -158,21 +158,21 @@ public:
    * @brief Get the dynamic models
    * @return Reference to tuple of shared pointers to dynamic models
    */
-  const DynModPtrTuple &get_models() const { return models_; }
+  const DynModTuple &get_models() const { return models_; }
 
   /**
    * @brief Get specific dynamic model
    * @tparam i Index of model
    * @return ModelT<i> shared pointer to model
    */
-  template <size_t i> const DynModTPtr<i> &get_model() const { return std::get<i>(models_); }
+  template <size_t i> const DynModT<i> &get_model() const { return std::get<i>(models_); }
 
   /**
    * @brief Get specific dynamic model (non-const)
    * @tparam i Index of model
    * @return ModelT<i> shared pointer to model
    */
-  template <size_t i> DynModTPtr<i> get_model() { return std::get<i>(models_); }
+  template <size_t i> DynModT<i> get_model() { return std::get<i>(models_); }
 
   /**
    * @brief f_d of specific dynamic model
@@ -185,7 +185,7 @@ public:
    */
   template <size_t i> Vec_x<i> f_d(double dt, const Vec_x<i> &x, const Vec_u<i> &u = Vec_u<i>::Zero(), const Vec_v<i> &v = Vec_v<i>::Zero()) const
   {
-    return get_model<i>()->f_d(dt, x, u, v);
+    return get_model<i>().f_d(dt, x, u, v);
   }
 
   /**
@@ -195,7 +195,7 @@ public:
    * @param x State
    * @return Mat_vv
    */
-  template <size_t i> Mat_vv<i> Q_d(double dt, const Vec_x<i> &x) const { return get_model<i>()->Q_d(dt, x); }
+  template <size_t i> Mat_vv<i> Q_d(double dt, const Vec_x<i> &x) const { return get_model<i>().Q_d(dt, x); }
 
   static constexpr std::array<int, N_MODELS> N_DIMS_x() { return std::array<int, N_MODELS>{DynModels::DynModI::N_DIM_x...}; }
 
@@ -208,7 +208,7 @@ public:
   template <size_t model_index> StateType get_state_name(size_t i) { return get_state_names<model_index>().at(i); }
 
 private:
-  DynModPtrTuple models_;
+  DynModTuple models_;
   Mat_nn jump_matrix_;
   Vec_n hold_times_;
   StateNames state_names_;
@@ -240,9 +240,9 @@ public:
     static_assert(N_DIM_a >= SensModT::SensModI::N_DIM_x, "N_DIM_a must be greater than or equal to the state dimension of the sensor model");
   }
 
-  Vec_z h(const Vec_a &x, const Vec_w &w) const { return sensor_model_->h(x.template head<N_DIM_x>(), w); }
+  Vec_z h(const Vec_a &x, const Vec_w &w) const { return sensor_model_.h(x.template head<N_DIM_x>(), w); }
 
-  Mat_ww R(const Vec_x &x) const { return sensor_model_->R(x.template head<N_DIM_x>()); }
+  Mat_ww R(const Vec_x &x) const { return sensor_model_.R(x.template head<N_DIM_x>()); }
 
 private:
   SensModT sensor_model_;
@@ -272,43 +272,42 @@ public:
   using Gauss_z = typename SensModI::Gauss_z;
   using Gauss_a = typename prob::MultiVarGauss<N_DIM_a>;
 
-  ImmSensorModelLTV(SensModTPtr sensor_model)
+  ImmSensorModelLTV(SensModT sensor_model)
       : sensor_model_(sensor_model)
   {
     static_assert(N_DIM_a >= N_DIM_x, "N_DIM_a must be greater than or equal to the state dimension of the sensor model");
   }
 
-  Vec_z h(const Vec_a &x, const Vec_w &w) const { return sensor_model_->h(x.template head<N_DIM_x>(), w); }
+  Vec_z h(const Vec_a &x, const Vec_w &w) const { return sensor_model_.h(x.template head<N_DIM_x>(), w); }
 
   Mat_za C(const Vec_a &x) const
   {
     Mat_za C_a;
-    C_a << sensor_model_->C(x.template head<N_DIM_x>()), Mat_zamx::Zero();
+    C_a << sensor_model_.C(x.template head<N_DIM_x>()), Mat_zamx::Zero();
     return C_a;
   }
 
-  Mat_zw H(const Vec_a &x) const { return sensor_model_->H(x.template head<N_DIM_x>()); }
+  Mat_zw H(const Vec_a &x) const { return sensor_model_.H(x.template head<N_DIM_x>()); }
 
-  Mat_ww R(const Vec_a &x) const { return sensor_model_->R(x.template head<N_DIM_x>()); }
+  Mat_ww R(const Vec_a &x) const { return sensor_model_.R(x.template head<N_DIM_x>()); }
 
   Gauss_z pred_from_est(const Gauss_a &x_est) const
   {
     Vec_x mean = x_est.mean().template head<N_DIM_x>();
     Mat_xx cov = x_est.cov().template topLeftCorner<N_DIM_x, N_DIM_x>();
-    return sensor_model_->pred_from_est({mean, cov});
+    return sensor_model_.pred_from_est({mean, cov});
   }
 
-  Gauss_z pred_from_state(const Vec_a &x) const { return sensor_model_->pred_from_state(x.template head<N_DIM_x>()); }
+  Gauss_z pred_from_state(const Vec_a &x) const { return sensor_model_.pred_from_state(x.template head<N_DIM_x>()); }
 
 private:
-  SensModTPtr sensor_model_;
+  SensModT sensor_model_;
 };
 
 namespace concepts {
 template <typename T>
 concept ImmModel = requires {
   typename T::DynModTuple;
-  typename T::DynModPtrTuple;
 };
 
 } // namespace concepts

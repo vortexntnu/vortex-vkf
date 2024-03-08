@@ -25,20 +25,13 @@ protected:
 
   using UKF = vortex::filter::UKF<NonlinearModel1, IdentitySensorModel>;
 
-  void SetUp() override
-  {
-    // Noise
-    double Q = 0.1;
-    double R = 0.1;
+  static constexpr double Q = 0.1;
+  static constexpr double R = 0.1;
+  UKFtest() : dynamic_model_(Q), sensor_model_(R) {}
 
-    // Create dynamic model
-    dynamic_model_ = std::make_shared<NonlinearModel1>(Q);
-    // Create sensor model
-    sensor_model_ = std::make_shared<IdentitySensorModel>(R);
-  }
 
-  std::shared_ptr<NonlinearModel1> dynamic_model_;
-  std::shared_ptr<IdentitySensorModel> sensor_model_;
+  NonlinearModel1 dynamic_model_;
+  IdentitySensorModel sensor_model_;
 };
 
 TEST_F(UKFtest, Predict)
@@ -49,7 +42,7 @@ TEST_F(UKFtest, Predict)
   // Predict
   auto [x_est_pred, z_est_pred] = UKF::predict(dynamic_model_, sensor_model_, dt, x);
 
-  Vec_x x_true = dynamic_model_->f_d(dt, x.mean());
+  Vec_x x_true = dynamic_model_.f_d(dt, x.mean());
   Vec_z z_true = x_true.head(1);
   ASSERT_TRUE(isApproxEqual(x_est_pred.mean(), x_true, 1e-6));
   ASSERT_TRUE(isApproxEqual(z_est_pred.mean(), z_true, 1e-6));
@@ -78,17 +71,17 @@ TEST_F(UKFtest, Convergence)
 
   time.push_back(0);
   x_est.push_back(x0);
-  z_meas.push_back(sensor_model_->h(x0.mean()));
+  z_meas.push_back(sensor_model_.h(x0.mean()));
   x_true.push_back(x0.mean());
-  z_est.push_back({sensor_model_->h(x0.mean()), sensor_model_->R()});
+  z_est.push_back({sensor_model_.h(x0.mean()), sensor_model_.R()});
   for (int i = 0; i < n_steps - 1; i++) {
     // Simulate
     Vec_x v;
     v << d_disturbance(gen);
     Vec_z w = Vec_z::Zero();
     w << d_noise(gen);
-    Vec_x x_true_i = dynamic_model_->f_d(dt, x_true.back(), Vec_x::Zero(), v);
-    Vec_z z_meas_i = sensor_model_->h(x_true_i) + w;
+    Vec_x x_true_i = dynamic_model_.f_d(dt, x_true.back(), Vec_x::Zero(), v);
+    Vec_z z_meas_i = sensor_model_.h(x_true_i) + w;
     x_true.push_back(x_true_i);
     z_meas.push_back(z_meas_i);
 

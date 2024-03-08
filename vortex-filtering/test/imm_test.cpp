@@ -31,8 +31,8 @@ TEST(ImmModel, initWithStateNames)
                                      std::tuple{ConstantPosition(std), std::array{ST::position, ST::position}},
                                      std::tuple{ConstantVelocity(std), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
 
-  EXPECT_EQ(typeid(*imm_model.get_model<0>()), typeid(ConstantPosition));
-  EXPECT_EQ(typeid(*imm_model.get_model<1>()), typeid(ConstantVelocity));
+  EXPECT_EQ(typeid(imm_model.get_model<0>()), typeid(ConstantPosition));
+  EXPECT_EQ(typeid(imm_model.get_model<1>()), typeid(ConstantVelocity));
   EXPECT_EQ(typeid(imm_model.f_d<0>(dt, Eigen::Vector2d::Zero())), typeid(Eigen::Vector2d));
   EXPECT_EQ(typeid(imm_model.f_d<1>(dt, Eigen::Vector4d::Zero())), typeid(Eigen::Vector4d));
 }
@@ -273,7 +273,7 @@ TEST(ImmFilter, modeMatchedFilter)
                                      std::tuple{ConstantPosition(std_pos), std::array{ST::position, ST::position}},
                                      std::tuple{ConstantVelocity(std_vel), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
 
-  auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
+  IdentitySensorModel<2, 2> sensor_model{dt};
 
   std::tuple<Gauss2d, Gauss4d> x_est_prevs = {Gauss2d::Standard(), {{0, 0, 0.9, 0}, Eigen::Matrix4d::Identity()}};
   Eigen::Vector2d z_meas                   = {1, 0};
@@ -358,7 +358,7 @@ TEST(ImmFilter, step)
                       {ConstantVelocity(std_vel), ConstantVelocity::StateNames},
                       {CoordinatedTurn(std_vel, std_turn_rate), CoordinatedTurn::StateNames}};
 
-  auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
+  IdentitySensorModel<2, 2> sensor_model{dt};
 
   Eigen::Vector3d model_weights{1 / 3.0, 1 / 3.0, 1 / 3.0};
 

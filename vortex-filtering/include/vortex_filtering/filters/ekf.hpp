@@ -71,11 +71,11 @@ public:
    * @return std::pair<Gauss_x, Gauss_z> Predicted state, predicted measurement
    * @throws std::runtime_error if dyn_mod or sens_mod are not of the DynamicModelT or SensorModelT type
    */
-  static std::pair<Gauss_x, Gauss_z> predict(const DynModTPtr &dyn_mod, const SensModTPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
+  static std::pair<Gauss_x, Gauss_z> predict(const DynModT &dyn_mod, const SensModT &sens_mod, double dt, const Gauss_x &x_est_prev,
                                              const Vec_u &u = Vec_u::Zero())
   {
-    Gauss_x x_est_pred = dyn_mod->pred_from_est(dt, x_est_prev, u);
-    Gauss_z z_est_pred = sens_mod->pred_from_est(x_est_pred);
+    Gauss_x x_est_pred = dyn_mod.pred_from_est(dt, x_est_prev, u);
+    Gauss_z z_est_pred = sens_mod.pred_from_est(x_est_pred);
     return {x_est_pred, z_est_pred};
   }
 
@@ -87,11 +87,11 @@ public:
    * @return MultivarGauss Updated state
    * @throws std::runtime_error ifsens_mod is not of the SensorModelT type
    */
-  static Gauss_x update(const SensModTPtr &sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
+  static Gauss_x update(const SensModT &sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
   {
-    Mat_zx C     = sens_mod->C(x_est_pred.mean()); // Measurement matrix
-    Mat_ww R     = sens_mod->R(x_est_pred.mean()); // Measurement noise covariance
-    Mat_zw H     = sens_mod->H(x_est_pred.mean()); // Measurement noise cross-covariance
+    Mat_zx C     = sens_mod.C(x_est_pred.mean());  // Measurement matrix
+    Mat_ww R     = sens_mod.R(x_est_pred.mean());  // Measurement noise covariance
+    Mat_zw H     = sens_mod.H(x_est_pred.mean());  // Measurement noise cross-covariance
     Mat_xx P     = x_est_pred.cov();               // State covariance
     Mat_zz S_inv = z_est_pred.cov_inv();           // Inverse of the predicted measurement covariance
     Mat_xx I     = Mat_xx::Identity(N_DIM_x, N_DIM_x);
@@ -115,13 +115,30 @@ public:
    * @param u Vec_x Input
    * @return Updated state, predicted state, predicted measurement
    */
-  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModTPtr &dyn_mod, const SensModTPtr &sens_mod, double dt, const Gauss_x &x_est_prev,
-                                                    const Vec_z &z_meas, const Vec_u &u = Vec_u::Zero())
+  static std::tuple<Gauss_x, Gauss_x, Gauss_z> step(const DynModT &dyn_mod, const SensModT &sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas,
+                                                    const Vec_u &u = Vec_u::Zero())
   {
     auto [x_est_pred, z_est_pred] = predict(dyn_mod, sens_mod, dt, x_est_prev, u);
 
     Gauss_x x_est_upd = update(sens_mod, x_est_pred, z_est_pred, z_meas);
     return {x_est_upd, x_est_pred, z_est_pred};
+  }
+
+  [[deprecated("use const DynModT& and const SensModT&")]] static std::pair<Gauss_x, Gauss_z>
+  predict(DynModTPtr dyn_mod, SensModTPtr sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_u &u = Vec_u::Zero())
+  {
+    return predict(*dyn_mod, *sens_mod, dt, x_est_prev, u);
+  }
+
+  [[deprecated("use const SensModT&")]] static Gauss_x update(SensModTPtr sens_mod, const Gauss_x &x_est_pred, const Gauss_z &z_est_pred, const Vec_z &z_meas)
+  {
+    return update(*sens_mod, x_est_pred, z_est_pred, z_meas);
+  }
+
+  [[deprecated("use const DynModT& and const SensModT&")]] static std::tuple<Gauss_x, Gauss_x, Gauss_z>
+  step(DynModTPtr dyn_mod, SensModTPtr sens_mod, double dt, const Gauss_x &x_est_prev, const Vec_z &z_meas, const Vec_u &u = Vec_u::Zero())
+  {
+    return step(*dyn_mod, *sens_mod, dt, x_est_prev, z_meas, u);
   }
 };
 

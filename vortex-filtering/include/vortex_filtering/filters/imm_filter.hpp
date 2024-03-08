@@ -105,7 +105,7 @@ public:
    * @param z_meas Vec_z Measurement
    * @return Tuple of updated states, predicted states, predicted measurements
    */
-  static std::tuple<GaussTuple_x, GaussTuple_x, GaussArr_z> mode_matched_filter(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
+  static std::tuple<GaussTuple_x, GaussTuple_x, GaussArr_z> mode_matched_filter(const ImmModelT &imm_model, const SensModT &sensor_model, double dt,
                                                                                 const GaussTuple_x &moment_based_preds, const Vec_z &z_meas)
   {
     return step_kalman_filters(imm_model, sensor_model, dt, moment_based_preds, z_meas, std::make_index_sequence<N_MODELS>{});
@@ -145,7 +145,7 @@ public:
    * @param z_meas Vec_z Measurement
    * @param states_min_max The minimum and maximum value each state can take (optional, but can lead to better performance)
    */
-  static std::tuple<Vec_n, GaussTuple_x, GaussTuple_x, GaussArr_z> step(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
+  static std::tuple<Vec_n, GaussTuple_x, GaussTuple_x, GaussArr_z> step(const ImmModelT &imm_model, const SensModT &sensor_model, double dt,
                                                                         const GaussTuple_x &x_est_prevs, const Vec_z &z_meas, const Vec_n &weights,
                                                                         const models::StateMap &states_min_max = {})
   {
@@ -171,7 +171,7 @@ private:
    * @return Tuple of updated states, predicted states, predicted measurements
    */
   template <size_t... Is>
-  static std::tuple<GaussTuple_x, GaussTuple_x, GaussArr_z> step_kalman_filters(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
+  static std::tuple<GaussTuple_x, GaussTuple_x, GaussArr_z> step_kalman_filters(const ImmModelT &imm_model, const SensModT &sensor_model, double dt,
                                                                                 const GaussTuple_x &moment_based_preds, const Vec_z &z_meas,
                                                                                 std::index_sequence<Is...>)
   {
@@ -203,19 +203,19 @@ private:
    * @return Tuple of updated state, predicted state, predicted measurement
    */
   template <size_t i>
-  static std::tuple<Gauss_x<i>, Gauss_x<i>, Gauss_z> step_kalman_filter(const DynModTPtr<i> &dyn_model, const SensModTPtr &sensor_model, double dt,
+  static std::tuple<Gauss_x<i>, Gauss_x<i>, Gauss_z> step_kalman_filter(const DynModT<i> &dyn_model, const SensModT &sensor_model, double dt,
                                                                         const Gauss_x<i> &x_est_prev, const Vec_z &z_meas)
   {
     if constexpr (models::concepts::DynamicModelLTV<DynModT<i>> && models::concepts::SensorModelLTV<SensModT>) {
       using ImmSensMod  = models::ImmSensorModelLTV<ImmModelT::N_DIM_x(i), SensModT>;
       using EKF         = filter::EKF<DynModI<i>, ImmSensMod>;
-      auto imm_sens_mod = std::make_shared<ImmSensMod>(sensor_model);
+      ImmSensMod imm_sens_mod{sensor_model};
       return EKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
     }
     else {
       using ImmSensMod  = models::ImmSensorModel<ImmModelT::N_DIM_x(i), SensModT>;
       using UKF         = filter::UKF<DynModI<i>, ImmSensMod>;
-      auto imm_sens_mod = std::make_shared<ImmSensMod>(sensor_model);
+      ImmSensMod imm_sens_mod{sensor_model};
       return UKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
     }
   }
