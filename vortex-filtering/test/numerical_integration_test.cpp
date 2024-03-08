@@ -76,6 +76,7 @@ protected:
 
   void plot_result(std::string title = "ERK convergence")
   {
+    #ifdef GNUPLOT_ENABLE
     // Plot first state and true solution against time
     Gnuplot gp;
     gp << "set terminal wxt size 1200,800\n";
@@ -87,6 +88,8 @@ protected:
     gp << "plot '-' with lines title 'True', '-' with lines title 'Approx'\n";
     gp.send1d(std::make_tuple(t, vortex::plotting::extract_state_series(x_exact, 0)));
     gp.send1d(std::make_tuple(t, vortex::plotting::extract_state_series(x_est, 0)));
+    #endif
+    (void)title;
   }
 };
 

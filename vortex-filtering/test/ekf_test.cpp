@@ -104,6 +104,7 @@ TEST_F(EKFTestCVModel, convergence)
   }
   time.pop_back();
 
+  #ifdef GNUPLOT_ENABLE
   Gnuplot gp;
   gp << "set terminal qt size 1600,1000\n"; // Modified to make plot larger
   gp << "set multiplot layout 2,1\n";
@@ -126,4 +127,5 @@ TEST_F(EKFTestCVModel, convergence)
   gp.send1d(std::make_tuple(time, x_true_u));
   gp.send1d(std::make_tuple(time, x_est_u));
   gp << "unset multiplot\n";
+  #endif
 }
