@@ -5,15 +5,24 @@ They define the dynamics of the system and the sensor models used in the project
 All classes and functions are under the namespace `vortex::models`.
 The interfaces that the different models are derived from are definged under the namespace `vortex::models::interface`.
 
-## Dynamice Models
+## Overview
+- [`dynamic_model_interfaces.hpp`](dynamic_model_interfaces.hpp) contains the interfaces for the dynamic models.
+- [`sensor_model_interfaces.hpp`](sensor_model_interfaces.hpp) contains the interfaces for the sensor models.
+- [`dynamic_models.hpp`](dynamic_models.hpp) contains some movement models that are commonly used in target tracking.
+- [`sensor_models.hpp`](sensor_models.hpp) contains some sensor models that are commonly used.
+- [`imm_model.hpp`](imm_model.hpp) contains the IMM model.
+
+
+
+## Dynamic Models
 Models for describing the dynamics of the system. 
 
 ### Dynamic Model Interfaces
-
+The dynamic model interfaces are virtual template classes that makes it convenient to define your own dynamic models. 
 
 
 #### DynamicModel
-Dynamic model interface for other classes to derive from. The [UKF class](../filters/README.md#UKF) works on models derived from this class.
+Dynamic model interface for other classes to derive from. The [UKF](../filters/README.md#UKF) works on models derived from this class.
 
 ##### Key Features
 - Static Constants for Dimensions: The base class defines static constants (N_DIM_x, N_DIM_u, N_DIM_v) for dimensions, allowing derived classes to reference these dimensions.
@@ -22,7 +31,7 @@ Dynamic model interface for other classes to derive from. The [UKF class](../fil
 - Sampling Methods: Provides methods for sampling from the discrete time dynamics.
 
 #### DynamicModelLTV
-Dynamic model interface for other classes to derive from. The [EKF class](../filters/README.md#ekf) works on models derived from this class.
+Dynamic model interface for other classes to derive from. The [EKF](../filters/README.md#ekf) (and UKF) works on models derived from this class.
 
 This interface inherits from the `DynamicModel` interface and defines the dynamics of the system as a linear time varying system. The virtual method `f_d` from the `DynamicModel` interface is implemented as a linear time varying system on the form 
 $$
@@ -34,6 +43,8 @@ where $dt$ is the time step, $x_k$ is the state at time $k$, $u_k$ is the input 
 In order to define a *new* dynamic model, the user must first create a new class that inherits from the `DynamicModelLTV` interface. The user must then override the methods `A_d`, `B_d`, `G_d` and `Q_d` for the discrete time dynamics. In addition, the typedef `DynModI` has to be present in the derived class and should point to the `DynamicModelLTV` class like this:
 
 ```cpp
+#include <vortex_filtering/vortex_filtering.hpp>
+
 class MyDynamicModel : public interface::DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v> {
     // ...
     using DynModI = interface::DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v>;
@@ -50,22 +61,62 @@ The purpose of this typedef is to allow convenient access to types like `Gauss_x
 This class implements the `DynamicModelLTV` interface and defines the dynamics of the system as a continuous-time linear time-varying system. The matrices `A_c`, `B_c` `Q_d` and `G_c` are defined as virtual methods and must be implemented by the derived class. The matrices `A_d`, `B_d`, `Q_d` and `G_d` are then generated using [exact discretization](https://en.wikipedia.org/wiki/Discretization).
 
 ### IMM Model
-This class can hold multiple `DynamicModel` objects and defines functions to calculate the probability of switching between the models. 
+__Interacting Multiple Models__
+This class can store multiple `DynamicModel` objects and defines functions to calculate the probability of switching between the models. 
 
 #### Usage
-To instantiate a **Interacting Multiple Models (IMM) object**, you must provide three parameters:
+To instantiate a **Interacting Multiple Models (IMM) object**, you must provide four parameters:
 
-1. **Hold Times Vector**: This vector should contain the expected time durations between switches for each model. The length of this vector must equal the number of models, denoted as `N`.
+1. **Hold Times Vector**: This vector should contain the expected time durations that each model should be held before a switch occurs. The length of this vector must equal the number of models `N`. _When the switch occurs_ is modeled by an exponential distribution with parameters given in the hold times vector.
 
-2. **Switching Probabilities Matrix**: This is an `N x N` matrix where each element at index `(i, j)` represents the probability of transitioning from model `i` to model `j`. It's crucial that each probability lies between 0 and 1, and that the sum of probabilities in each row equals 1. These probabilities define the likelihood of transitioning to a particular model given that a switch occurs, but they do not represent the overall probability of a switch happening.
+2. **Switching Probabilities Matrix**: This is an `N x N` matrix where each element at index `(i, j)` represents the probability of transitioning from model `i` to model `j`. Each probability lies between 0 and 1, and the sum of probabilities in each row equals 1. These probabilities define the likelihood of transitioning to a particular model given that a switch occurs. The diagonal should be zero as this represents the probability of _switching to itself_, which doesn't make sense.
 
-3. **DynamicModel Objects**: A set of `DynamicModel` objects, one for each model in use.
+3. **Dynamic Model Objects**: A list of `DynamicModel` objects, one for each model in use.
 
+4. **State Names**: An array of state names (enums) for each state in each model. This is used to compare the states of the different models with each other in the [IMM filter](../filters/README.md#imm-filter) for proper mixing of the states.
+
+#### Example
+```cpp
+// Create aliases for the dynamic models (optional)
+using CP = vortex::models::ConstantPosition;
+using CV = vortex::models::ConstantVelocity;
+using CT = vortex::models::CoordinatedTurn;
+
+// Create alias for the IMM model (optional, but probably a good idea)
+using IMM = vortex::models::IMMModel<CP, CV, CT>;
+
+// Specify holding times and switching probabilities
+Eigen::Vector3d hold_times{1.0, 2.0, 3.0};
+Eigen::Matrix3d switch_probs{
+    {0.0, 0.5, 0.5},
+    {0.5, 0.0, 0.5},
+    {0.5, 0.5, 0.0}
+};
+
+double std_pos = 0.1, std_vel = 0.1, std_turn = 0.1;
+
+// Specify the state names of the models
+using ST = vortex::models::StateType;
+std::array<ST, 2> cp_names{ST::pos, ST::pos};
+std::array<ST, 4> cv_names{ST::pos, ST::pos, ST::vel, ST::vel};
+std::array<ST, 5> ct_names{ST::pos, ST::pos, ST::vel, ST::vel, ST::turn};
+
+// initialize IMM with the hold times, switching probabilities, dynamic models and state names
+IMM imm_model(hold_times, switch_probs, 
+              {CP(std_pos), cp_names}, 
+              {CV(std_vel), cv_names}, 
+              {CT(std_vel, std_turn), ct_names});
+
+// Enjoy your very own IMM model! :)
+```
+
+#### Theory
 It's important to note that the actual probability of switching from one model to another is determined through the `hold_times` vector. By treating the system as a **Continuous Time Markov Chain (CTMC)**, as detailed on [Wikipedia](https://en.wikipedia.org/wiki/Continuous-time_Markov_chain), the model calculates the switching probabilities based on the specified hold times and the switching probabilities matrix. 
 
 
 
-### Predefined Model Implementations
+### Dynamic Models
+`dynamic_models.hpp` 
 This file contains some movement models that are commonly used in an IMM.
 - `ConstantVelocity`: Has states for position and velocity. The template parameter `n_spatial_dims` specifies the number of spatial dimensions. So if the model is used in 2D, `n_spatial_dims` should be set to 2 and the model will have 4 states. `x`, `y`, `v_x` and `v_y`.
 - `ConstantAcceleration`: Has states for position, velocity and acceleration. The template parameter `n_spatial_dims` specifies the number of spatial dimensions. So if the model is used in 2D, `n_spatial_dims` should be set to 2 and the model will have 6 states. `x`, `y`, `v_x`, `v_y`, `a_x` and `a_y`. 

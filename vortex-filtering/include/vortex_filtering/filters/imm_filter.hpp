@@ -145,7 +145,7 @@ public:
    * @param z_meas Vec_z Measurement
    * @param states_min_max The minimum and maximum value each state can take (optional, but can lead to better performance)
    */
-  static std::tuple<Vec_n, GaussTuple_x, GaussArr_z, GaussTuple_x> step(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
+  static std::tuple<Vec_n, GaussTuple_x, GaussTuple_x, GaussArr_z> step(const ImmModelT &imm_model, const SensModTPtr &sensor_model, double dt,
                                                                         const GaussTuple_x &x_est_prevs, const Vec_z &z_meas, const Vec_n &weights,
                                                                         const models::StateMap &states_min_max = {})
   {
@@ -156,7 +156,7 @@ public:
     auto [x_est_upds, x_est_preds, z_est_preds] = mode_matched_filter(imm_model, sensor_model, dt, moment_based_preds, z_meas);
     Vec_n weights_upd                           = update_probabilities(mixing_probs, z_est_preds, z_meas, weights);
 
-    return {weights_upd, x_est_upds, z_est_preds, x_est_preds};
+    return {weights_upd, x_est_upds, x_est_preds, z_est_preds};
   }
 
 private:

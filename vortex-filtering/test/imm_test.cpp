@@ -14,7 +14,7 @@
 // IMM Model Tests
 ///////////////////////////////
 
-TEST(ImmModel, init)
+TEST(ImmModel, initWithStateNames)
 {
   using vortex::models::ConstantPosition;
   using vortex::models::ConstantVelocity;
@@ -368,7 +368,7 @@ TEST(ImmFilter, step)
 
   StateMap states_min_max{{StateType::velocity, {-10, 10}}, {StateType::turn_rate, {-M_PI, M_PI}}};
 
-  auto [weights_upd, x_est_upds, z_est_preds, x_est_preds] = ImmFilterT::step(imm_model, sensor_model, dt, x_est_prevs, z_meas, model_weights, states_min_max);
+  auto [weights_upd, x_est_upds, x_est_preds, z_est_preds] = ImmFilterT::step(imm_model, sensor_model, dt, x_est_prevs, z_meas, model_weights, states_min_max);
 
   EXPECT_EQ(ImmFilterT::N_MODELS, std::tuple_size<decltype(x_est_upds)>::value);
   EXPECT_EQ(ImmFilterT::N_MODELS, std::tuple_size<decltype(x_est_preds)>::value);
