@@ -1,6 +1,7 @@
 #pragma once
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/imm_model.hpp>
+#include <vortex_filtering/models/type_aliases.hpp>
 
 namespace vortex {
 namespace models {
@@ -13,32 +14,29 @@ constexpr int UNUSED = 1; // For when a template parameter is required but not u
 template <size_t n_dim_x> class IdentityDynamicModel : public interface::DynamicModelLTV<n_dim_x> {
 public:
   using DynModI = interface::DynamicModelLTV<n_dim_x>;
-  using Vec_x   = typename DynModI::Vec_x;
-  using Mat_xx  = typename DynModI::Mat_xx;
-  using Mat_xv  = typename DynModI::Mat_xv;
-  using Mat_vv  = typename DynModI::Mat_vv;
+  using T       = vortex::Types_xv<n_dim_x, n_dim_x>;
 
   /** Identity Dynamic Model
    * @param std Standard deviation of process noise
    */
   IdentityDynamicModel(double std)
-      : Q_(Mat_xx::Identity() * std * std)
+      : Q_(T::Mat_xx::Identity() * std * std)
   {
   }
 
   /** Identity Dynamic Model
    * @param Q Process noise covariance
    */
-  IdentityDynamicModel(Mat_vv Q)
+  IdentityDynamicModel(T::Mat_vv Q)
       : Q_(Q)
   {
   }
 
-  Mat_xx A_d(double dt, const Vec_x /*x*/ &) const override { return Mat_xx::Identity() * dt; }
-  Mat_vv Q_d(double /*dt*/, const Vec_x /*x*/ &) const override { return Q_; }
+  T::Mat_xx A_d(double dt, const T::Vec_x /*x*/ &) const override { return T::Mat_xx::Identity() * dt; }
+  T::Mat_vv Q_d(double /*dt*/, const T::Vec_x /*x*/ &) const override { return Q_; }
 
 private:
-  Mat_vv Q_;
+  T::Mat_vv Q_;
 };
 
 /** (Nearly) Constant Position Model
@@ -47,20 +45,11 @@ private:
  */
 class ConstantPosition : public interface::DynamicModelLTV<2, UNUSED, 2> {
 public:
-  static constexpr int N_STATES = 2;
-  using DynModI                 = interface::DynamicModelLTV<N_STATES, UNUSED, N_STATES>;
-  using typename DynModI::Vec_v;
-  using typename DynModI::Vec_x;
-
-  using typename DynModI::Mat_vv;
-  using typename DynModI::Mat_xv;
-  using typename DynModI::Mat_xx;
-
-  using Vec_s  = Eigen::Vector<double, N_STATES>;
-  using Mat_ss = Eigen::Matrix<double, N_STATES, N_STATES>;
+  using DynModI = interface::DynamicModelLTV<2, UNUSED, 2>;
+  using T       = vortex::Types_xv<N_DIM_x, N_DIM_v>;
 
   using ST = StateType;
-  static constexpr std::array<ST, N_STATES> StateNames{ST::position, ST::position};
+  static constexpr std::array StateNames{ST::position, ST::position};
 
   /** Constant Position Model in 2D
    * x = [x, y]
@@ -77,11 +66,7 @@ public:
    * @return Mat_xx
    * @note Overriding DynamicModelLTV::A_d
    */
-  Mat_xx A_d(double /*dt*/, const Vec_x & = Vec_x::Zero()) const override
-  {
-    Mat_ss I = Mat_ss::Identity();
-    return I;
-  }
+  T::Mat_xx A_d(double /*dt*/, const T::Vec_x & = T::Vec_x::Zero()) const override { return T::Mat_xx::Identity(); }
 
   /** Get the Jacobian of the continuous state transition model with respect to the process noise.
    * @param dt Time step
@@ -89,9 +74,9 @@ public:
    * @return Mat_xv
    * @note Overriding DynamicModelLTV::G_d
    */
-  Mat_xv G_d(double dt, const Vec_x /*x*/ & = Vec_x::Zero()) const override
+  T::Mat_xv G_d(double dt, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override
   {
-    Mat_ss I = Mat_ss::Identity();
+    T::Mat_xx I = T::Mat_xx::Identity();
     return 0.5 * dt * I;
   }
 
@@ -101,7 +86,7 @@ public:
    * @return Mat_xx Process noise covariance
    * @note Overriding DynamicModelLTV::Q_d
    */
-  Mat_vv Q_d(double /*dt*/ = 0.0, const Vec_x /*x*/ & = Vec_x::Zero()) const override { return Mat_vv::Identity() * std_pos_ * std_pos_; }
+  T::Mat_vv Q_d(double /*dt*/ = 0.0, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override { return T::Mat_vv::Identity() * std_pos_ * std_pos_; }
 
 private:
   double std_pos_;

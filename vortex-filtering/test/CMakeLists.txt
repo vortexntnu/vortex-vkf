@@ -11,6 +11,7 @@ ament_add_gtest(${PROJECT_NAME}_test
   numerical_integration_test.cpp
   probability_test.cpp
   sensor_model_test.cpp
+  types_test.cpp
   ukf_test.cpp
 )
 target_include_directories(${PROJECT_NAME}_test PUBLIC

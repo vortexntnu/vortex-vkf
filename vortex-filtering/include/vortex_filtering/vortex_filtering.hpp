@@ -20,6 +20,7 @@
 #include <vortex_filtering/models/dynamic_models.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_models.hpp>
+#include <vortex_filtering/models/type_aliases.hpp>
 
 // Numerical Integration
 #include <vortex_filtering/numerical_integration/erk_methods.hpp>
