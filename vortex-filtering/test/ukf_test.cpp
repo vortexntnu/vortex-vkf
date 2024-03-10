@@ -108,7 +108,7 @@ TEST_F(UKFtest, Convergence)
     x_m_std.push_back(x_est.at(i).mean()(0) - std::sqrt(x_est.at(i).cov()(0, 0))); // x_est - std
   }
 
-  #ifdef GNUPLOT_ENABLE
+  #if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set terminal wxt size 1200,800\n";
   gp << "set title 'UKF convergence'\n";

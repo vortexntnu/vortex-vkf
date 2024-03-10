@@ -94,7 +94,7 @@ TEST(MultiVarGauss, sample)
   double minorAxisLength = cov_ellipse.minor_axis();
   double angle           = cov_ellipse.angle_deg();
 
-  #ifdef GNUPLOT_ENABLE
+  #if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-10:10]\nset yrange [-10:10]\n";
   gp << "set style circle radius 0.05\n";

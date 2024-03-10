@@ -104,7 +104,7 @@ TEST_F(EKFTestCVModel, convergence)
   }
   time.pop_back();
 
-  #ifdef GNUPLOT_ENABLE
+  #if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set terminal qt size 1600,1000\n"; // Modified to make plot larger
   gp << "set multiplot layout 2,1\n";

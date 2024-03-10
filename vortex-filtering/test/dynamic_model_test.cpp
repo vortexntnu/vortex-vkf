@@ -51,7 +51,7 @@ TEST(DynamicModel, sampleSimpleModel)
   EXPECT_TRUE(isApproxEqual(approx_gauss.mean(), true_gauss.mean(), 0.1));
   EXPECT_TRUE(isApproxEqual(true_gauss.cov(), true_gauss.cov(), 0.1));
 
-  #ifdef GNUPLOT_ENABLE
+  #if (GNUPLOT_ENABLE)
   // Plot
   Gnuplot gp;
   gp << "set xrange [-10:10]\nset yrange [-10:10]\n";

@@ -89,6 +89,7 @@ install(
 )
 
 if(BUILD_TESTING)
+  # add_compile_definitions(GNUPLOT_ENABLE=1)
   add_subdirectory(test)
 endif()
 
