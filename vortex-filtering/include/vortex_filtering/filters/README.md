@@ -1,9 +1,9 @@
 # Filters
-This folder contains various filters for state estimation. Th
+This folder contains various filters for state estimation and target tracking. The filters are based on the Kalman filter and its extensions, and are designed to work with the models in the `vortex::models` namespace.
 
 All classes and functions are under the namespace `vortex::filters`.
 
-Here is a great intro to Kalman filters in general: [Kalman and Bayesian Filters in Python](
+Here is a great intro to Kalman filters in general: [Kalman and Bayesian Filters in Python](https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python/blob/master/00-Preface.ipynb)
 
 ## Overview
 - [`ekf.hpp`](ekf.hpp) contains the EKF filter
