@@ -94,6 +94,8 @@ template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u, size_t n_dim_v, size_t
 
 } // namespace vortex
 
+
+// Don't want you to use these macros outside of this file :)
 #undef VORTEX_TYPES_1
 #undef VORTEX_TYPES_2
 #undef VOXTEX_TYPES_3
