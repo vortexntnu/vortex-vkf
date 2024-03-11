@@ -22,10 +22,11 @@
 #include <vortex_filtering/models/sensor_models.hpp>
 #include <vortex_filtering/probability/gaussian_mixture.hpp>
 #include <vortex_filtering/probability/uniform.hpp>
+#include <vortex_filtering/types/model_concepts.hpp>
 
 namespace vortex::filter {
 
-template <models::concepts::SensorModel SensModT, models::concepts::ImmModel ImmModelT> class ImmFilter {
+template <concepts::model::SensorModelWithDefinedSizes SensModT, models::concepts::ImmModel ImmModelT> class ImmFilter {
 public:
   using SensModTPtr = std::shared_ptr<SensModT>;
   using SensModI    = typename SensModT::SensModI;

@@ -12,8 +12,9 @@
 #include <tuple>
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
-#include <vortex_filtering/models/type_aliases.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
+#include <vortex_filtering/types/model_concepts.hpp>
+#include <vortex_filtering/types/type_aliases.hpp>
 
 namespace vortex::filter {
 
@@ -22,13 +23,13 @@ namespace vortex::filter {
  * @tparam DynModT Dynamic model type derived from `vortex::models::interface::DynamicModelLTV`
  * @tparam SensModT Sensor model type derived from `vortex::models::interface::SensorModelLTV`
  */
-template <models::concepts::DynamicModelLTV DynModT, models::concepts::SensorModelLTV SensModT> class EKF {
+template <concepts::model::DynamicModelLTVWithDefinedSizes DynModT, concepts::model::SensorModelLTVWithDefinedSizes SensModT> class EKF {
 public:
-  static constexpr int N_DIM_x = DynModT::DynModI::N_DIM_x;
-  static constexpr int N_DIM_z = SensModT::SensModI::N_DIM_z;
-  static constexpr int N_DIM_u = DynModT::DynModI::N_DIM_u;
-  static constexpr int N_DIM_v = DynModT::DynModI::N_DIM_v;
-  static constexpr int N_DIM_w = SensModT::SensModI::N_DIM_w;
+  static constexpr int N_DIM_x = DynModT::N_DIM_x;
+  static constexpr int N_DIM_z = SensModT::N_DIM_z;
+  static constexpr int N_DIM_u = DynModT::N_DIM_u;
+  static constexpr int N_DIM_v = DynModT::N_DIM_v;
+  static constexpr int N_DIM_w = SensModT::N_DIM_w;
 
   using T = Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 

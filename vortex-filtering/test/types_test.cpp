@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <vortex_filtering/models/type_aliases.hpp>
+#include <vortex_filtering/types/type_aliases.hpp>
 #include <iostream>
 TEST(Types, x_2_z_1)
 {

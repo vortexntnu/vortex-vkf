@@ -1,7 +1,7 @@
 #pragma once
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/imm_model.hpp>
-#include <vortex_filtering/models/type_aliases.hpp>
+#include <vortex_filtering/types/type_aliases.hpp>
 
 namespace vortex {
 namespace models {
@@ -63,7 +63,7 @@ public:
   /** Get the Jacobian of the continuous state transition model with respect to the state.
    * @param dt Time step
    * @param x State (unused)
-   * @return Mat_xx
+   * @return T::Mat_xx
    * @note Overriding DynamicModelLTV::A_d
    */
   T::Mat_xx A_d(double /*dt*/, const T::Vec_x & = T::Vec_x::Zero()) const override { return T::Mat_xx::Identity(); }
@@ -71,7 +71,7 @@ public:
   /** Get the Jacobian of the continuous state transition model with respect to the process noise.
    * @param dt Time step
    * @param x State (unused)
-   * @return Mat_xv
+   * @return T::Mat_xv
    * @note Overriding DynamicModelLTV::G_d
    */
   T::Mat_xv G_d(double dt, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override
@@ -83,7 +83,7 @@ public:
   /** Get the continuous time process noise covariance matrix.
    * @param dt Time step (unused)
    * @param x State (unused)
-   * @return Mat_xx Process noise covariance
+   * @return T::Mat_xx Process noise covariance
    * @note Overriding DynamicModelLTV::Q_d
    */
   T::Mat_vv Q_d(double /*dt*/ = 0.0, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override { return T::Mat_vv::Identity() * std_pos_ * std_pos_; }
@@ -101,11 +101,8 @@ public:
   static constexpr int N_SPATIAL_DIM = 2;
   static constexpr int N_STATES      = 2 * N_SPATIAL_DIM;
 
-  using DynModI = interface::DynamicModelLTV<N_STATES, UNUSED, N_SPATIAL_DIM>;
-  using typename DynModI::Mat_vv;
-  using typename DynModI::Mat_xv;
-  using typename DynModI::Mat_xx;
-  using typename DynModI::Vec_x;
+  using T = vortex::Types_xv<N_STATES, N_DIM_v>;
+
 
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
   using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
@@ -126,14 +123,14 @@ public:
   /** Get the Jacobian of the continuous state transition model with respect to the state.
    * @param dt Time step
    * @param x State (unused)
-   * @return Mat_xx
+   * @return T::Mat_xx
    * @note Overriding DynamicModelLTV::A_d
    */
-  Mat_xx A_d(double dt, const Vec_x /*x*/ & = Vec_x::Zero()) const override
+  T::Mat_xx A_d(double dt, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override
   {
     Mat_ss I = Mat_ss::Identity();
     Mat_ss O = Mat_ss::Zero();
-    Mat_xx A;
+    T::Mat_xx A;
     // clang-format off
     A << I, I*dt,
          O, I;
@@ -144,13 +141,13 @@ public:
   /** Get the Jacobian of the continuous state transition model with respect to the process noise.
    * @param dt Time step
    * @param x State (unused)
-   * @return Mat_xv
+   * @return T::Mat_xv
    * @note Overriding DynamicModelLTV::G_d
    */
-  Mat_xv G_d(double dt, const Vec_x /*x*/ & = Vec_x::Zero()) const override
+  T::Mat_xv G_d(double dt, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override
   {
     Mat_ss I = Mat_ss::Identity();
-    Mat_xv G;
+    T::Mat_xv G;
     // clang-format off
     G << 0.5*dt*dt*I,
                 dt*I;
@@ -161,10 +158,10 @@ public:
   /** Get the continuous time process noise covariance matrix.
    * @param dt Time step (unused)
    * @param x State (unused)
-   * @return Mat_xx Process noise covariance
+   * @return T::Mat_xx Process noise covariance
    * @note Overriding DynamicModelLTV::Q_d
    */
-  Mat_vv Q_d(double /*dt*/ = 0.0, const Vec_x /*x*/ & = Vec_x::Zero()) const override { return Mat_vv::Identity() * std_vel_ * std_vel_; }
+  T::Mat_vv Q_d(double /*dt*/ = 0.0, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override { return T::Mat_vv::Identity() * std_vel_ * std_vel_; }
 
 private:
   double std_vel_;
@@ -179,13 +176,7 @@ public:
   static constexpr int N_SPATIAL_DIM = 2;
   static constexpr int N_STATES      = 3 * N_SPATIAL_DIM;
 
-  using DynModI = interface::DynamicModelLTV<N_STATES, UNUSED, 2 * N_SPATIAL_DIM>;
-  using typename DynModI::Vec_v;
-  using typename DynModI::Vec_x;
-
-  using typename DynModI::Mat_vv;
-  using typename DynModI::Mat_xv;
-  using typename DynModI::Mat_xx;
+  using T = vortex::Types_xv<N_STATES, N_DIM_v>;
 
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
   using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
@@ -204,14 +195,14 @@ public:
 
   /** Get the Jacobian of the continuous state transition model with respect to the state.
    * @param x State
-   * @return Mat_xx
+   * @return T::Mat_xx
    * @note Overriding DynamicModelLTV::A_d
    */
-  Mat_xx A_d(double dt, const Vec_x /*x*/ &) const override
+  T::Mat_xx A_d(double dt, const T::Vec_x /*x*/ &) const override
   {
     Mat_ss I = Mat_ss::Identity();
     Mat_ss O = Mat_ss::Zero();
-    Mat_xx A;
+    T::Mat_xx A;
     // clang-format off
     A << I, I*dt, I*0.5*dt*dt,
          O, I   , I*dt       ,
@@ -220,11 +211,11 @@ public:
     return A;
   }
 
-  Mat_xv G_d(double dt, const Vec_x /*x*/ & = Vec_x::Zero()) const override
+  T::Mat_xv G_d(double dt, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override
   {
     Mat_ss I = Mat_ss::Identity();
     Mat_ss O = Mat_ss::Zero();
-    Mat_xv G;
+    T::Mat_xv G;
     // clang-format off
     G << I*dt, I*0.5*dt*dt,
          I   , I*dt       ,
@@ -236,12 +227,12 @@ public:
   /** Get the continuous time process noise covariance matrix.
    * @param dt Time step (unused)
    * @param x State
-   * @return Mat_xx Process noise covariance
+   * @return T::Mat_xx Process noise covariance
    * @note Overriding DynamicModelLTV::Q_d
    */
-  Mat_vv Q_d(double /*dt*/ = 0.0, const Vec_x /*x*/ & = Vec_x::Zero()) const override
+  T::Mat_vv Q_d(double /*dt*/ = 0.0, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override
   {
-    Vec_v D;
+    T::Vec_v D;
     double var_vel = std_vel_ * std_vel_;
     double var_acc = std_acc_ * std_acc_;
     D << var_vel, var_vel, var_acc, var_acc;
@@ -259,16 +250,10 @@ private:
 class CoordinatedTurn : public interface::DynamicModelCTLTV<5, UNUSED, 3> {
 public:
   static constexpr int N_STATES = 5;
-  using DynModI                 = interface::DynamicModelCTLTV<N_STATES, UNUSED, 3>;
-  using typename DynModI::Vec_v;
-  using typename DynModI::Vec_x;
-
-  using typename DynModI::Mat_vv;
-  using typename DynModI::Mat_xv;
-  using typename DynModI::Mat_xx;
+  using T = vortex::Types_xv<N_DIM_x, N_DIM_v>;
 
   using ST = StateType;
-  static constexpr std::array<ST, N_STATES> StateNames{ST::position, ST::position, ST::velocity, ST::velocity, ST::turn_rate};
+  static constexpr std::array<ST, N_DIM_x> StateNames{ST::position, ST::position, ST::velocity, ST::velocity, ST::turn_rate};
   /** (Nearly) Coordinated Turn Model in 2D. (Nearly constant speed, nearly constant turn rate)
    * State = [x, y, x_dot, y_dot, omega]
    * @param std_vel Standard deviation of velocity
@@ -282,13 +267,13 @@ public:
 
   /** Get the Jacobian of the continuous state transition model with respect to the state.
    * @param x State
-   * @return Mat_xx
+   * @return T::Mat_xx
    * @note Overriding DynamicModelCTLTV::A_c
    */
-  Mat_xx A_c(const Vec_x /*x*/ &x) const override
+  T::Mat_xx A_c(const T::Vec_x /*x*/ &x) const override
   {
     // clang-format off
-    return Mat_xx{
+    return T::Mat_xx{
       {0, 0, 1   , 0   , 0},
       {0, 0, 0   , 1   , 0},
       {0, 0, 0   ,-x(4), 0},
@@ -300,13 +285,13 @@ public:
 
   /** Get the continuous time process noise matrix
    * @param x State (unused)
-   * return Mat_xv Process noise matrix
+   * return T::Mat_xv Process noise matrix
    * @note Overriding DynamicModelCTLTV::G_c
    */
-  Mat_xv G_c(const Vec_x /*x*/ & = Vec_x::Zero()) const override
+  T::Mat_xv G_c(const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override
   {
     // clang-format off
-    return Mat_xv {
+    return T::Mat_xv {
      {0, 0, 0},
      {0, 0, 0},
      {1, 0, 0},
@@ -318,15 +303,15 @@ public:
 
   /** Get the continuous time process noise covariance matrix.
    * @param x State
-   * @return Mat_xx Process noise covariance
+   * @return T::Mat_xx Process noise covariance
    * @note Overriding DynamicModelCTLTV::Q_c
    */
-  Mat_vv Q_c(const Vec_x /*x*/ & = Vec_x::Zero()) const override
+  T::Mat_vv Q_c(const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override
   {
     double var_vel  = std_vel_ * std_vel_;
     double var_turn = std_turn_ * std_turn_;
 
-    return Vec_v{var_vel, var_vel, var_turn}.asDiagonal();
+    return T::Vec_v{var_vel, var_vel, var_turn}.asDiagonal();
   }
 
 private:

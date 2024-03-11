@@ -14,11 +14,9 @@ class EKFTestCVModel : public ::testing::Test {
 protected:
   using PosMeasModel = vortex::models::IdentitySensorModel<4, 2>;
   using CVModel      = vortex::models::ConstantVelocity;
-  using DynModI      = CVModel::DynModI;
-  using Vec_x        = typename CVModel::Vec_x;
-  using Vec_u        = typename CVModel::Vec_u;
-  using Mat_xx       = typename CVModel::Mat_xx;
-  using Gauss_x      = typename CVModel::Gauss_x;
+  using Vec_x        = typename CVModel::T::Vec_x;
+  using Mat_xx       = typename CVModel::T::Mat_xx;
+  using Gauss_x      = typename CVModel::T::Gauss_x;
   using Gauss_z      = typename PosMeasModel::Gauss_z;
   using Vec_z        = typename PosMeasModel::Vec_z;
 

@@ -12,8 +12,8 @@
 
 namespace simple_dynamic_model_test {
 
-using Vec_x  = typename SimpleDynamicModel::Vec_x;
-using Mat_xx = typename SimpleDynamicModel::Mat_xx;
+using Vec_x  = typename SimpleDynamicModel::T::Vec_x;
+using Mat_xx = typename SimpleDynamicModel::T::Mat_xx;
 
 TEST(DynamicModel, initSimpleModel) { SimpleDynamicModel model; }
 
@@ -70,8 +70,8 @@ TEST(DynamicModel, sampleSimpleModel)
 
 namespace cv_model_test {
 using CVModel = vortex::models::ConstantVelocity;
-using Vec_x   = typename CVModel::Vec_x;
-using Mat_xx  = typename CVModel::Mat_xx;
+using Vec_x   = typename CVModel::T::Vec_x;
+using Mat_xx  = typename CVModel::T::Mat_xx;
 
 TEST(DynamicModel, initCVModel) { CVModel model(1.0); }
 
