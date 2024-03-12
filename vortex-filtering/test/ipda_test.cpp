@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include <vortex_filtering/filters/ipda.hpp>
-#include <vortex_filtering/plotting/utils.hpp>
+#include <vortex_filtering/utils/plotting.hpp>
 
 using IPDA = vortex::filter::IPDA<vortex::models::ConstantVelocity<2>, vortex::models::IdentitySensorModel<4, 2>>;
 
