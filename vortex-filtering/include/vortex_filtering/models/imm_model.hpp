@@ -17,6 +17,8 @@
 #include <tuple>
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
+#include <vortex_filtering/types/model_concepts.hpp>
+#include <vortex_filtering/types/type_aliases.hpp>
 
 namespace vortex::models {
 
@@ -41,33 +43,25 @@ using StateMap = std::map<StateType, StateMinMax>;
  * @brief Container class for interacting multiple models.
  * @tparam DynModels Dynamic models to use.
  */
-template <concepts::DynamicModel... DynModels> class ImmModel {
+template <vortex::concepts::model::DynamicModelWithDefinedSizes... DynModels> class ImmModel {
 public:
-  using DynModTuple    = std::tuple<DynModels...>;
-  using DynModPtrTuple = std::tuple<std::shared_ptr<DynModels>...>;
+  static constexpr std::array N_DIMS_x = {DynModels::N_DIM_x...};
+  static constexpr std::array N_DIMS_u = {DynModels::N_DIM_u...};
+  static constexpr std::array N_DIMS_v = {DynModels::N_DIM_v...};
 
-  using GaussTuple_x = std::tuple<typename DynModels::DynModI::Gauss_x...>;
-  using StateNames   = std::tuple<std::array<StateType, DynModels::DynModI::N_DIM_x>...>;
-
+  static constexpr bool SAME_DIMS_x = (DynModels::N_DIM_x == ...);
+  static constexpr bool MIN_DIM_x   = std::min(N_DIMS_x);
   static constexpr size_t N_MODELS = sizeof...(DynModels);
 
-  static constexpr bool SAME_DIMS_x = (DynModels::DynModI::N_DIM_x == ...);
+  using DynModTuple  = std::tuple<DynModels...>;
+  using GaussTuple_x = std::tuple<typename Types_x<DynModels::N_DIM_x>::Gauss_x...>;
+  using StateNames   = std::tuple<std::array<StateType, DynModels::N_DIM_x>...>;
+  using Vec_n        = Eigen::Vector<double, N_MODELS>;
+  using Mat_nn       = Eigen::Matrix<double, N_MODELS, N_MODELS>;
 
-  using Vec_n  = Eigen::Vector<double, N_MODELS>;
-  using Mat_nn = Eigen::Matrix<double, N_MODELS, N_MODELS>;
+  template <size_t i> using DynModT = typename std::tuple_element<i, DynModTuple>::type;
 
-  template <size_t i> using DynModI    = typename std::tuple_element<i, DynModTuple>::type::DynModI; // Get the base interface of the i'th model
-  template <size_t i> using DynModIPtr = typename DynModI<i>::SharedPtr;
-  template <size_t i> using Vec_x      = typename DynModI<i>::Vec_x;
-  template <size_t i> using Vec_u      = typename DynModI<i>::Vec_u;
-  template <size_t i> using Vec_v      = typename DynModI<i>::Vec_v;
-  template <size_t i> using Mat_xx     = typename DynModI<i>::Mat_xx;
-  template <size_t i> using Mat_vv     = typename DynModI<i>::Mat_vv;
-  template <size_t i> using Gauss_x    = typename DynModI<i>::Gauss_x;
-  template <size_t i> using GaussMix_x = typename DynModI<i>::GaussMix_x;
-
-  template <size_t i> using DynModT    = typename std::tuple_element<i, DynModTuple>::type;
-  template <size_t i> using DynModTPtr = typename std::shared_ptr<DynModT<i>>;
+  template <size_t i> using T = Types_xuv<N_DIMS_x[i], N_DIMS_u[i], N_DIMS_v[i]>;
 
   /**
    * @brief Construct a new ImmModel object
@@ -189,7 +183,8 @@ public:
    * @param v Noise (optional)
    * @return Vec_x
    */
-  template <size_t i> Vec_x<i> f_d(double dt, const Vec_x<i> &x, const Vec_u<i> &u = Vec_u<i>::Zero(), const Vec_v<i> &v = Vec_v<i>::Zero()) const
+  template <size_t i>
+  T<i>::Vec_x f_d(double dt, const T<i>::Vec_x &x, const T<i>::Vec_u &u = T<i>::Vec_u::Zero(), const T<i>::Vec_v &v = T<i>::Vec_v::Zero()) const
   {
     return get_model<i>().f_d(dt, x, u, v);
   }
@@ -201,11 +196,9 @@ public:
    * @param x State
    * @return Mat_vv
    */
-  template <size_t i> Mat_vv<i> Q_d(double dt, const Vec_x<i> &x) const { return get_model<i>().Q_d(dt, x); }
+  template <size_t i> T<i>::Mat_vv Q_d(double dt, const T<i>::Vec_x &x) const { return get_model<i>().Q_d(dt, x); }
 
-  static constexpr std::array<int, N_MODELS> N_DIMS_x() { return std::array<int, N_MODELS>{DynModels::DynModI::N_DIM_x...}; }
-
-  static constexpr int N_DIM_x(size_t model_index) { return N_DIMS_x().at(model_index); }
+  static constexpr int N_DIM_x(size_t model_index) { return N_DIMS_x.at(model_index); }
 
   StateNames get_all_state_names() const { return state_names_; }
 
@@ -224,21 +217,15 @@ private:
  * @brief Class for resizing the state vector of a sensor model to fit with multiple dynamic models.
  *
  */
-template <size_t n_dim_a, concepts::SensorModel SensModT> class ImmSensorModel {
+template <size_t n_dim_a, vortex::concepts::model::SensorModelWithDefinedSizes SensModT> class ImmSensorModel {
 public:
-  using SensModI = typename SensModT::SensModI;
-
-  static constexpr int N_DIM_x = SensModI::N_DIM_x;
-  static constexpr int N_DIM_z = SensModI::N_DIM_z;
+  static constexpr int N_DIM_x_real = SensModT::N_DIM_x;
+  static constexpr int N_DIM_z      = SensModT::N_DIM_z;
+  static constexpr int N_DIM_w      = SensModT::N_DIM_w;
   static constexpr int N_DIM_a = (int)n_dim_a;
+  static constexpr int N_DIM_x      = N_DIM_a; // For the consept to accept the state dimension of the sensor model (TODO: fix this in the future)
 
-  using Vec_x = typename SensModI::Vec_x;
-  using Vec_z = typename SensModI::Vec_z;
-  using Vec_w = typename SensModI::Vec_w;
-  using Vec_a = Eigen::Vector<double, N_DIM_a>;
-
-  using Mat_ww = typename SensModI::Mat_ww;
-  using Mat_aa = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;
+  using T = Types_xzwa<N_DIM_x_real, N_DIM_z, N_DIM_w, N_DIM_a>;
 
   ImmSensorModel(SensModT sensor_model)
       : sensor_model_(sensor_model)
@@ -246,37 +233,23 @@ public:
     static_assert(N_DIM_a >= SensModT::SensModI::N_DIM_x, "N_DIM_a must be greater than or equal to the state dimension of the sensor model");
   }
 
-  Vec_z h(const Vec_a &x, const Vec_w &w) const { return sensor_model_.h(x.template head<N_DIM_x>(), w); }
+  T::Vec_z h(const T::Vec_a &x, const T::Vec_w &w) const { return sensor_model_.h(x.template head<N_DIM_x_real>(), w); }
 
-  Mat_ww R(const Vec_x &x) const { return sensor_model_.R(x.template head<N_DIM_x>()); }
+  T::Mat_ww R(const T::Vec_x &x) const { return sensor_model_.R(x.template head<N_DIM_x_real>()); }
 
 private:
   SensModT sensor_model_;
 };
 
-template <size_t n_dim_a, concepts::SensorModelLTV SensModT> class ImmSensorModelLTV {
+template <size_t n_dim_a, vortex::concepts::model::SensorModelLTVWithDefinedSizes SensModT> class ImmSensorModelLTV {
 public:
-  using SensModI    = typename SensModT::SensModI;
-  using SensModTPtr = typename std::shared_ptr<SensModT>;
-
-  static constexpr int N_DIM_x = SensModI::N_DIM_x;
-  static constexpr int N_DIM_z = SensModI::N_DIM_z;
+  static constexpr int N_DIM_x_real = SensModT::N_DIM_x;
+  static constexpr int N_DIM_z      = SensModT::N_DIM_z;
+  static constexpr int N_DIM_w      = SensModT::N_DIM_w;
   static constexpr int N_DIM_a = (int)n_dim_a;
+  static constexpr int N_DIM_x      = N_DIM_a; // For the consept to accept the state dimension of the sensor model (TODO: fix this in the future)
 
-  using Vec_x = typename SensModI::Vec_x;
-  using Vec_z = typename SensModI::Vec_z;
-  using Vec_w = typename SensModI::Vec_w;
-  using Vec_a = Eigen::Vector<double, N_DIM_a>;
-
-  using Mat_xx   = typename SensModI::Mat_xx;
-  using Mat_ww   = typename SensModI::Mat_ww;
-  using Mat_aa   = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;
-  using Mat_za   = Eigen::Matrix<double, N_DIM_z, N_DIM_a>;
-  using Mat_zw   = typename SensModI::Mat_zw;
-  using Mat_zamx = Eigen::Matrix<double, N_DIM_z, N_DIM_a - N_DIM_x>; // 'z' by 'a-x' matrix
-
-  using Gauss_z = typename SensModI::Gauss_z;
-  using Gauss_a = typename prob::MultiVarGauss<N_DIM_a>;
+  using T = Types_xzwa<N_DIM_x_real, N_DIM_z, N_DIM_w, N_DIM_a>;
 
   ImmSensorModelLTV(SensModT sensor_model)
       : sensor_model_(sensor_model)
@@ -284,27 +257,27 @@ public:
     static_assert(N_DIM_a >= N_DIM_x, "N_DIM_a must be greater than or equal to the state dimension of the sensor model");
   }
 
-  Vec_z h(const Vec_a &x, const Vec_w &w) const { return sensor_model_.h(x.template head<N_DIM_x>(), w); }
+  T::Vec_z h(const T::Vec_a &x, const T::Vec_w &w) const { return sensor_model_.h(x.template head<N_DIM_x_real>(), w); }
 
-  Mat_za C(const Vec_a &x) const
+  T::Mat_za C(const T::Vec_a &x) const
   {
-    Mat_za C_a;
-    C_a << sensor_model_.C(x.template head<N_DIM_x>()), Mat_zamx::Zero();
+    typename T::Mat_za C_a                = T::Mat_za::Zero();
+    C_a.template leftCols<N_DIM_x_real>() = sensor_model_.C(x.template head<N_DIM_x_real>());
     return C_a;
   }
 
-  Mat_zw H(const Vec_a &x) const { return sensor_model_.H(x.template head<N_DIM_x>()); }
+  T::Mat_zw H(const T::Vec_a &x) const { return sensor_model_.H(x.template head<N_DIM_x_real>()); }
 
-  Mat_ww R(const Vec_a &x) const { return sensor_model_.R(x.template head<N_DIM_x>()); }
+  T::Mat_ww R(const T::Vec_a &x) const { return sensor_model_.R(x.template head<N_DIM_x_real>()); }
 
-  Gauss_z pred_from_est(const Gauss_a &x_est) const
+  T::Gauss_z pred_from_est(const T::Gauss_a &x_est) const
   {
-    Vec_x mean = x_est.mean().template head<N_DIM_x>();
-    Mat_xx cov = x_est.cov().template topLeftCorner<N_DIM_x, N_DIM_x>();
+    typename T::Vec_x mean = x_est.mean().template head<N_DIM_x_real>();
+    typename T::Mat_xx cov = x_est.cov().template topLeftCorner<N_DIM_x_real, N_DIM_x_real>();
     return sensor_model_.pred_from_est({mean, cov});
   }
 
-  Gauss_z pred_from_state(const Vec_a &x) const { return sensor_model_.pred_from_state(x.template head<N_DIM_x>()); }
+  T::Gauss_z pred_from_state(const T::Vec_a &x) const { return sensor_model_.pred_from_state(x.template head<N_DIM_x_real>()); }
 
 private:
   SensModT sensor_model_;

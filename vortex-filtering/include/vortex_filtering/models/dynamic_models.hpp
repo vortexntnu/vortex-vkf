@@ -12,9 +12,14 @@ constexpr int UNUSED = 1; // For when a template parameter is required but not u
  * @tparam n_dim_x Number of dimensions in state vector
  */
 template <size_t n_dim_x> class IdentityDynamicModel : public interface::DynamicModelLTV<n_dim_x> {
+  using Parent = interface::DynamicModelLTV<n_dim_x>;
+
 public:
-  using DynModI = interface::DynamicModelLTV<n_dim_x>;
-  using T       = vortex::Types_xv<n_dim_x, n_dim_x>;
+  static constexpr int N_DIM_x = Parent::N_DIM_x;
+  static constexpr int N_DIM_u = Parent::N_DIM_u;
+  static constexpr int N_DIM_v = Parent::N_DIM_v;
+
+  using T = vortex::Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
 
   /** Identity Dynamic Model
    * @param std Standard deviation of process noise
@@ -44,9 +49,14 @@ private:
  * @tparam n_spatial_dim Number of spatial dimensions
  */
 class ConstantPosition : public interface::DynamicModelLTV<2, UNUSED, 2> {
+  using Parent = interface::DynamicModelLTV<2, UNUSED, 2>;
+
 public:
-  using DynModI = interface::DynamicModelLTV<2, UNUSED, 2>;
-  using T       = vortex::Types_xv<N_DIM_x, N_DIM_v>;
+  static constexpr int N_DIM_x = Parent::N_DIM_x;
+  static constexpr int N_DIM_u = Parent::N_DIM_u;
+  static constexpr int N_DIM_v = Parent::N_DIM_v;
+
+  using T = vortex::Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
 
   using ST = StateType;
   static constexpr std::array StateNames{ST::position, ST::position};
@@ -66,7 +76,7 @@ public:
    * @return T::Mat_xx
    * @note Overriding DynamicModelLTV::A_d
    */
-  T::Mat_xx A_d(double /*dt*/, const T::Vec_x & = T::Vec_x::Zero()) const override { return T::Mat_xx::Identity(); }
+  T::Mat_xx A_d(double /*dt*/, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override { return T::Mat_xx::Identity(); }
 
   /** Get the Jacobian of the continuous state transition model with respect to the process noise.
    * @param dt Time step
@@ -97,11 +107,17 @@ private:
  * @tparam n_spatial_dim Number of spatial dimensions
  */
 class ConstantVelocity : public interface::DynamicModelLTV<4, UNUSED, 2> {
+  using Parent = interface::DynamicModelLTV<4, UNUSED, 2>;
+
 public:
+  static constexpr int N_DIM_x = Parent::N_DIM_x;
+  static constexpr int N_DIM_u = Parent::N_DIM_u;
+  static constexpr int N_DIM_v = Parent::N_DIM_v;
+
   static constexpr int N_SPATIAL_DIM = 2;
   static constexpr int N_STATES      = 2 * N_SPATIAL_DIM;
 
-  using T = vortex::Types_xv<N_STATES, N_DIM_v>;
+  using T = vortex::Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
 
 
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;

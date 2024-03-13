@@ -31,11 +31,11 @@ namespace filter {
  */
 template <concepts::model::DynamicModelWithDefinedSizes DynModT, concepts::model::SensorModelWithDefinedSizes SensModT, double alpha = 1.0, double beta = 2.0, double kappa = 0.0> class UKF {
 public:
-  static constexpr int N_DIM_x = DynModT::DynModI::N_DIM_x;
-  static constexpr int N_DIM_u = DynModT::DynModI::N_DIM_u;
-  static constexpr int N_DIM_z = SensModT::SensModI::N_DIM_z;
-  static constexpr int N_DIM_v = DynModT::DynModI::N_DIM_v;
-  static constexpr int N_DIM_w = SensModT::SensModI::N_DIM_w;
+  static constexpr int N_DIM_x = DynModT::N_DIM_x;
+  static constexpr int N_DIM_u = DynModT::N_DIM_u;
+  static constexpr int N_DIM_z = SensModT::N_DIM_z;
+  static constexpr int N_DIM_v = DynModT::N_DIM_v;
+  static constexpr int N_DIM_w = SensModT::N_DIM_w;
 
   using T = Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 

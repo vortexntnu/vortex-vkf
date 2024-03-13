@@ -10,18 +10,27 @@
 #include "test_models.hpp"
 #include <vortex_filtering/filters/ukf.hpp>
 #include <vortex_filtering/models/sensor_models.hpp>
+#include <vortex_filtering/types/type_aliases.hpp>
 
 class UKFtest : public ::testing::Test {
 protected:
-  using Vec_x   = typename NonlinearModel1::Vec_x;
-  using Mat_xx  = typename NonlinearModel1::Mat_xx;
-  using Gauss_x = typename NonlinearModel1::Gauss_x;
-
   using IdentitySensorModel = vortex::models::IdentitySensorModel<1, 1>;
 
-  using Vec_z   = typename IdentitySensorModel::Vec_z;
-  using Mat_zz  = typename IdentitySensorModel::Mat_zz;
-  using Gauss_z = typename IdentitySensorModel::Gauss_z;
+  static constexpr int N_DIM_x = NonlinearModel1::N_DIM_x;
+  static constexpr int N_DIM_z = IdentitySensorModel::N_DIM_z;
+  static constexpr int N_DIM_u = NonlinearModel1::N_DIM_u;
+  static constexpr int N_DIM_v = NonlinearModel1::N_DIM_v;
+  static constexpr int N_DIM_w = IdentitySensorModel::N_DIM_w;
+  
+  using T = vortex::Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
+
+  using Vec_x   = typename T::Vec_x;
+  using Mat_xx  = typename T::Mat_xx;
+  using Gauss_x = typename T::Gauss_x;
+
+  using Vec_z   = typename T::Vec_z;
+  using Mat_zz  = typename T::Mat_zz;
+  using Gauss_z = typename T::Gauss_z;
 
   using UKF = vortex::filter::UKF<NonlinearModel1, IdentitySensorModel>;
 

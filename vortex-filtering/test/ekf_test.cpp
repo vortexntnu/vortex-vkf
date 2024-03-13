@@ -17,8 +17,9 @@ protected:
   using Vec_x        = typename CVModel::T::Vec_x;
   using Mat_xx       = typename CVModel::T::Mat_xx;
   using Gauss_x      = typename CVModel::T::Gauss_x;
-  using Gauss_z      = typename PosMeasModel::Gauss_z;
-  using Vec_z        = typename PosMeasModel::Vec_z;
+  using Gauss_z      = typename PosMeasModel::T::Gauss_z;
+  using Vec_z        = typename PosMeasModel::T::Vec_z;
+  using Vec_u        = typename CVModel::T::Vec_u;
 
   using EKF = vortex::filter::EKF<CVModel, PosMeasModel>;
 

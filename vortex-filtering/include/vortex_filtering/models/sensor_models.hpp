@@ -10,16 +10,14 @@ namespace models {
  * @tparam n_dim_x Dimension of state
  * @tparam n_dim_z Dimension of measurement
  */
-template <int n_dim_x, int n_dim_z> class IdentitySensorModel : public interface::SensorModelLTV<n_dim_x, n_dim_z> {
+template <int n_dim_x, int n_dim_z> class IdentitySensorModel : public interface::SensorModelLTV<n_dim_x, n_dim_z, n_dim_z> {
+  using Parent = interface::SensorModelLTV<n_dim_x, n_dim_z, n_dim_z>;
 public:
-  using SensModI = interface::SensorModelLTV<n_dim_x, n_dim_z>;
+  static constexpr int N_DIM_x = Parent::N_DIM_x;
+  static constexpr int N_DIM_z = Parent::N_DIM_z;
+  static constexpr int N_DIM_w = Parent::N_DIM_w;
 
-  using typename SensModI::Mat_xx;
-  using typename SensModI::Mat_zw;
-  using typename SensModI::Mat_zx;
-  using typename SensModI::Mat_zz;
-  using typename SensModI::Vec_x;
-  using typename SensModI::Vec_z;
+  using T = vortex::Types_xzw<N_DIM_x, N_DIM_z, N_DIM_w>;
 
   /** Construct a new Simple Sensor Model object.
    * The measurement model is simply the n_dim_z first elements of the state vector.
@@ -27,37 +25,43 @@ public:
    * @tparam n_dim_x Dimension of state
    * @tparam n_dim_z Dimension of measurement
    */
-  IdentitySensorModel(double std) : R_(Mat_zz::Identity() * std * std) {}
+  IdentitySensorModel(double std)
+      : R_(T::Mat_ww::Identity() * std * std)
+  {
+  }
 
   /** Construct a new Simple Sensor Model object.
    * The measurement model is simply the n_dim_z first elements of the state vector.
    * @param R Measurement covariance matrix
    */
-  IdentitySensorModel(Mat_zz R) : R_(R) {}
+  IdentitySensorModel(T::Mat_zz R)
+      : R_(R)
+  {
+  }
 
   /** Get the Jacobian of the measurement model with respect to the state.
    * @param x State (not used)
    * @return Mat_zx
    * @note Overriding SensorModelLTV::C
    */
-  Mat_zx C(const Vec_x & = Vec_x::Zero()) const override { return Mat_zx::Identity(); }
+  T::Mat_zx C(const T::Vec_x /* x */& = T::Vec_x::Zero()) const override { return T::Mat_zx::Identity(); }
 
   /** Get the measurement covariance matrix.
    * @param x State (not used)
    * @return Mat_zz
    * @note Overriding SensorModelLTV::R
    */
-  Mat_zz R(const Vec_x & = Vec_x::Zero()) const override { return R_; }
+  T::Mat_zz R(const T::Vec_x /* x */ & = T::Vec_x::Zero()) const override { return R_; }
 
   /** Get the Jacobian of the measurement model with respect to noise
    * @param x State (not used)
    * @return Mat_zw
    * @note Overriding SensorModelLTV::H
    */
-  Mat_zw H(const Vec_x & = Vec_x::Zero()) const override { return Mat_zw::Identity(); }
+  T::Mat_zw H(const T::Vec_x /* x */& = T::Vec_x::Zero()) const override { return T::Mat_zw::Identity(); }
 
 private:
-  const Mat_zz R_; // Measurement covariance matrix
+  const T::Mat_ww R_; // Measurement covariance matrix
 };
 
 /** Range-Bearing sensor model.
@@ -66,14 +70,13 @@ private:
  * x = [x_target, y_target]
  * z = [range, bearing]
  */
-class RangeBearingSensor : public interface::SensorModelLTV<2, 2> {
+class RangeBearingSensor : public interface::SensorModelLTV<2, 2, 2> {
 public:
-  using SensModI = interface::SensorModel<2, 2>;
-  using typename SensModI::Mat_xx;
-  using typename SensModI::Mat_zx;
-  using typename SensModI::Mat_zz;
-  using typename SensModI::Vec_x;
-  using typename SensModI::Vec_z;
+  static constexpr int N_DIM_x = 2;
+  static constexpr int N_DIM_z = 2;
+  static constexpr int N_DIM_w = 2;
+
+  using T = vortex::Types_xzw<N_DIM_x, N_DIM_z, N_DIM_w>;
 
   /** Range-Bearing sensor model.
    * The measurement model is the range and bearing to the target.
@@ -92,10 +95,9 @@ public:
    * @return Vec_z
    * @note Overriding SensorModelLTV::h
    */
-  Vec_z h(const Vec_x &x, const Vec_w &w = Vec_w::Zero()) const override
+  T::Vec_z h(const T::Vec_x &x, const T::Vec_w &w = T::Vec_w::Zero()) const override
   {
-    Vec_z z;
-    z << std::sqrt(x(0) * x(0) + x(1) * x(1)), std::atan2(x(1), x(0));
+    typename T::Vec_z z{std::sqrt(x(0) * x(0) + x(1) * x(1)), std::atan2(x(1), x(0))};
     z += w;
     return z;
   }
@@ -105,12 +107,13 @@ public:
    * @return Mat_zx
    * @note Overriding SensorModelLTV::C
    */
-  Mat_zx C(const Vec_x &x) const override
+  T::Mat_zx C(const T::Vec_x &x) const override
   {
-    Mat_zx C;
     // clang-format off
-		C << (x(0) / std::sqrt(x(0)*x(0) + x(1)*x(1))), (x(1) / std::sqrt(x(0)*x(0) + x(1)*x(1))),
-		     (-x(1) / (x(0)*x(0) + x(1)*x(1)))        , (x(0) / (x(0)*x(0) + x(1)*x(1)));
+    typename T::Mat_zx C{
+        {(x(0) / std::sqrt(x(0) * x(0) + x(1) * x(1))), (x(1) / std::sqrt(x(0) * x(0) + x(1) * x(1)))},
+        {(-x(1) / (x(0) * x(0) + x(1) * x(1)))        , (x(0) / (x(0) * x(0) + x(1) * x(1)))}
+    };
     // clang-format on
     return C;
   }
@@ -120,11 +123,10 @@ public:
    * @return Mat_zz
    * @note Overriding SensorModelLTV::R
    */
-  Mat_zz R(const Vec_x & = Vec_x::Zero()) const override
+  T::Mat_zz R(const T::Vec_x & = T::Vec_x::Zero()) const override
   {
-    Vec_z D;
-    D << std_range_ * std_range_, std_bearing_ * std_bearing_;
-    Mat_zz R = D.asDiagonal();
+    typename T::Vec_z D{std_range_ * std_range_, std_bearing_ * std_bearing_};
+    typename T::Mat_zz R = D.asDiagonal();
     return R;
   }
 

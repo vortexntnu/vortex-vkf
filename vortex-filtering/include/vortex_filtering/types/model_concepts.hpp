@@ -19,13 +19,14 @@ using std::size_t;
 template <typename DynMod, size_t n_dim_x, size_t n_dim_v, size_t n_dim_u>
 concept DynamicModel = requires {
   {
-    DynMod::f_d(std::declval<double>(),
-                std::declval<typename Types_x<n_dim_x>::Vec_x>(),
-                std::declval<typename Types_u<n_dim_u>::Vec_u>(),
-                std::declval<typename Types_v<n_dim_v>::Vec_v>())
+    std::declval<DynMod>().f_d(std::declval<double>(),
+                               std::declval<typename Types_x<n_dim_x>::Vec_x>(),
+                               std::declval<typename Types_u<n_dim_u>::Vec_u>(),
+                               std::declval<typename Types_v<n_dim_v>::Vec_v>())
   } -> std::convertible_to<typename Types_x<n_dim_x>::Vec_x>;
+
   {
-    DynMod::Q_d(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
+    std::declval<DynMod>().Q_d(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
   } -> std::convertible_to<typename Types_v<n_dim_v>::Mat_vv>;
 };
 
@@ -46,21 +47,27 @@ concept DynamicModel = requires {
  */
 template <typename DynMod, size_t n_dim_x, size_t n_dim_v, size_t n_dim_u>
 concept DynamicModelLTV = requires {
-  requires DynamicModel<DynMod, n_dim_x, n_dim_v, n_dim_u>;
+  requires DynamicModel<DynMod, n_dim_x, n_dim_v, n_dim_u>; // Assuming DynamicModel is correctly defined as shown before
   {
-    DynMod::A_d(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
+    std::declval<DynMod>().A_d(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
   } -> std::convertible_to<typename Types_x<n_dim_x>::Mat_xx>;
+
   {
-    DynMod::B_d(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
+    std::declval<DynMod>().B_d(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
   } -> std::convertible_to<typename Types_xu<n_dim_x, n_dim_u>::Mat_xu>;
+
   {
-    DynMod::G_d(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
+    std::declval<DynMod>().G_d(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
   } -> std::convertible_to<typename Types_xv<n_dim_x, n_dim_v>::Mat_xv>;
+
   {
-    DynMod::pred_from_est(std::declval<double()>, std::declval<typename Types_x<n_dim_x>::Gauss_x>(), std::declval<typename Types_u<n_dim_u>::Vec_u>())
+    std::declval<DynMod>().pred_from_est(
+        std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Gauss_x>(), std::declval<typename Types_u<n_dim_u>::Vec_u>())
   } -> std::convertible_to<typename Types_x<n_dim_x>::Gauss_x>;
+
   {
-    DynMod::pred_from_state(std::declval<double()>, std::declval<typename Types_x<n_dim_x>::Vec_x>(), std::declval<typename Types_u<n_dim_u>::Vec_u>())
+    std::declval<DynMod>().pred_from_state(
+        std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>(), std::declval<typename Types_u<n_dim_u>::Vec_u>())
   } -> std::convertible_to<typename Types_x<n_dim_x>::Gauss_x>;
 };
 
@@ -77,10 +84,10 @@ concept DynamicModelLTV = requires {
 template <typename SensMod, size_t n_dim_x, size_t n_dim_z, size_t n_dim_w>
 concept SensorModel = requires {
   {
-    SensMod::h(std::declval<typename Types_x<n_dim_x>::Vec_x>(), std::declval<typename Types_w<n_dim_w>::Vec_w>())
+    std::declval<SensMod>().h(std::declval<typename Types_x<n_dim_x>::Vec_x>(), std::declval<typename Types_w<n_dim_w>::Vec_w>())
   } -> std::convertible_to<typename Types_z<n_dim_z>::Vec_z>;
   {
-    SensMod::R(std::declval<typename Types_x<n_dim_x>::Vec_x>())
+    std::declval<SensMod>().R(std::declval<typename Types_x<n_dim_x>::Vec_x>())
   } -> std::convertible_to<typename Types_w<n_dim_w>::Mat_ww>;
 };
 
@@ -97,16 +104,16 @@ template <typename SensMod, size_t n_dim_x, size_t n_dim_z, size_t n_dim_w>
 concept SensorModelLTV = requires {
   requires SensorModel<SensMod, n_dim_x, n_dim_z, n_dim_w>;
   {
-    SensMod::H(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
+    std::declval<SensMod>().H(std::declval<typename Types_x<n_dim_x>::Vec_x>())
   } -> std::convertible_to<typename Types_zw<n_dim_z, n_dim_w>::Mat_zw>;
   {
-    SensMod::C(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
+    std::declval<SensMod>().C(std::declval<typename Types_x<n_dim_x>::Vec_x>())
   } -> std::convertible_to<typename Types_xz<n_dim_x, n_dim_z>::Mat_zx>;
   {
-    SensMod::pred_from_est(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Gauss_x>())
+    std::declval<SensMod>().pred_from_est(std::declval<typename Types_x<n_dim_x>::Gauss_x>())
   } -> std::convertible_to<typename Types_z<n_dim_z>::Gauss_z>;
   {
-    SensMod::pred_from_state(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
+    std::declval<SensMod>().pred_from_state(std::declval<typename Types_x<n_dim_x>::Vec_x>())
   } -> std::convertible_to<typename Types_z<n_dim_z>::Gauss_z>;
 };
 
@@ -140,17 +147,9 @@ concept DynamicModelLTVWithDefinedSizes = requires {
   {
     DynMod::N_DIM_u
   } -> std::convertible_to<size_t>;
-  {
-    DynMod::N_DIM_w
-  } -> std::convertible_to<size_t>;
   requires DynamicModelLTV<DynMod, DynMod::N_DIM_x, DynMod::N_DIM_v, DynMod::N_DIM_u>;
 };
 
-/**
- * @brief 
- * 
- * @tparam SensMod 
- */
 template <typename SensMod>
 concept SensorModelWithDefinedSizes = requires {
   {

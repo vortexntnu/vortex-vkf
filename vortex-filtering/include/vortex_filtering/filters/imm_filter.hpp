@@ -28,36 +28,21 @@ namespace vortex::filter {
 
 template <concepts::model::SensorModelWithDefinedSizes SensModT, models::concepts::ImmModel ImmModelT> class ImmFilter {
 public:
-  using SensModTPtr = std::shared_ptr<SensModT>;
-  using SensModI    = typename SensModT::SensModI;
-
   static constexpr size_t N_MODELS = ImmModelT::N_MODELS;
 
-  static constexpr int N_DIM_z = SensModI::N_DIM_z;
+  static constexpr auto N_DIMS_x = ImmModelT::N_DIMS_x;
+  static constexpr int N_DIM_z   = SensModT::N_DIM_z;
 
-  using Vec_n  = typename ImmModelT::Vec_n;
-  using Mat_nn = typename ImmModelT::Mat_nn;
+  template <size_t i> using T = Types_xz<N_DIMS_x(i), N_DIM_z>;
 
-  using Vec_x = typename SensModI::Vec_x;
-  using Vec_z = typename SensModI::Vec_z;
+  template <size_t i> using DynModT = typename ImmModelT::template DynModT<i>;
 
-  using Mat_xz = typename SensModI::Mat_xz;
-  using Mat_zz = typename SensModI::Mat_zz;
-
-  using Gauss_z    = typename SensModI::Gauss_z;
-  using GaussArr_z = std::array<Gauss_z, N_MODELS>;
-
-  using GaussMix_z = prob::GaussianMixture<N_DIM_z>;
-
-  template <size_t i> using DynModT    = typename ImmModelT::template DynModT<i>;
-  template <size_t i> using DynModTPtr = typename ImmModelT::template DynModTPtr<i>;
-  template <size_t i> using DynModI    = typename ImmModelT::template DynModI<i>;
-  template <size_t i> using DynModIPtr = typename ImmModelT::template DynModIPtr<i>;
-
-  template <size_t i> using Gauss_x    = typename ImmModelT::template Gauss_x<i>;
-  template <size_t i> using GaussMix_x = typename ImmModelT::template GaussMix_x<i>;
-
+  using Vec_n        = Eigen::Vector<double, N_MODELS>;
+  using Mat_nn       = Eigen::Matrix<double, N_MODELS, N_MODELS>;
+  using Vec_z        = typename T<0>::Vec_z;
+  using Gauss_z      = typename T<0>::Gauss_z;
   using GaussTuple_x = typename ImmModelT::GaussTuple_x;
+  using GaussArr_z   = std::array<Gauss_z, N_MODELS>;
 
   /// No need to instantiate this class. All methods are static.
   ImmFilter() = delete;
@@ -178,7 +163,7 @@ private:
   {
 
     // Calculate mode-matched filter outputs and save them in a tuple of tuples
-    std::tuple<std::tuple<Gauss_x<Is>, Gauss_x<Is>, Gauss_z>...> ekf_outs;
+    std::tuple<std::tuple<typename T<Is>::Gauss_x, typename T<Is>::Gauss_x, Gauss_z>...> ekf_outs;
     ((std::get<Is>(ekf_outs) = step_kalman_filter<Is>(imm_model.template get_model<Is>(), sensor_model, dt, std::get<Is>(moment_based_preds), z_meas)), ...);
 
     // Convert tuple of tuples to tuple of tuples
@@ -204,18 +189,18 @@ private:
    * @return Tuple of updated state, predicted state, predicted measurement
    */
   template <size_t i>
-  static std::tuple<Gauss_x<i>, Gauss_x<i>, Gauss_z> step_kalman_filter(const DynModT<i> &dyn_model, const SensModT &sensor_model, double dt,
-                                                                        const Gauss_x<i> &x_est_prev, const Vec_z &z_meas)
+  static std::tuple<typename T<i>::Gauss_x, typename T<i>::Gauss_x, Gauss_z> step_kalman_filter(const DynModT<i> &dyn_model, const SensModT &sensor_model,
+                                                                                                double dt, const T<i>::Gauss_x &x_est_prev, const Vec_z &z_meas)
   {
-    if constexpr (models::concepts::DynamicModelLTV<DynModT<i>> && models::concepts::SensorModelLTV<SensModT>) {
+    if constexpr (concepts::model::DynamicModelLTVWithDefinedSizes<DynModT<i>> && concepts::model::SensorModelLTVWithDefinedSizes<SensModT>) {
       using ImmSensMod  = models::ImmSensorModelLTV<ImmModelT::N_DIM_x(i), SensModT>;
-      using EKF         = filter::EKF<DynModI<i>, ImmSensMod>;
+      using EKF         = filter::EKF<DynModT<i>, ImmSensMod>;
       ImmSensMod imm_sens_mod{sensor_model};
       return EKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
     }
     else {
       using ImmSensMod  = models::ImmSensorModel<ImmModelT::N_DIM_x(i), SensModT>;
-      using UKF         = filter::UKF<DynModI<i>, ImmSensMod>;
+      using UKF         = filter::UKF<DynModT<i>, ImmSensMod>;
       ImmSensMod imm_sens_mod{sensor_model};
       return UKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
     }
@@ -230,9 +215,9 @@ private:
    * @return std::tuple<Gauss_x<model_indices>...>
    */
   template <size_t... model_indices>
-  static std::tuple<Gauss_x<model_indices>...> mix_components(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs,
-                                                              const ImmModelT::StateNames &state_names, const models::StateMap &states_min_max,
-                                                              std::integer_sequence<size_t, model_indices...>)
+  static std::tuple<typename T<model_indices>::Gauss_x...> mix_components(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs,
+                                                                          const ImmModelT::StateNames &state_names, const models::StateMap &states_min_max,
+                                                                          std::integer_sequence<size_t, model_indices...>)
   {
     return {mix_one_component<model_indices>(x_est_prevs, mixing_probs.col(model_indices), state_names, states_min_max)...};
   }
@@ -247,8 +232,8 @@ private:
    * @note This is the function that actually does the mixing of the models. It is called for each model in the IMM filter.
    */
   template <size_t target_model_index>
-  static Gauss_x<target_model_index> mix_one_component(const GaussTuple_x &x_est_prevs, const Vec_n &weights, const ImmModelT::StateNames &state_names,
-                                                       const models::StateMap &states_min_max = {})
+  static T<target_model_index>::Gauss_x mix_one_component(const GaussTuple_x &x_est_prevs, const Vec_n &weights, const ImmModelT::StateNames &state_names,
+                                                          const models::StateMap &states_min_max = {})
   {
     constexpr size_t N_DIM_x = ImmModelT::N_DIM_x(target_model_index);
     using GaussMix_x         = prob::GaussianMixture<N_DIM_x>;
@@ -265,9 +250,9 @@ private:
    * @return std::array<Gauss_x<target_model_index>, N_MODELS>
    */
   template <size_t target_model_index, size_t... mixing_model_indices>
-  static std::array<Gauss_x<target_model_index>, N_MODELS> prepare_models(const GaussTuple_x &x_est_prevs, const ImmModelT::StateNames &state_names,
-                                                                          const models::StateMap &states_min_max,
-                                                                          std::integer_sequence<size_t, mixing_model_indices...>)
+  static std::array<typename T<target_model_index>::Gauss_x, N_MODELS> prepare_models(const GaussTuple_x &x_est_prevs, const ImmModelT::StateNames &state_names,
+                                                                                      const models::StateMap &states_min_max,
+                                                                                      std::integer_sequence<size_t, mixing_model_indices...>)
   {
     return {prepare_mixing_model<target_model_index, mixing_model_indices>(x_est_prevs, state_names, states_min_max)...};
   }
@@ -284,8 +269,8 @@ private:
    * are initialized with the mean and covariance from the target model or with a uniform distribution if `states_min_max` is provided.
    */
   template <size_t target_model_index, size_t mixing_model_index>
-  static Gauss_x<target_model_index> prepare_mixing_model(const GaussTuple_x &x_est_prevs, const ImmModelT::StateNames &state_names,
-                                                          const models::StateMap &states_min_max = {})
+  static T<target_model_index>::Gauss_x prepare_mixing_model(const GaussTuple_x &x_est_prevs, const ImmModelT::StateNames &state_names,
+                                                             const models::StateMap &states_min_max = {})
   {
     if constexpr (target_model_index == mixing_model_index) {
       return std::get<mixing_model_index>(x_est_prevs);

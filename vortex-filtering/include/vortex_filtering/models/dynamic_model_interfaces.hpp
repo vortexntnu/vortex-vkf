@@ -82,7 +82,11 @@ public:
  */
 template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelLTV : public DynamicModel<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using T = Types_xuv<n_dim_x, n_dim_u, n_dim_v>;
+  static constexpr int N_DIM_x = n_dim_x;
+  static constexpr int N_DIM_u = n_dim_u;
+  static constexpr int N_DIM_v = n_dim_v;
+
+  using T = Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
 
   /** Linear Time Variant Dynamic Model Interface. [x_k+1 = f_d = A_k*x_k + B_k*u_k + G_k*v_k]
    * @tparam n_dim_x  State dimension
@@ -96,17 +100,17 @@ public:
    * @note - G_d (optional if n_dim_x == n_dim_v)
    */
   DynamicModelLTV()
-      : DynamicModel<n_dim_x, n_dim_u, n_dim_v>()
+      : DynamicModel<N_DIM_x, N_DIM_u, N_DIM_v>()
   {
   }
   virtual ~DynamicModelLTV() = default;
 
   /** Discrete time dynamics
    * @param dt Time step
-   * @param x T::Vec_x State
-   * @param u T::Vec_u Input
-   * @param v T::Vec_v Process noise
-   * @return T::Vec_x
+   * @param x Vec_x State
+   * @param u Vec_u Input
+   * @param v Vec_v Process noise
+   * @return Vec_x
    */
   virtual T::Vec_x f_d(double dt, const T::Vec_x &x, const T::Vec_u &u = T::Vec_u::Zero(), const T::Vec_v &v = T::Vec_v::Zero()) const override
   {
@@ -147,7 +151,7 @@ public:
    */
   virtual T::Mat_xv G_d(double, const T::Vec_x &) const
   {
-    if (N_DIM_x != N_DIM_v) {
+    if (this->N_DIM_x != this->N_DIM_v) {
       throw std::runtime_error("G_d not implemented");
     }
     return T::Mat_xv::Identity();
@@ -208,7 +212,11 @@ protected:
  */
 template <size_t n_dim_x, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x> class DynamicModelCTLTV : public DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v> {
 public:
-  using T = Types_xuv<n_dim_x, n_dim_u, n_dim_v>;
+  static constexpr int N_DIM_x = n_dim_x;
+  static constexpr int N_DIM_u = n_dim_u;
+  static constexpr int N_DIM_v = n_dim_v;
+
+  using T = Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
 
   /** Continuous Time Linear Time Varying Dynamic Model Interface. [x_dot = A_c*x + B_c*u + G_c*v]
    * @tparam n_dim_x  State dimension
@@ -216,7 +224,7 @@ public:
    * @tparam n_dim_v  Process noise dimension (Default: n_dim_x)
    */
   DynamicModelCTLTV()
-      : DynamicModelLTV<n_dim_x, n_dim_u, n_dim_v>()
+      : DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v>()
   {
   }
   virtual ~DynamicModelCTLTV() = default;
@@ -257,7 +265,7 @@ public:
    */
   virtual T::Mat_xv G_c(const T::Vec_x &x) const
   {
-    if (n_dim_x != n_dim_v) {
+    if (N_DIM_x != N_DIM_v) {
       throw std::runtime_error("G_c not implemented");
     }
     (void)x; // unused
@@ -283,7 +291,7 @@ public:
    */
   T::Mat_xu B_d(double dt, const T::Vec_x &x) const override
   {
-    Eigen::Matrix<double, n_dim_x + n_dim_u, n_dim_x + n_dim_u> van_loan;
+    Eigen::Matrix<double, N_DIM_x + N_DIM_u, N_DIM_x + N_DIM_u> van_loan;
     van_loan << A_c(x), B_c(x), T::Mat_ux::Zero(), T::Mat_uu::Zero();
     van_loan *= dt;
     van_loan = van_loan.exp();
@@ -295,17 +303,17 @@ public:
 
   T::Mat_xv G_d(double dt, const T::Vec_x &x) const override
   {
-    Eigen::Matrix<double, n_dim_x + n_dim_v, n_dim_x + n_dim_v> van_loan;
-    van_loan.template topLeftCorner<n_dim_x, n_dim_x>()     = A_c(x);
-    van_loan.template topRightCorner<n_dim_x, n_dim_v>()    = G_c(x);
-    van_loan.template bottomLeftCorner<n_dim_v, n_dim_x>()  = T::Mat_vx::Zero();
-    van_loan.template bottomRightCorner<n_dim_v, n_dim_v>() = T::Mat_vv::Zero();
+    Eigen::Matrix<double, N_DIM_x + N_DIM_v, N_DIM_x + N_DIM_v> van_loan;
+    van_loan.template topLeftCorner<N_DIM_x, N_DIM_x>()     = A_c(x);
+    van_loan.template topRightCorner<N_DIM_x, N_DIM_v>()    = G_c(x);
+    van_loan.template bottomLeftCorner<N_DIM_v, N_DIM_x>()  = T::Mat_vx::Zero();
+    van_loan.template bottomRightCorner<N_DIM_v, N_DIM_v>() = T::Mat_vv::Zero();
 
     van_loan *= dt;
     van_loan = van_loan.exp();
 
     // T::Mat_xx A_d = van_loan.template block<N_DIM_x, N_DIM_x>(0, 0);
-    typename T::Mat_xv G_d = van_loan.template block<n_dim_x, n_dim_v>(0, N_DIM_x);
+    typename T::Mat_xv G_d = van_loan.template block<N_DIM_x, N_DIM_v>(0, N_DIM_x);
     return G_d;
   }
 
@@ -331,17 +339,17 @@ public:
     typename T::Mat_vv Q_c = this->Q_c(x);
     typename T::Mat_xv G_c = this->G_c(x);
 
-    Eigen::Matrix<double, 2 * n_dim_x, 2 * n_dim_x> van_loan;
-    van_loan.template topLeftCorner<n_dim_x, n_dim_x>()     = -A_c;
-    van_loan.template topRightCorner<n_dim_x, n_dim_x>()    = G_c * Q_c * G_c.transpose();
-    van_loan.template bottomLeftCorner<n_dim_x, n_dim_x>()  = T::Mat_xx::Zero();
-    van_loan.template bottomRightCorner<n_dim_x, n_dim_x>() = A_c.transpose();
+    Eigen::Matrix<double, 2 * N_DIM_x, 2 * N_DIM_x> van_loan;
+    van_loan.template topLeftCorner<N_DIM_x, N_DIM_x>()     = -A_c;
+    van_loan.template topRightCorner<N_DIM_x, N_DIM_x>()    = G_c * Q_c * G_c.transpose();
+    van_loan.template bottomLeftCorner<N_DIM_x, N_DIM_x>()  = T::Mat_xx::Zero();
+    van_loan.template bottomRightCorner<N_DIM_x, N_DIM_x>() = A_c.transpose();
 
     van_loan *= dt;
     van_loan = van_loan.exp();
 
-    typename T::Mat_xx A_d            = van_loan.template block<n_dim_x, n_dim_x>(n_dim_x, n_dim_x).transpose();
-    typename T::Mat_xx A_d_inv_GQGT_d = van_loan.template block<n_dim_x, n_dim_x>(0, n_dim_x); // A_d^(-1) * G * Q * G^T
+    typename T::Mat_xx A_d            = van_loan.template block<N_DIM_x, N_DIM_x>(N_DIM_x, N_DIM_x).transpose();
+    typename T::Mat_xx A_d_inv_GQGT_d = van_loan.template block<N_DIM_x, N_DIM_x>(0, N_DIM_x); // A_d^(-1) * G * Q * G^T
     typename T::Mat_xx GQGT_d         = A_d * A_d_inv_GQGT_d;                                  // G * Q * G^T
     return GQGT_d;
   }

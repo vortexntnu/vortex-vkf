@@ -1,21 +1,25 @@
 #include "test_models.hpp"
+
 #include <gtest/gtest.h>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_models.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
+#include <vortex_filtering/types/type_aliases.hpp>
 
 namespace simple_sensor_model_test {
 
 using SensorModel = vortex::models::IdentitySensorModel<2, 1>;
-using Measurement = typename SensorModel::Vec_z;
-using Vec_x       = typename SensorModel::Vec_x;
-using Vec_z       = typename SensorModel::Vec_z;
-using Mat_xx      = typename SensorModel::Mat_xx;
-using Mat_zz      = typename SensorModel::Mat_zz;
-using Mat_zx      = typename SensorModel::Mat_zx;
-using Mat_xz      = typename SensorModel::Mat_xz;
-using Gauss_x     = typename SensorModel::Gauss_x;
-using Gauss_z     = typename SensorModel::Gauss_z;
+
+using T = vortex::Types_xz<SensorModel::N_DIM_x, SensorModel::N_DIM_z>;
+
+using Vec_x   = T::Vec_x;
+using Vec_z   = T::Vec_z;
+using Mat_xx  = T::Mat_xx;
+using Mat_zz  = T::Mat_zz;
+using Mat_zx  = T::Mat_zx;
+using Mat_xz  = T::Mat_xz;
+using Gauss_x = T::Gauss_x;
+using Gauss_z = T::Gauss_z;
 
 TEST(SensorModel, initSimpleModel)
 {

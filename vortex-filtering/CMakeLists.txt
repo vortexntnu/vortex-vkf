@@ -13,6 +13,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(
     -Wall -Wextra -Wpedantic 
     -fopenmp # For parallel processing with Eigen
+    -fconcepts-diagnostics-depth=2 # For better concepts error messages
   )
 endif()
 

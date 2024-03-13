@@ -7,13 +7,14 @@
 #define MATRIX_TYPES(t1, s1, t2, s2)                                                                                                                         \
   using Mat_##t1##t2 = Eigen::Matrix<double, s1, s2>;                                                                                                          \
   using Mat_##t2##t1 = Eigen::Matrix<double, s2, s1>;
-  
-#define ONE_TYPE(t1, s1)                                                                                                                                 \
+
+#define ONE_TYPE(t1, s1)                                                                                                                                       \
+  static constexpr size_t N_DIM_##t1 = s1;                                                                                                                     \
+                                                                                                                                                               \
   using Vec_##t1      = Eigen::Vector<double, s1>;                                                                                                             \
   using Mat_##t1##t1  = Eigen::Matrix<double, s1, s1>;                                                                                                         \
   using Gauss_##t1    = vortex::prob::Gauss<s1>;                                                                                                               \
   using GaussMix_##t1 = vortex::prob::GaussMix<s1>;
-
 
 #define TWO_TYPES(t1, s1, t2, s2)                                                                                                                        \
   ONE_TYPE(t1, s1)                                                                                                                                       \
@@ -57,80 +58,61 @@
   MATRIX_TYPES(t3, s3, t5, s5)                                                                                                                               \
   MATRIX_TYPES(t4, s4, t5, s5)
 
+#define ONE_TYPE_STRUCT(t1)                                                                                                                                    \
+  template <size_t n_dim_##t1> struct Types_##t1 {                                                                                                             \
+    Types_##t1() = delete;                                                                                                                                     \
+    ONE_TYPE(t1, n_dim_##t1)                                                                                                                                   \
+  };
+
+#define TWO_TYPES_STRUCT(t1, t2)                                                                                                                               \
+  template <size_t n_dim_##t1, size_t n_dim_##t2> struct Types_##t1##t2 {                                                                                      \
+    Types_##t1##t2() = delete;                                                                                                                                 \
+    TWO_TYPES(t1, n_dim_##t1, t2, n_dim_##t2)                                                                                                                  \
+  };
+
+#define THREE_TYPES_STRUCT(t1, t2, t3)                                                                                                                         \
+  template <size_t n_dim_##t1, size_t n_dim_##t2, size_t n_dim_##t3> struct Types_##t1##t2##t3 {                                                               \
+    Types_##t1##t2##t3() = delete;                                                                                                                             \
+    THREE_TYPES(t1, n_dim_##t1, t2, n_dim_##t2, t3, n_dim_##t3)                                                                                                \
+  };
+
+#define FOUR_TYPES_STRUCT(t1, t2, t3, t4)                                                                                                                      \
+  template <size_t n_dim_##t1, size_t n_dim_##t2, size_t n_dim_##t3, size_t n_dim_##t4> struct Types_##t1##t2##t3##t4 {                                        \
+    Types_##t1##t2##t3##t4() = delete;                                                                                                                         \
+    FOUR_TYPES(t1, n_dim_##t1, t2, n_dim_##t2, t3, n_dim_##t3, t4, n_dim_##t4)                                                                                 \
+  };
+
+#define FIVE_TYPES_STRUCT(t1, t2, t3, t4, t5)                                                                                                                  \
+  template <size_t n_dim_##t1, size_t n_dim_##t2, size_t n_dim_##t3, size_t n_dim_##t4, size_t n_dim_##t5> struct Types_##t1##t2##t3##t4##t5 {                 \
+    Types_##t1##t2##t3##t4##t5() = delete;                                                                                                                     \
+    FIVE_TYPES(t1, n_dim_##t1, t2, n_dim_##t2, t3, n_dim_##t3, t4, n_dim_##t4, t5, n_dim_##t5)                                                                 \
+  };
+
 namespace vortex {
+// Hover over the types in vscode to see the expanded types
 
-template <size_t n_dim_x> struct Types_x {
-  Types_x() = delete;
-  ONE_TYPE(x, n_dim_x)
-};
+ONE_TYPE_STRUCT(x)
+ONE_TYPE_STRUCT(z)
+ONE_TYPE_STRUCT(u)
+ONE_TYPE_STRUCT(v)
+ONE_TYPE_STRUCT(w)
 
-template <size_t n_dim_z> struct Types_z {
-  Types_z() = delete;
-  ONE_TYPE(z, n_dim_z)
-};
+TWO_TYPES_STRUCT(x, z) // Sensor model without noise
+TWO_TYPES_STRUCT(x, v) // Dynamic model without input
+TWO_TYPES_STRUCT(x, u) // Dynamic model without noise
+TWO_TYPES_STRUCT(x, w)
 
-template <size_t n_dim_u> struct Types_u {
-  Types_u() = delete;
-  ONE_TYPE(u, n_dim_u)
-};
+TWO_TYPES_STRUCT(z, w)
 
-template <size_t n_dim_v> struct Types_v {
-  Types_v() = delete;
-  ONE_TYPE(v, n_dim_v)
-};
+THREE_TYPES_STRUCT(x, u, v) // Dynamic model
+THREE_TYPES_STRUCT(x, z, w) // Sensor model
+THREE_TYPES_STRUCT(x, z, n) // For IMM Filter
 
-template <size_t n_dim_w> struct Types_w {
-  Types_w() = delete;
-  ONE_TYPE(w, n_dim_w)
-};
+FOUR_TYPES_STRUCT(x, z, w, a) // Sensor model and augmented state a
 
-template <size_t n_dim_x, size_t n_dim_z> struct Types_xz {
-  Types_xz() = delete;
-  TWO_TYPES(x, n_dim_x, z, n_dim_z)
-};
-
-template <size_t n_dim_x, size_t n_dim_v> struct Types_xv {
-  Types_xv() = delete;
-  TWO_TYPES(x, n_dim_x, v, n_dim_v)
-};
-
-template <size_t n_dim_x, size_t n_dim_u> struct Types_xu {
-  Types_xu() = delete;
-  TWO_TYPES(x, n_dim_x, u, n_dim_u)
-};
-
-template <size_t n_dim_x, size_t n_dim_w> struct Types_xw {
-  Types_xw() = delete;
-  TWO_TYPES(x, n_dim_x, w, n_dim_w)
-};
-
-template <size_t n_dim_z, size_t n_dim_u> struct Types_zw {
-  Types_zw() = delete;
-  TWO_TYPES(z, n_dim_z, w, n_dim_u)
-};
-
-template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u> struct Types_xuv {
-  Types_xuv() = delete;
-  THREE_TYPES(x, n_dim_x, u, n_dim_u, v, n_dim_u)
-};
-
-template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u> struct Types_xzu {
-  Types_xzu() = delete;
-  THREE_TYPES(x, n_dim_x, z, n_dim_z, u, n_dim_u)
-};
-
-template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u, size_t n_dim_v> struct Types_xzuv {
-  Types_xzuv() = delete;
-  FOUR_TYPES(x, n_dim_x, z, n_dim_z, u, n_dim_u, v, n_dim_v)
-};
-
-template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u, size_t n_dim_v, size_t n_dim_w> struct Types_xzuvw {
-  Types_xzuvw() = delete;
-  FIVE_TYPES(x, n_dim_x, z, n_dim_z, u, n_dim_u, v, n_dim_v, w, n_dim_w)
-};
+FIVE_TYPES_STRUCT(x, z, u, v, w) // Dynamic model and sensor model
 
 } // namespace vortex
-
 
 // Don't want you to use these macros outside of this file :)
 #undef ONE_TYPE
@@ -138,4 +120,9 @@ template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u, size_t n_dim_v, size_t
 #undef THREE_TYPES
 #undef FOUR_TYPES
 #undef FIVE_TYPES
+#undef ONE_TYPE_STRUCT
+#undef TWO_TYPES_STRUCT
+#undef THREE_TYPES_STRUCT
+#undef FOUR_TYPES_STRUCT
+#undef FIVE_TYPES_STRUCT
 #undef MATRIX_TYPES
