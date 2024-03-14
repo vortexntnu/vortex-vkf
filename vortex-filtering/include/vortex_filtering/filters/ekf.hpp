@@ -23,7 +23,7 @@ namespace vortex::filter {
  * @tparam DynModT Dynamic model type derived from `vortex::models::interface::DynamicModelLTV`
  * @tparam SensModT Sensor model type derived from `vortex::models::interface::SensorModelLTV`
  */
-template <concepts::model::DynamicModelLTVWithDefinedSizes DynModT, concepts::model::SensorModelLTVWithDefinedSizes SensModT> class EKF {
+template <concepts::DynamicModelLTVWithDefinedSizes DynModT, concepts::SensorModelLTVWithDefinedSizes SensModT> class EKF {
 public:
   static constexpr int N_DIM_x = DynModT::N_DIM_x;
   static constexpr int N_DIM_z = SensModT::N_DIM_z;

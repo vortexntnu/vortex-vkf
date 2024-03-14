@@ -26,7 +26,7 @@
 
 namespace vortex::filter {
 
-template <concepts::model::SensorModelWithDefinedSizes SensModT, models::concepts::ImmModel ImmModelT> class ImmFilter {
+template <concepts::SensorModelWithDefinedSizes SensModT, models::concepts::ImmModel ImmModelT> class ImmFilter {
 public:
   static constexpr size_t N_MODELS = ImmModelT::N_MODELS;
 
@@ -192,7 +192,7 @@ private:
   static std::tuple<typename T<i>::Gauss_x, typename T<i>::Gauss_x, Gauss_z> step_kalman_filter(const DynModT<i> &dyn_model, const SensModT &sensor_model,
                                                                                                 double dt, const T<i>::Gauss_x &x_est_prev, const Vec_z &z_meas)
   {
-    if constexpr (concepts::model::DynamicModelLTVWithDefinedSizes<DynModT<i>> && concepts::model::SensorModelLTVWithDefinedSizes<SensModT>) {
+    if constexpr (concepts::DynamicModelLTVWithDefinedSizes<DynModT<i>> && concepts::SensorModelLTVWithDefinedSizes<SensModT>) {
       using ImmSensMod  = models::ImmSensorModelLTV<ImmModelT::N_DIM_x(i), SensModT>;
       using EKF         = filter::EKF<DynModT<i>, ImmSensMod>;
       ImmSensMod imm_sens_mod{sensor_model};

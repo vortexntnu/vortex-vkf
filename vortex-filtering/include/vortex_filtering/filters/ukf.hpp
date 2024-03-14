@@ -29,7 +29,9 @@ namespace filter {
  * @tparam beta Parameter for weighting of mean in covariance calculation (default 2.0)
  * @tparam kappa Parameter for adding additional spread to sigma points (default 0.0)
  */
-template <concepts::model::DynamicModelWithDefinedSizes DynModT, concepts::model::SensorModelWithDefinedSizes SensModT, double alpha = 1.0, double beta = 2.0, double kappa = 0.0> class UKF {
+template <concepts::DynamicModelWithDefinedSizes DynModT, concepts::SensorModelWithDefinedSizes SensModT, double alpha = 1.0, double beta = 2.0,
+          double kappa = 0.0>
+class UKF {
 public:
   static constexpr int N_DIM_x = DynModT::N_DIM_x;
   static constexpr int N_DIM_u = DynModT::N_DIM_u;

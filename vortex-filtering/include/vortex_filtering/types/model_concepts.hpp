@@ -1,9 +1,9 @@
 #pragma once
 #include <concepts>
 #include <vortex_filtering/types/type_aliases.hpp>
+#include <vortex_filtering/types/general_concepts.hpp>
 
 namespace vortex::concepts {
-namespace model {
 using std::size_t;
 
 /**
@@ -13,21 +13,21 @@ using std::size_t;
  * 
  * @tparam DynMod The dynamic model type
  * @tparam n_dim_x Dimension of the state
- * @tparam n_dim_v Dimension of the process noise
  * @tparam n_dim_u Dimension of the input
+ * @tparam n_dim_v Dimension of the process noise
  */
-template <typename DynMod, size_t n_dim_x, size_t n_dim_v, size_t n_dim_u>
+template <typename DynMod, size_t n_dim_x, size_t n_dim_u, size_t n_dim_v>
 concept DynamicModel = requires {
   {
     std::declval<DynMod>().f_d(std::declval<double>(),
                                std::declval<typename Types_x<n_dim_x>::Vec_x>(),
                                std::declval<typename Types_u<n_dim_u>::Vec_u>(),
                                std::declval<typename Types_v<n_dim_v>::Vec_v>())
-  } -> std::convertible_to<typename Types_x<n_dim_x>::Vec_x>;
+  } -> mat_convertible_to<typename Types_x<n_dim_x>::Vec_x>;
 
   {
     std::declval<DynMod>().Q_d(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
-  } -> std::convertible_to<typename Types_v<n_dim_v>::Mat_vv>;
+  } -> mat_convertible_to<typename Types_v<n_dim_v>::Mat_vv>;
 };
 
 /**
@@ -42,23 +42,23 @@ concept DynamicModel = requires {
  * 
  * @tparam DynMod The dynamic model type 
  * @tparam n_dim_x Dimension of the state
- * @tparam n_dim_v Dimension of the process noise
  * @tparam n_dim_u Dimension of the input
+ * @tparam n_dim_v Dimension of the process noise
  */
-template <typename DynMod, size_t n_dim_x, size_t n_dim_v, size_t n_dim_u>
+template <typename DynMod, size_t n_dim_x, size_t n_dim_u, size_t n_dim_v>
 concept DynamicModelLTV = requires {
-  requires DynamicModel<DynMod, n_dim_x, n_dim_v, n_dim_u>; // Assuming DynamicModel is correctly defined as shown before
+  requires DynamicModel<DynMod, n_dim_x, n_dim_u, n_dim_v>; // Assuming DynamicModel is correctly defined as shown before
   {
     std::declval<DynMod>().A_d(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
-  } -> std::convertible_to<typename Types_x<n_dim_x>::Mat_xx>;
+  } -> mat_convertible_to<typename Types_x<n_dim_x>::Mat_xx>;
 
   {
     std::declval<DynMod>().B_d(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
-  } -> std::convertible_to<typename Types_xu<n_dim_x, n_dim_u>::Mat_xu>;
+  } -> mat_convertible_to<typename Types_xu<n_dim_x, n_dim_u>::Mat_xu>;
 
   {
     std::declval<DynMod>().G_d(std::declval<double>(), std::declval<typename Types_x<n_dim_x>::Vec_x>())
-  } -> std::convertible_to<typename Types_xv<n_dim_x, n_dim_v>::Mat_xv>;
+  } -> mat_convertible_to<typename Types_xv<n_dim_x, n_dim_v>::Mat_xv>;
 
   {
     std::declval<DynMod>().pred_from_est(
@@ -85,11 +85,12 @@ template <typename SensMod, size_t n_dim_x, size_t n_dim_z, size_t n_dim_w>
 concept SensorModel = requires {
   {
     std::declval<SensMod>().h(std::declval<typename Types_x<n_dim_x>::Vec_x>(), std::declval<typename Types_w<n_dim_w>::Vec_w>())
-  } -> std::convertible_to<typename Types_z<n_dim_z>::Vec_z>;
+  } -> mat_convertible_to<typename Types_z<n_dim_z>::Vec_z>;
   {
     std::declval<SensMod>().R(std::declval<typename Types_x<n_dim_x>::Vec_x>())
-  } -> std::convertible_to<typename Types_w<n_dim_w>::Mat_ww>;
+  } -> mat_convertible_to<typename Types_w<n_dim_w>::Mat_ww>;
 };
+
 
 /**
  * @brief Concept for sensor models with time-varying parameters. Requires the following functions:
@@ -105,10 +106,10 @@ concept SensorModelLTV = requires {
   requires SensorModel<SensMod, n_dim_x, n_dim_z, n_dim_w>;
   {
     std::declval<SensMod>().H(std::declval<typename Types_x<n_dim_x>::Vec_x>())
-  } -> std::convertible_to<typename Types_zw<n_dim_z, n_dim_w>::Mat_zw>;
+  } -> mat_convertible_to<typename Types_zw<n_dim_z, n_dim_w>::Mat_zw>;
   {
     std::declval<SensMod>().C(std::declval<typename Types_x<n_dim_x>::Vec_x>())
-  } -> std::convertible_to<typename Types_xz<n_dim_x, n_dim_z>::Mat_zx>;
+  } -> mat_convertible_to<typename Types_xz<n_dim_x, n_dim_z>::Mat_zx>;
   {
     std::declval<SensMod>().pred_from_est(std::declval<typename Types_x<n_dim_x>::Gauss_x>())
   } -> std::convertible_to<typename Types_z<n_dim_z>::Gauss_z>;
@@ -132,7 +133,7 @@ concept DynamicModelWithDefinedSizes = requires {
   {
     DynMod::N_DIM_u
   } -> std::convertible_to<size_t>;
-  requires DynamicModel<DynMod, DynMod::N_DIM_x, DynMod::N_DIM_v, DynMod::N_DIM_u>;
+  requires DynamicModel<DynMod, DynMod::N_DIM_x, DynMod::N_DIM_u, DynMod::N_DIM_v>;
 };
 
 template <typename DynMod>
@@ -147,7 +148,7 @@ concept DynamicModelLTVWithDefinedSizes = requires {
   {
     DynMod::N_DIM_u
   } -> std::convertible_to<size_t>;
-  requires DynamicModelLTV<DynMod, DynMod::N_DIM_x, DynMod::N_DIM_v, DynMod::N_DIM_u>;
+  requires DynamicModelLTV<DynMod, DynMod::N_DIM_x, DynMod::N_DIM_u, DynMod::N_DIM_v>;
 };
 
 template <typename SensMod>
@@ -179,5 +180,4 @@ concept SensorModelLTVWithDefinedSizes = requires {
   requires SensorModelLTV<SensMod, SensMod::N_DIM_x, SensMod::N_DIM_z, SensMod::N_DIM_w>;
 };
 
-} // namespace model
 } // namespace vortex::concepts

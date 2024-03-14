@@ -43,7 +43,7 @@ using StateMap = std::map<StateType, StateMinMax>;
  * @brief Container class for interacting multiple models.
  * @tparam DynModels Dynamic models to use.
  */
-template <vortex::concepts::model::DynamicModelWithDefinedSizes... DynModels> class ImmModel {
+template <vortex::concepts::DynamicModelWithDefinedSizes... DynModels> class ImmModel {
 public:
   static constexpr std::array N_DIMS_x = {DynModels::N_DIM_x...};
   static constexpr std::array N_DIMS_u = {DynModels::N_DIM_u...};
@@ -217,7 +217,7 @@ private:
  * @brief Class for resizing the state vector of a sensor model to fit with multiple dynamic models.
  *
  */
-template <size_t n_dim_a, vortex::concepts::model::SensorModelWithDefinedSizes SensModT> class ImmSensorModel {
+template <size_t n_dim_a, vortex::concepts::SensorModelWithDefinedSizes SensModT> class ImmSensorModel {
 public:
   static constexpr int N_DIM_x_real = SensModT::N_DIM_x;
   static constexpr int N_DIM_z      = SensModT::N_DIM_z;
@@ -241,7 +241,7 @@ private:
   SensModT sensor_model_;
 };
 
-template <size_t n_dim_a, vortex::concepts::model::SensorModelLTVWithDefinedSizes SensModT> class ImmSensorModelLTV {
+template <size_t n_dim_a, vortex::concepts::SensorModelLTVWithDefinedSizes SensModT> class ImmSensorModelLTV {
 public:
   static constexpr int N_DIM_x_real = SensModT::N_DIM_x;
   static constexpr int N_DIM_z      = SensModT::N_DIM_z;
