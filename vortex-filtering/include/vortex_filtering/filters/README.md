@@ -36,17 +36,18 @@ double std_bearing = 0.1;
 auto dynamic_model = std::make_shared<DynModT>(std_vel);
 auto sensor_model = std::make_shared<SensModT>(std_range, std_bearing);
 
-// Get the type aliases you need from the dynamic models and sensor models (optional)
-using DynModI  = typename DynamicModelT::DynModI;
-using SensModI = typename SensorModelT::SensModI
-using Gauss_x  = typename DynmodI::Gauss_x;
-using Vec_z    = typename SensModI::Vec_z;
+// Get the sizes of the state and measurement vectors
+constexpr int N_DIM_x = DynModT::N_DIM_x;
+constexpr int N_DIM_z = SensModT::N_DIM_z;
+
+// Get all types used in the models
+using T = vortex::Types_xz<N_DIM_x, N_DIM_z>;
 
 // Initial estimate
-Gauss_x x_est_prev{50, 60, 0, 0};
+typename T::Gauss_x x_est_prev{50, 60, 0, 0};
 
 // Measurement
-Vec_z z_meas{48, 65};
+typename T::Vec_z z_meas{48, 65};
 
 // Estimate the next state
 auto [x_est_upd, x_est_pred, z_est_pred] = EKF::step(dynamic_model, sensor_model, dt, x_est_prev, z_meas);

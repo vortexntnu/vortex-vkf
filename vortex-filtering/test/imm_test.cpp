@@ -132,7 +132,7 @@ TEST(ImmFilter, init)
   using ImmFilterT = vortex::filter::ImmFilter<SensModT, ImmModelT>;
 
   EXPECT_EQ(ImmFilterT::N_MODELS, 2u);
-  EXPECT_EQ(ImmFilterT::N_DIM_z, SensModT::SensModI::N_DIM_z);
+  EXPECT_EQ(ImmFilterT::N_DIM_z, SensModT::N_DIM_z);
 }
 
 TEST(ImmFilter, calculateMixingProbs)

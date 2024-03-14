@@ -23,6 +23,7 @@ TEST(Types, x_2_z_1)
 TEST(Concepts, MatConvertibleTo)
 {
   static_assert(std::convertible_to<Eigen::Matrix3d, Eigen::Matrix2d>);
+  static_assert(vortex::concepts::mat_convertible_to<Eigen::Matrix3d, Eigen::Matrix3d>);
   static_assert(!vortex::concepts::mat_convertible_to<Eigen::Matrix3d, Eigen::Matrix2d>);
 
   ASSERT_TRUE(true);
@@ -35,8 +36,6 @@ TEST(Concepts, Models)
   constexpr size_t N_DIM_u = 3;
   constexpr size_t N_DIM_v = 2;
   constexpr size_t N_DIM_w = 1;
-
-  using T = vortex::Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 
   using DynMod     = vortex::models::interface::DynamicModel<N_DIM_x, N_DIM_u, N_DIM_v>;
   using DynModLTV  = vortex::models::interface::DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v>;

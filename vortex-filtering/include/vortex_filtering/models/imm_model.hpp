@@ -65,9 +65,7 @@ public:
 
   /**
    * @brief Construct a new ImmModel object
-   * @tparam DynModels Dynamic models to use. The models must be linear-time-varying and have a `DynModI` typedef
-   * specifying the base interface as the LTV model interface or it's derived classes
-   * (e.g. `using DynModI = interface::DynamicModelLTV<...>`).
+   * @tparam DynModels Dynamic models to use.
    * @param jump_matrix Markov jump chain matrix for the transition probabilities.
    * I.e. the probability of switching from model i to model j is `jump_matrix(i,j)`. Diagonal should be 0.
    * @param hold_times Expected holding time in seconds for each state. Parameter is the mean of an exponential distribution.
@@ -83,9 +81,7 @@ public:
 
   /**
    * @brief Construct a new ImmModel object
-   * @tparam DynModels Dynamic models to use. The models must be linear-time-varying and have a `DynModI` typedef
-   * specifying the base interface as the LTV model interface or it's derived classes
-   * (e.g. `using DynModI = interface::DynamicModelLTV<...>`).
+   * @tparam DynModels Dynamic models to use.
    * @param jump_matrix Markov jump chain matrix for the transition probabilities.
    * I.e. the probability of switching from model i to model j is `jump_matrix(i,j)`. Diagonal should be 0.
    * @param hold_times Expected holding time in seconds for each state. Parameter is the mean of an exponential distribution.

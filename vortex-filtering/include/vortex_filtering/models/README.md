@@ -40,21 +40,29 @@ $$
 where $dt$ is the time step, $x_k$ is the state at time $k$, $u_k$ is the input at time $k$ and $v_k$ is the process noise at time $k$. The matrices $A_d$, $B_d$ and $G_d$ are defined as virtual methods and must be implemented by the derived class.
 
 ##### Usage
-In order to define a *new* dynamic model, the user must first create a new class that inherits from the `DynamicModelLTV` interface. The user must then override the methods `A_d`, `B_d`, `G_d` and `Q_d` for the discrete time dynamics. In addition, the typedef `DynModI` has to be present in the derived class and should point to the `DynamicModelLTV` class like this:
+In order to define a *new* dynamic model, the user must first create a new class that inherits from the `DynamicModelLTV` interface. The user must then override the methods `A_d`, `B_d`, `G_d` and `Q_d` for the discrete time dynamics.
 
 ```cpp
 #include <vortex_filtering/vortex_filtering.hpp>
 
 class MyDynamicModel : public interface::DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v> {
-    // ...
-    using DynModI = interface::DynamicModelLTV<N_DIM_x, N_DIM_u, N_DIM_v>;
-    // ...
-    using typename DynModI::Gauss_x;
-    using typename DynModI::Vec_x;
+public:
+    // Get all types used in the models
+    using T = vortex::Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
+
+
+    // Define the matrices A_d, (B_d), (G_d) and Q_d
+    T::Mat_XX A_d(double dt, const T::Vec& x) const override {
+        // Implement the A_d matrix
+    }
+
+    T::Mat_XU B_d(double dt, const T::Vec& x) const override {
+        // Implement the B_d matrix
+    }
+
+    // ... and so on
 };
 ```
-
-The purpose of this typedef is to allow convenient access to types like `Gauss_x`, `Vec_x`, etc., without needing to redefine them in the derived class. It also allows other classes to access the types defined in the `DynamicModelLTV` class. For example, the `EKF` class uses this typedef to access the sizes of the state, input and noise vectors inherent to the dynamic models.
 
 
 #### DynamicModelCTLTV

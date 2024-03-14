@@ -29,8 +29,6 @@ namespace interface {
  */
 template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_w = n_dim_z> class SensorModel {
 public:
-  using SensModI = SensorModel<n_dim_x, n_dim_z, n_dim_w>;
-
   static constexpr int N_DIM_x = (int)n_dim_x;
   static constexpr int N_DIM_z = (int)n_dim_z;
   static constexpr int N_DIM_w = (int)n_dim_w;
@@ -45,7 +43,7 @@ public:
    * @param x State
    * @return Vec_z
    */
-  virtual T::Vec_z h(const T::Vec_x &x, const T::Vec_w &w) const = 0;
+  virtual T::Vec_z h(const T::Vec_x &x, const T::Vec_w &w = T::Vec_w::Zero()) const = 0;
 
   /**
    * @brief Noise covariance matrix
@@ -78,7 +76,7 @@ public:
  * @note - R
  * @note - H (optional if N_DIM_x == N_DIM_z)
  */
-template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_w = n_dim_z> class SensorModelLTV : public SensorModel<n_dim_x, n_dim_z, n_dim_z> {
+template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_w = n_dim_z> class SensorModelLTV : public SensorModel<n_dim_x, n_dim_z, n_dim_w> {
 public:
   static constexpr int N_DIM_x = n_dim_x;
   static constexpr int N_DIM_z = n_dim_z;
