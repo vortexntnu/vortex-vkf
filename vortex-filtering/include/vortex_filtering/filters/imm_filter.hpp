@@ -33,7 +33,7 @@ public:
   static constexpr auto N_DIMS_x = ImmModelT::N_DIMS_x;
   static constexpr int N_DIM_z   = SensModT::N_DIM_z;
 
-  template <size_t i> using T = Types_xz<N_DIMS_x(i), N_DIM_z>;
+  template <size_t i> using T = Types_xz<N_DIMS_x.at(i), N_DIM_z>;
 
   template <size_t i> using DynModT = typename ImmModelT::template DynModT<i>;
 

@@ -76,7 +76,7 @@ public:
    * @note - The holding times specifies HOW LONG a state is expected to be held between switches.
    * @note - In order to change the properties of a model, you must get the model using `get_model<i>()`
    */
-  ImmModel(Mat_nn jump_matrix, Vec_n hold_times, std::tuple<DynModels, std::array<StateType, DynModels::DynModI::N_DIM_x>>... models_and_state_names)
+  ImmModel(Mat_nn jump_matrix, Vec_n hold_times, std::tuple<DynModels, std::array<StateType, DynModels::N_DIM_x>>... models_and_state_names)
       : ImmModel(jump_matrix, hold_times, std::get<0>(models_and_state_names)..., {std::get<1>(models_and_state_names)...})
   {
   }

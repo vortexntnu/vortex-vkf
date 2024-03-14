@@ -26,10 +26,11 @@ TEST(ImmModel, initWithStateNames)
   double dt  = 1.0;
 
   using ST = vortex::models::StateType;
-  vortex::models::ImmModel imm_model{jump_mat,
-                                     hold_times,
-                                     std::tuple{ConstantPosition(std), std::array{ST::position, ST::position}},
-                                     std::tuple{ConstantVelocity(std), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
+  using ImmModelT = vortex::models::ImmModel<ConstantPosition, ConstantVelocity>;
+  ImmModelT imm_model{jump_mat,
+                      hold_times,
+                      std::tuple{ConstantPosition(std), std::array{ST::position, ST::position}},
+                      std::tuple{ConstantVelocity(std), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
 
   EXPECT_EQ(typeid(imm_model.get_model<0>()), typeid(ConstantPosition));
   EXPECT_EQ(typeid(imm_model.get_model<1>()), typeid(ConstantVelocity));
@@ -116,7 +117,7 @@ TEST(ImmModel, stateSize)
 
   using TestModel = vortex::models::ImmModel<ConstantPosition, ConstantVelocity, ConstantAcceleration>;
 
-  EXPECT_EQ(TestModel::N_DIMS_x(), (std::array<int, 3>{2, 4, 6}));
+  EXPECT_EQ(TestModel::N_DIMS_x, (std::array<int, 3>{2, 4, 6}));
 }
 
 ///////////////////////////////
@@ -222,10 +223,10 @@ TEST(ImmFilter, mixing_two_different_models)
   double std_vel = 0.1;
 
   using ST = vortex::models::StateType;
-  vortex::models::ImmModel imm_model{jump_mat,
-                                     hold_times,
-                                     std::tuple{ConstantPosition(std_pos), std::array{ST::position, ST::position}},
-                                     std::tuple{ConstantVelocity(std_vel), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
+  ImmModelT imm_model{jump_mat,
+                      hold_times,
+                      std::tuple{ConstantPosition(std_pos), std::array{ST::position, ST::position}},
+                      std::tuple{ConstantVelocity(std_vel), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 
@@ -268,10 +269,10 @@ TEST(ImmFilter, modeMatchedFilter)
   double std_vel = 0.1;
 
   using ST = vortex::models::StateType;
-  vortex::models::ImmModel imm_model{jump_mat,
-                                     hold_times,
-                                     std::tuple{ConstantPosition(std_pos), std::array{ST::position, ST::position}},
-                                     std::tuple{ConstantVelocity(std_vel), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
+  ImmModelT imm_model{jump_mat,
+                      hold_times,
+                      std::tuple{ConstantPosition(std_pos), std::array{ST::position, ST::position}},
+                      std::tuple{ConstantVelocity(std_vel), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
 
   IdentitySensorModel<2, 2> sensor_model{dt};
 
@@ -312,10 +313,10 @@ TEST(ImmFilter, updateProbabilities)
   using ImmFilterT = vortex::filter::ImmFilter<IdentitySensorModel<2, 2>, ImmModelT>;
 
   using ST = vortex::models::StateType;
-  vortex::models::ImmModel imm_model{jump_mat,
-                                     hold_times,
-                                     std::tuple{ConstantPosition(std_pos), std::array{ST::position, ST::position}},
-                                     std::tuple{ConstantVelocity(std_vel), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
+  ImmModelT imm_model{jump_mat,
+                      hold_times,
+                      std::tuple{ConstantPosition(std_pos), std::array{ST::position, ST::position}},
+                      std::tuple{ConstantVelocity(std_vel), std::array{ST::position, ST::position, ST::velocity, ST::velocity}}};
 
   auto sensor_model = std::make_shared<IdentitySensorModel<2, 2>>(dt);
 
