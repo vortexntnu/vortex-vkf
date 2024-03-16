@@ -19,33 +19,38 @@
 namespace vortex::filter {
 
 /**
- * @brief Extended Kalman Filter.
- * @tparam DynModT Dynamic model type derived from `vortex::models::interface::DynamicModelLTV`
- * @tparam SensModT Sensor model type derived from `vortex::models::interface::SensorModelLTV`
+ * @brief Extended Kalman Filter
+ *
+ * @tparam n_dim_x State dimension
+ * @tparam n_dim_z Measurement dimension
+ * @tparam n_dim_u Input dimension
+ * @tparam n_dim_v Process noise dimension
+ * @tparam n_dim_w Measurement noise dimension
  */
-template <concepts::DynamicModelLTVWithDefinedSizes DynModT, concepts::SensorModelLTVWithDefinedSizes SensModT> class EKF {
+template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u = n_dim_x, size_t n_dim_v = n_dim_x, size_t n_dim_w = n_dim_z> class EKF_t {
 public:
-  static constexpr int N_DIM_x = DynModT::N_DIM_x;
-  static constexpr int N_DIM_z = SensModT::N_DIM_z;
-  static constexpr int N_DIM_u = DynModT::N_DIM_u;
-  static constexpr int N_DIM_v = DynModT::N_DIM_v;
-  static constexpr int N_DIM_w = SensModT::N_DIM_w;
+  static constexpr int N_DIM_x = (int)n_dim_x;
+  static constexpr int N_DIM_z = (int)n_dim_z;
+  static constexpr int N_DIM_u = (int)n_dim_u;
+  static constexpr int N_DIM_v = (int)n_dim_v;
+  static constexpr int N_DIM_w = (int)n_dim_w;
 
   using T = Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 
-  EKF() = delete;
+  EKF_t() = delete;
 
   /** Perform one EKF prediction step
    * @param dyn_mod Dynamic model
    * @param sens_mod Sensor model
    * @param dt Time step
    * @param x_est_prev Previous state estimate
-   * @param u T::Vec_x Input. Not used, set to zero.
-   * @return std::pair<T::Gauss_x, T::Gauss_z> Predicted state, predicted measurement
+   * @param u Vec_x Input. Not used, set to zero.
+   * @return std::pair<Gauss_x, Gauss_z> Predicted state, predicted measurement
    * @throws std::runtime_error if dyn_mod or sens_mod are not of the DynamicModelT or SensorModelT type
    */
-  static std::pair<typename T::Gauss_x, typename T::Gauss_z> predict(const DynModT &dyn_mod, const SensModT &sens_mod, double dt, const T::Gauss_x &x_est_prev,
+  static std::pair<typename T::Gauss_x, typename T::Gauss_z> predict(const auto &dyn_mod, const auto &sens_mod, double dt, const T::Gauss_x &x_est_prev,
                                                                      const T::Vec_u &u = T::Vec_u::Zero())
+    requires(concepts::DynamicModelLTV<decltype(dyn_mod), N_DIM_x, N_DIM_u, N_DIM_v> && concepts::SensorModelLTV<decltype(sens_mod), N_DIM_x, N_DIM_z, N_DIM_w>)
   {
     typename T::Gauss_x x_est_pred = dyn_mod.pred_from_est(dt, x_est_prev, u);
     typename T::Gauss_z z_est_pred = sens_mod.pred_from_est(x_est_pred);
@@ -56,11 +61,12 @@ public:
    * @param sens_mod Sensor model
    * @param x_est_pred Predicted state
    * @param z_est_pred Predicted measurement
-   * @param z_meas T::Vec_z Measurement
+   * @param z_meas Vec_z Measurement
    * @return MultivarGauss Updated state
    * @throws std::runtime_error ifsens_mod is not of the SensorModelT type
    */
-  static T::Gauss_x update(const SensModT &sens_mod, const T::Gauss_x &x_est_pred, const T::Gauss_z &z_est_pred, const T::Vec_z &z_meas)
+  static T::Gauss_x update(const auto &sens_mod, const T::Gauss_x &x_est_pred, const T::Gauss_z &z_est_pred, const T::Vec_z &z_meas)
+    requires(concepts::SensorModelLTV<decltype(sens_mod), N_DIM_x, N_DIM_z, N_DIM_w>)
   {
     typename T::Mat_zx C     = sens_mod.C(x_est_pred.mean()); // Measurement matrix
     typename T::Mat_ww R     = sens_mod.R(x_est_pred.mean()); // Measurement noise covariance
@@ -84,37 +90,27 @@ public:
    * @param sens_mod Sensor model
    * @param dt Time step
    * @param x_est_prev Previous state estimate
-   * @param z_meas T::Vec_z Measurement
-   * @param u T::Vec_x Input
+   * @param z_meas Vec_z Measurement
+   * @param u Vec_x Input
    * @return Updated state, predicted state, predicted measurement
    */
   static std::tuple<typename T::Gauss_x, typename T::Gauss_x, typename T::Gauss_z>
-  step(const DynModT &dyn_mod, const SensModT &sens_mod, double dt, const T::Gauss_x &x_est_prev, const T::Vec_z &z_meas, const T::Vec_u &u = T::Vec_u::Zero())
+  step(const auto &dyn_mod, const auto &sens_mod, double dt, const T::Gauss_x &x_est_prev, const T::Vec_z &z_meas, const T::Vec_u &u = T::Vec_u::Zero())
+    requires(concepts::DynamicModelLTV<decltype(dyn_mod), N_DIM_x, N_DIM_u, N_DIM_v> && concepts::SensorModelLTV<decltype(sens_mod), N_DIM_x, N_DIM_z, N_DIM_w>)
   {
     auto [x_est_pred, z_est_pred] = predict(dyn_mod, sens_mod, dt, x_est_prev, u);
 
     typename T::Gauss_x x_est_upd = update(sens_mod, x_est_pred, z_est_pred, z_meas);
     return {x_est_upd, x_est_pred, z_est_pred};
   }
-
-  [[deprecated("use const DynModT& and const SensModT&")]] static std::pair<typename T::Gauss_x, typename T::Gauss_z>
-  predict(std::shared_ptr<DynModT> dyn_mod, std::shared_ptr<SensModT> sens_mod, double dt, const T::Gauss_x &x_est_prev, const T::Vec_u &u = T::Vec_u::Zero())
-  {
-    return predict(*dyn_mod, *sens_mod, dt, x_est_prev, u);
-  }
-
-  [[deprecated("use const SensModT&")]] static T::Gauss_x update(std::shared_ptr<SensModT> sens_mod, const T::Gauss_x &x_est_pred, const T::Gauss_z &z_est_pred,
-                                                                 const T::Vec_z &z_meas)
-  {
-    return update(*sens_mod, x_est_pred, z_est_pred, z_meas);
-  }
-
-  [[deprecated("use const DynModT& and const SensModT&")]] static std::tuple<typename T::Gauss_x, typename T::Gauss_x, typename T::Gauss_z>
-  step(std::shared_ptr<DynModT> dyn_mod, std::shared_ptr<SensModT> sens_mod, double dt, const T::Gauss_x &x_est_prev, const T::Vec_z &z_meas,
-       const T::Vec_u &u = T::Vec_u::Zero())
-  {
-    return step(*dyn_mod, *sens_mod, dt, x_est_prev, z_meas, u);
-  }
 };
+
+/**
+ * @brief Extended Kalman Filter.
+ * @tparam DynModT Dynamic model type derived from `vortex::models::interface::DynamicModelLTV`
+ * @tparam SensModT Sensor model type derived from `vortex::models::interface::SensorModelLTV`
+ */
+template <concepts::DynamicModelLTVWithDefinedSizes DynModT, concepts::SensorModelLTVWithDefinedSizes SensModT>
+using EKF = EKF_t<DynModT::N_DIM_x, SensModT::N_DIM_z, DynModT::N_DIM_u, DynModT::N_DIM_v, SensModT::N_DIM_w>;
 
 } // namespace vortex::filter

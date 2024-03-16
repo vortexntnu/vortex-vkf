@@ -14,6 +14,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     -Wall -Wextra -Wpedantic 
     -fopenmp # For parallel processing with Eigen
     -fconcepts-diagnostics-depth=2 # For better concepts error messages
+    -Warray-bounds # For better array bounds error messages
   )
 endif()
 

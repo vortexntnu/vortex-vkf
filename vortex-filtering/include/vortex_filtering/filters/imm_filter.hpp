@@ -293,16 +293,15 @@ private:
 
     bool all_states_match = std::apply([](auto... b) { return (b && ...); }, matching_states);
 
-    if (all_states_match) {
-      Vec_x x  = std::get<mixing_model_index>(x_est_prevs).mean().template head<N_DIM_target>();
-      Mat_xx P = std::get<mixing_model_index>(x_est_prevs).cov().template topLeftCorner<N_DIM_target, N_DIM_target>();
-      return {x, P};
-    }
+    Vec_x x  = Vec_x::Zero();
+    Mat_xx P = Mat_xx::Zero();
 
-    Vec_x x                                          = Vec_x::Zero();
-    Mat_xx P                                         = Mat_xx::Zero();
     x.template head<N_DIM_min>()                     = std::get<mixing_model_index>(x_est_prevs).mean().template head<N_DIM_min>();
     P.template topLeftCorner<N_DIM_min, N_DIM_min>() = std::get<mixing_model_index>(x_est_prevs).cov().template topLeftCorner<N_DIM_min, N_DIM_min>();
+
+    if (all_states_match) {
+      return {x, P};
+    }
 
     Vec_x_b matching_states_vec_b = Eigen::Map<Vec_x_b>(matching_state_names(target_state_names, mixing_state_names).data());
     Vec_x matching_states_vec     = matching_states_vec_b.template cast<double>();

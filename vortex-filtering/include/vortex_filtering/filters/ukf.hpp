@@ -23,26 +23,28 @@ namespace vortex {
 namespace filter {
 
 /** Unscented Kalman Filter
- * @tparam DynModT Dynamic model type derived from `vortex::models::interface::DynamicModel`
- * @tparam SensModT Sensor model type derived from `vortex::models::interface::SensorModel`
+ * @tparam n_dim_x State dimension
+ * @tparam n_dim_z Measurement dimension
+ * @tparam n_dim_u Input dimension
+ * @tparam n_dim_v Process noise dimension
+ * @tparam n_dim_w Measurement noise dimension
  * @tparam alpha Parameter for spread of sigma points (default 1.0)
  * @tparam beta Parameter for weighting of mean in covariance calculation (default 2.0)
  * @tparam kappa Parameter for adding additional spread to sigma points (default 0.0)
  */
-template <concepts::DynamicModelWithDefinedSizes DynModT, concepts::SensorModelWithDefinedSizes SensModT, double alpha = 1.0, double beta = 2.0,
-          double kappa = 0.0>
-class UKF {
+template <size_t n_dim_x, size_t n_dim_z, size_t n_dim_u, size_t n_dim_v, size_t n_dim_w, double alpha = 1.0, double beta = 2.0, double kappa = 0.0>
+class UKF_t {
 public:
-  static constexpr int N_DIM_x = DynModT::N_DIM_x;
-  static constexpr int N_DIM_u = DynModT::N_DIM_u;
-  static constexpr int N_DIM_z = SensModT::N_DIM_z;
-  static constexpr int N_DIM_v = DynModT::N_DIM_v;
-  static constexpr int N_DIM_w = SensModT::N_DIM_w;
-
-  using T = Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
+  static constexpr int N_DIM_x = n_dim_x;
+  static constexpr int N_DIM_z = n_dim_z;
+  static constexpr int N_DIM_u = n_dim_u;
+  static constexpr int N_DIM_v = n_dim_v;
+  static constexpr int N_DIM_w = n_dim_w;
 
   static constexpr int N_DIM_a           = N_DIM_x + N_DIM_v + N_DIM_w; // Augmented state dimension
   static constexpr size_t N_SIGMA_POINTS = 2 * N_DIM_a + 1;             // Number of sigma points
+
+  using T = Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 
   using Vec_a     = Eigen::Vector<double, N_DIM_a>;                 // Augmented state vector
   using Mat_aa    = Eigen::Matrix<double, N_DIM_a, N_DIM_a>;        // Augmented state covariance matrix
@@ -75,7 +77,7 @@ public:
     return W_c;
   }();
 
-  UKF() = delete;
+  UKF_t() = delete;
 
 private:
   /** Get sigma points
@@ -85,7 +87,8 @@ private:
    * @param x_est T::Gauss_x State estimate
    * @return Mat_a2ap1 sigma_points
    */
-  static Mat_a2ap1 get_sigma_points(const DynModT &dyn_mod, const SensModT &sens_mod, double dt, const T::Gauss_x &x_est)
+  static Mat_a2ap1 get_sigma_points(const auto &dyn_mod, const auto &sens_mod, double dt, const T::Gauss_x &x_est)
+    requires(concepts::DynamicModel<decltype(dyn_mod), N_DIM_x, N_DIM_u, N_DIM_v> && concepts::SensorModel<decltype(sens_mod), N_DIM_x, N_DIM_z, N_DIM_w>)
   {
     typename T::Mat_xx P = x_est.cov();
     typename T::Mat_vv Q = dyn_mod.Q_d(dt, x_est.mean());
@@ -104,8 +107,8 @@ private:
     Mat_aa sqrt_P_a = P_a.llt().matrixLLT();
 
     // Make augmented state vector
-    Vec_a x_a;
-    x_a << x_est.mean(), T::Vec_v::Zero(), T::Vec_w::Zero();
+    Vec_a x_a = Vec_a::Zero();
+    x_a.template head<N_DIM_x>() = x_est.mean();
 
     // Calculate sigma points using the symmetric sigma point set
     Mat_a2ap1 sigma_points;
@@ -124,7 +127,8 @@ private:
    * @param u T::Vec_u Control input (default 0)
    * @return Mat_x2ap1 sigma_x_pred
    */
-  static Mat_x2ap1 propagate_sigma_points_f(const DynModT &dyn_mod, double dt, const Mat_a2ap1 &sigma_points, const T::Vec_u &u = T::Vec_u::Zero())
+  static Mat_x2ap1 propagate_sigma_points_f(const auto &dyn_mod, double dt, const Mat_a2ap1 &sigma_points, const T::Vec_u &u = T::Vec_u::Zero())
+    requires(concepts::DynamicModel<decltype(dyn_mod), N_DIM_x, N_DIM_u, N_DIM_v>)
   {
     Eigen::Matrix<double, N_DIM_x, N_SIGMA_POINTS> sigma_x_pred;
     for (size_t i = 0; i < N_SIGMA_POINTS; i++) {
@@ -140,7 +144,8 @@ private:
    * @param sigma_points Mat_a2ap1 Sigma points
    * @return Mat_z2ap1 sigma_z_pred
    */
-  static Mat_z2ap1 propagate_sigma_points_h(const SensModT &sens_mod, const Mat_a2ap1 &sigma_points)
+  static Mat_z2ap1 propagate_sigma_points_h(const auto &sens_mod, const Mat_a2ap1 &sigma_points)
+    requires(concepts::SensorModel<decltype(sens_mod), N_DIM_x, N_DIM_z, N_DIM_w>)
   {
     Mat_z2ap1 sigma_z_pred;
     for (size_t i = 0; i < N_SIGMA_POINTS; i++) {
@@ -183,8 +188,9 @@ public:
    * @param u T::Vec_u Control input (default 0)
    * @return std::pair<T::Gauss_x, T::Gauss_z> Predicted state estimate, predicted measurement estimate
    */
-  static std::pair<typename T::Gauss_x, typename T::Gauss_z> predict(const DynModT &dyn_mod, const SensModT &sens_mod, double dt, const T::Gauss_x &x_est_prev,
+  static std::pair<typename T::Gauss_x, typename T::Gauss_z> predict(const auto &dyn_mod, const auto &sens_mod, double dt, const T::Gauss_x &x_est_prev,
                                                                      const T::Vec_u &u = T::Vec_u::Zero())
+    requires(concepts::DynamicModel<decltype(dyn_mod), N_DIM_x, N_DIM_u, N_DIM_v> && concepts::SensorModel<decltype(sens_mod), N_DIM_x, N_DIM_z, N_DIM_w>)
   {
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_prev);
 
@@ -208,8 +214,9 @@ public:
    * @return T::Gauss_x Updated state estimate
    * @note Sigma points are generated from the predicted state estimate instead of the previous state estimate as is done in the 'step' method.
    */
-  static T::Gauss_x update(const DynModT &dyn_mod, const SensModT &sens_mod, double dt, const T::Gauss_x &x_est_pred, const T::Gauss_z &z_est_pred,
+  static T::Gauss_x update(const auto &dyn_mod, const auto &sens_mod, double dt, const T::Gauss_x &x_est_pred, const T::Gauss_z &z_est_pred,
                            const T::Vec_z &z_meas)
+    requires(concepts::DynamicModel<decltype(dyn_mod), N_DIM_x, N_DIM_u, N_DIM_v> && concepts::SensorModel<decltype(sens_mod), N_DIM_x, N_DIM_z, N_DIM_w>)
   {
     // Generate sigma points from the predicted state estimate
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_pred);
@@ -247,8 +254,9 @@ public:
    * @param u T::Vec_u Control input
    * @return std::tuple<T::Gauss_x, T::Gauss_x, T::Gauss_z> Updated state estimate, predicted state estimate, predicted measurement estimate
    */
-  static std::tuple<typename T::Gauss_x, typename T::Gauss_x, typename T::Gauss_z> step(const DynModT &dyn_mod, const SensModT &sens_mod, double dt,
-                                                                                        const T::Gauss_x &x_est_prev, const T::Vec_z &z_meas, const T::Vec_u &u)
+  static std::tuple<typename T::Gauss_x, typename T::Gauss_x, typename T::Gauss_z>
+  step(const auto &dyn_mod, const auto &sens_mod, double dt, const T::Gauss_x &x_est_prev, const T::Vec_z &z_meas, const T::Vec_u &u = T::Vec_u::Zero())
+    requires(concepts::DynamicModel<decltype(dyn_mod), N_DIM_x, N_DIM_u, N_DIM_v> && concepts::SensorModel<decltype(sens_mod), N_DIM_x, N_DIM_z, N_DIM_w>)
   {
     Mat_a2ap1 sigma_points = get_sigma_points(dyn_mod, sens_mod, dt, x_est_prev);
 
@@ -277,26 +285,18 @@ public:
 
     return {x_est_upd, x_pred, z_pred};
   }
-
-  [[deprecated("use const DynModT &and const SensModT &")]] static std::pair<typename T::Gauss_x, typename T::Gauss_z>
-  predict(std::shared_ptr<DynModT> dyn_mod, std::shared_ptr<SensModT> sens_mod, double dt, const T::Gauss_x &x_est_prev, const T::Vec_u &u = T::Vec_u::Zero())
-  {
-    return predict(*dyn_mod, *sens_mod, dt, x_est_prev, u);
-  }
-
-  [[deprecated("use const DynModT &and const SensModT &")]] static T::Gauss_x update(std::shared_ptr<DynModT> dyn_mod, std::shared_ptr<SensModT> sens_mod,
-                                                                                     const T::Gauss_x &x_est_pred, const T::Gauss_z &z_est_pred,
-                                                                                     const T::Vec_z &z_meas)
-  {
-    return update(*dyn_mod, *sens_mod, x_est_pred, z_est_pred, z_meas);
-  }
-
-  [[deprecated("use const DynModT &and const SensModT &")]] static std::tuple<typename T::Gauss_x, typename T::Gauss_x, typename T::Gauss_z>
-  step(std::shared_ptr<DynModT> dyn_mod, std::shared_ptr<SensModT> sens_mod, double dt, const T::Gauss_x &x_est_prev, const T::Vec_z &z_meas, const T::Vec_u &u)
-  {
-    return step(*dyn_mod, *sens_mod, dt, x_est_prev, z_meas, u);
-  }
 };
+
+/** Unscented Kalman Filter
+ * @tparam DynModT Dynamic model type derived from `vortex::models::interface::DynamicModel`
+ * @tparam SensModT Sensor model type derived from `vortex::models::interface::SensorModel`
+ * @tparam alpha Parameter for spread of sigma points (default 1.0)
+ * @tparam beta Parameter for weighting of mean in covariance calculation (default 2.0)
+ * @tparam kappa Parameter for adding additional spread to sigma points (default 0.0)
+ */
+template <concepts::DynamicModelWithDefinedSizes DynModT, concepts::SensorModelWithDefinedSizes SensModT, double alpha = 1.0, double beta = 2.0,
+          double kappa = 0.0>
+using UKF = UKF_t<DynModT::N_DIM_x, SensModT::N_DIM_z, DynModT::N_DIM_u, DynModT::N_DIM_v, SensModT::N_DIM_w, alpha, beta, kappa>;
 
 } // namespace filter
 } // namespace vortex
