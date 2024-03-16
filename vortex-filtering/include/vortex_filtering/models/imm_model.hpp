@@ -195,6 +195,8 @@ public:
   template <size_t i> T<i>::Mat_vv Q_d(double dt, const T<i>::Vec_x &x) const { return get_model<i>().Q_d(dt, x); }
 
   static constexpr int N_DIM_x(size_t model_index) { return N_DIMS_x.at(model_index); }
+  static constexpr int N_DIM_u(size_t model_index) { return N_DIMS_u.at(model_index); }
+  static constexpr int N_DIM_v(size_t model_index) { return N_DIMS_v.at(model_index); }
 
   StateNames get_all_state_names() const { return state_names_; }
 
@@ -215,13 +217,12 @@ private:
  */
 template <size_t n_dim_a, vortex::concepts::SensorModelWithDefinedSizes SensModT> class ImmSensorModel {
 public:
-  static constexpr int N_DIM_x_real = SensModT::N_DIM_x;
-  static constexpr int N_DIM_z      = SensModT::N_DIM_z;
-  static constexpr int N_DIM_w      = SensModT::N_DIM_w;
+  static constexpr int N_DIM_x = SensModT::N_DIM_x;
+  static constexpr int N_DIM_z = SensModT::N_DIM_z;
+  static constexpr int N_DIM_w = SensModT::N_DIM_w;
   static constexpr int N_DIM_a = (int)n_dim_a;
-  static constexpr int N_DIM_x      = N_DIM_a; // For the consept to accept the state dimension of the sensor model (TODO: fix this in the future)
 
-  using T = Types_xzwa<N_DIM_x_real, N_DIM_z, N_DIM_w, N_DIM_a>;
+  using T = Types_xzwa<N_DIM_x, N_DIM_z, N_DIM_w, N_DIM_a>;
 
   ImmSensorModel(SensModT sensor_model)
       : sensor_model_(sensor_model)
@@ -229,9 +230,9 @@ public:
     static_assert(N_DIM_a >= SensModT::SensModI::N_DIM_x, "N_DIM_a must be greater than or equal to the state dimension of the sensor model");
   }
 
-  T::Vec_z h(const T::Vec_a &x, const T::Vec_w &w) const { return sensor_model_.h(x.template head<N_DIM_x_real>(), w); }
+  T::Vec_z h(const T::Vec_a &x, const T::Vec_w &w) const { return sensor_model_.h(x.template head<N_DIM_x>(), w); }
 
-  T::Mat_ww R(const T::Vec_x &x) const { return sensor_model_.R(x.template head<N_DIM_x_real>()); }
+  T::Mat_ww R(const T::Vec_x &x) const { return sensor_model_.R(x.template head<N_DIM_x>()); }
 
 private:
   SensModT sensor_model_;
@@ -239,13 +240,12 @@ private:
 
 template <size_t n_dim_a, vortex::concepts::SensorModelLTVWithDefinedSizes SensModT> class ImmSensorModelLTV {
 public:
-  static constexpr int N_DIM_x_real = SensModT::N_DIM_x;
-  static constexpr int N_DIM_z      = SensModT::N_DIM_z;
-  static constexpr int N_DIM_w      = SensModT::N_DIM_w;
+  static constexpr int N_DIM_x = SensModT::N_DIM_x;
+  static constexpr int N_DIM_z = SensModT::N_DIM_z;
+  static constexpr int N_DIM_w = SensModT::N_DIM_w;
   static constexpr int N_DIM_a = (int)n_dim_a;
-  static constexpr int N_DIM_x      = N_DIM_a; // For the consept to accept the state dimension of the sensor model (TODO: fix this in the future)
 
-  using T = Types_xzwa<N_DIM_x_real, N_DIM_z, N_DIM_w, N_DIM_a>;
+  using T = Types_xzwa<N_DIM_x, N_DIM_z, N_DIM_w, N_DIM_a>;
 
   ImmSensorModelLTV(SensModT sensor_model)
       : sensor_model_(sensor_model)
@@ -253,27 +253,27 @@ public:
     static_assert(N_DIM_a >= N_DIM_x, "N_DIM_a must be greater than or equal to the state dimension of the sensor model");
   }
 
-  T::Vec_z h(const T::Vec_a &x, const T::Vec_w &w) const { return sensor_model_.h(x.template head<N_DIM_x_real>(), w); }
+  T::Vec_z h(const T::Vec_a &x, const T::Vec_w &w) const { return sensor_model_.h(x.template head<N_DIM_x>(), w); }
 
   T::Mat_za C(const T::Vec_a &x) const
   {
-    typename T::Mat_za C_a                = T::Mat_za::Zero();
-    C_a.template leftCols<N_DIM_x_real>() = sensor_model_.C(x.template head<N_DIM_x_real>());
+    typename T::Mat_za C_a           = T::Mat_za::Zero();
+    C_a.template leftCols<N_DIM_x>() = sensor_model_.C(x.template head<N_DIM_x>());
     return C_a;
   }
 
-  T::Mat_zw H(const T::Vec_a &x) const { return sensor_model_.H(x.template head<N_DIM_x_real>()); }
+  T::Mat_zw H(const T::Vec_a &x) const { return sensor_model_.H(x.template head<N_DIM_x>()); }
 
-  T::Mat_ww R(const T::Vec_a &x) const { return sensor_model_.R(x.template head<N_DIM_x_real>()); }
+  T::Mat_ww R(const T::Vec_a &x) const { return sensor_model_.R(x.template head<N_DIM_x>()); }
 
   T::Gauss_z pred_from_est(const T::Gauss_a &x_est) const
   {
-    typename T::Vec_x mean = x_est.mean().template head<N_DIM_x_real>();
-    typename T::Mat_xx cov = x_est.cov().template topLeftCorner<N_DIM_x_real, N_DIM_x_real>();
+    typename T::Vec_x mean = x_est.mean().template head<N_DIM_x>();
+    typename T::Mat_xx cov = x_est.cov().template topLeftCorner<N_DIM_x, N_DIM_x>();
     return sensor_model_.pred_from_est({mean, cov});
   }
 
-  T::Gauss_z pred_from_state(const T::Vec_a &x) const { return sensor_model_.pred_from_state(x.template head<N_DIM_x_real>()); }
+  T::Gauss_z pred_from_state(const T::Vec_a &x) const { return sensor_model_.pred_from_state(x.template head<N_DIM_x>()); }
 
 private:
   SensModT sensor_model_;

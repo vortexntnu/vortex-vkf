@@ -192,15 +192,21 @@ private:
   static std::tuple<typename T<i>::Gauss_x, typename T<i>::Gauss_x, Gauss_z> step_kalman_filter(const DynModT<i> &dyn_model, const SensModT &sensor_model,
                                                                                                 double dt, const T<i>::Gauss_x &x_est_prev, const Vec_z &z_meas)
   {
+    static constexpr size_t N_DIM_x = ImmModelT::N_DIM_x(i);
+    static constexpr size_t N_DIM_z = SensModT::N_DIM_z;
+    static constexpr size_t N_DIM_u = ImmModelT::N_DIM_u(i);
+    static constexpr size_t N_DIM_v = ImmModelT::N_DIM_v(i);
+    static constexpr size_t N_DIM_w = SensModT::N_DIM_w;
+
     if constexpr (concepts::DynamicModelLTVWithDefinedSizes<DynModT<i>> && concepts::SensorModelLTVWithDefinedSizes<SensModT>) {
-      using ImmSensMod  = models::ImmSensorModelLTV<ImmModelT::N_DIM_x(i), SensModT>;
-      using EKF         = filter::EKF<DynModT<i>, ImmSensMod>;
+      using ImmSensMod  = models::ImmSensorModelLTV<N_DIM_x, SensModT>;
+      using EKF         = filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
       ImmSensMod imm_sens_mod{sensor_model};
       return EKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
     }
     else {
-      using ImmSensMod  = models::ImmSensorModel<ImmModelT::N_DIM_x(i), SensModT>;
-      using UKF         = filter::UKF<DynModT<i>, ImmSensMod>;
+      using ImmSensMod  = models::ImmSensorModel<N_DIM_x, SensModT>;
+      using UKF         = filter::UKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
       ImmSensMod imm_sens_mod{sensor_model};
       return UKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
     }
