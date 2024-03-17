@@ -20,16 +20,20 @@
 #include <vortex_filtering/models/dynamic_models.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_models.hpp>
-#include <vortex_filtering/models/type_aliases.hpp>
 
 // Numerical Integration
 #include <vortex_filtering/numerical_integration/erk_methods.hpp>
+
+// Probability
+#include <vortex_filtering/probability/gaussian_mixture.hpp>
+#include <vortex_filtering/probability/multi_var_gauss.hpp>
+
+// Types
+#include <vortex_filtering/types/general_concepts.hpp>
+#include <vortex_filtering/types/model_concepts.hpp>
+#include <vortex_filtering/types/type_aliases.hpp>
 
 // Utils
 #include <vortex_filtering/utils/ellipse.hpp>
 #include <vortex_filtering/utils/plotting.hpp>
 #include <vortex_filtering/utils/printers.hpp>
-
-// Probability
-#include <vortex_filtering/probability/gaussian_mixture.hpp>
-#include <vortex_filtering/probability/multi_var_gauss.hpp>

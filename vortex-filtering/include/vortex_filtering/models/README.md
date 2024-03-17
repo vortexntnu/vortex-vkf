@@ -34,9 +34,11 @@ Dynamic model interface for other classes to derive from. The [UKF](../filters/R
 Dynamic model interface for other classes to derive from. The [EKF](../filters/README.md#ekf) (and UKF) works on models derived from this class.
 
 This interface inherits from the `DynamicModel` interface and defines the dynamics of the system as a linear time varying system. The virtual method `f_d` from the `DynamicModel` interface is implemented as a linear time varying system on the form 
+
 $$
 f_d(dt, x_k, u_k, v_k) = x_{k+1} = A_d(dt, x_k) x_k + B_d(dt, x_k) u_k + G_d(dt, x_k)v_k
 $$
+
 where $dt$ is the time step, $x_k$ is the state at time $k$, $u_k$ is the input at time $k$ and $v_k$ is the process noise at time $k$. The matrices $A_d$, $B_d$ and $G_d$ are defined as virtual methods and must be implemented by the derived class.
 
 ##### Usage
