@@ -24,10 +24,16 @@
 // Numerical Integration
 #include <vortex_filtering/numerical_integration/erk_methods.hpp>
 
-// Utils
-#include <vortex_filtering/utils/ellipse.hpp>
-#include <vortex_filtering/utils/plotting.hpp>
-
 // Probability
 #include <vortex_filtering/probability/gaussian_mixture.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
+
+// Types
+#include <vortex_filtering/types/general_concepts.hpp>
+#include <vortex_filtering/types/model_concepts.hpp>
+#include <vortex_filtering/types/type_aliases.hpp>
+
+// Utils
+#include <vortex_filtering/utils/ellipse.hpp>
+#include <vortex_filtering/utils/plotting.hpp>
+#include <vortex_filtering/utils/printers.hpp>

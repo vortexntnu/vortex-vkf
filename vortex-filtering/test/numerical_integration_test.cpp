@@ -76,7 +76,7 @@ protected:
 
   void plot_result(std::string title = "ERK convergence")
   {
-    #ifdef GNUPLOT_ENABLE
+    #if (GNUPLOT_ENABLE)
     // Plot first state and true solution against time
     Gnuplot gp;
     gp << "set terminal wxt size 1200,800\n";

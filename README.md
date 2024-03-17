@@ -1,8 +1,9 @@
 # Vortex VKF
 ## Introduction
-This is a C++ library for state estimation.
+This is a C++ library for state estimation. VKF stands for Visual Kalman Filter which is a stupid and misleading name
 
 ## Packages
-### vortex-filtering
-Currently, it has a pure C++ implementation of the Unscented Kalman Filter (UKF) and the Extended Kalman Filter (EKF) as well as model
-[More info](vortex-filtering/README.md)
+
+- [vortex-filtering](vortex-filtering/README.md)
+
+

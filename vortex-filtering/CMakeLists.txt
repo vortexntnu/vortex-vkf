@@ -13,6 +13,8 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(
     -Wall -Wextra -Wpedantic 
     -fopenmp # For parallel processing with Eigen
+    -fconcepts-diagnostics-depth=2 # For better concepts error messages
+    -Warray-bounds # For better array bounds error messages
   )
 endif()
 
@@ -32,7 +34,11 @@ find_package(Boost REQUIRED
     filesystem
 ) # for gnuplot
 
-# = Specify dependencies
+
+# === Include directories ===
+include_directories(include)
+
+# = Specify the dependencies
 set(lib_deps
   Eigen3
   OpenMP
@@ -84,8 +90,8 @@ install(
   DESTINATION include
 )
 
-# === Build tests ===
 if(BUILD_TESTING)
+  # add_compile_definitions(GNUPLOT_ENABLE=1)
   add_subdirectory(test)
 endif()
 

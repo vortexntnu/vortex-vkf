@@ -10,35 +10,37 @@
 #include "test_models.hpp"
 #include <vortex_filtering/filters/ukf.hpp>
 #include <vortex_filtering/models/sensor_models.hpp>
+#include <vortex_filtering/types/type_aliases.hpp>
 
 class UKFtest : public ::testing::Test {
 protected:
-  using Vec_x   = typename NonlinearModel1::Vec_x;
-  using Mat_xx  = typename NonlinearModel1::Mat_xx;
-  using Gauss_x = typename NonlinearModel1::Gauss_x;
-
   using IdentitySensorModel = vortex::models::IdentitySensorModel<1, 1>;
 
-  using Vec_z   = typename IdentitySensorModel::Vec_z;
-  using Mat_zz  = typename IdentitySensorModel::Mat_zz;
-  using Gauss_z = typename IdentitySensorModel::Gauss_z;
+  static constexpr int N_DIM_x = NonlinearModel1::N_DIM_x;
+  static constexpr int N_DIM_z = IdentitySensorModel::N_DIM_z;
+  static constexpr int N_DIM_u = NonlinearModel1::N_DIM_u;
+  static constexpr int N_DIM_v = NonlinearModel1::N_DIM_v;
+  static constexpr int N_DIM_w = IdentitySensorModel::N_DIM_w;
+  
+  using T = vortex::Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
+
+  using Vec_x   = typename T::Vec_x;
+  using Mat_xx  = typename T::Mat_xx;
+  using Gauss_x = typename T::Gauss_x;
+
+  using Vec_z   = typename T::Vec_z;
+  using Mat_zz  = typename T::Mat_zz;
+  using Gauss_z = typename T::Gauss_z;
 
   using UKF = vortex::filter::UKF<NonlinearModel1, IdentitySensorModel>;
 
-  void SetUp() override
-  {
-    // Noise
-    double Q = 0.1;
-    double R = 0.1;
+  static constexpr double Q = 0.1;
+  static constexpr double R = 0.1;
+  UKFtest() : dynamic_model_(Q), sensor_model_(R) {}
 
-    // Create dynamic model
-    dynamic_model_ = std::make_shared<NonlinearModel1>(Q);
-    // Create sensor model
-    sensor_model_ = std::make_shared<IdentitySensorModel>(R);
-  }
 
-  std::shared_ptr<NonlinearModel1> dynamic_model_;
-  std::shared_ptr<IdentitySensorModel> sensor_model_;
+  NonlinearModel1 dynamic_model_;
+  IdentitySensorModel sensor_model_;
 };
 
 TEST_F(UKFtest, Predict)
@@ -49,7 +51,7 @@ TEST_F(UKFtest, Predict)
   // Predict
   auto [x_est_pred, z_est_pred] = UKF::predict(dynamic_model_, sensor_model_, dt, x);
 
-  Vec_x x_true = dynamic_model_->f_d(dt, x.mean());
+  Vec_x x_true = dynamic_model_.f_d(dt, x.mean());
   Vec_z z_true = x_true.head(1);
   ASSERT_TRUE(isApproxEqual(x_est_pred.mean(), x_true, 1e-6));
   ASSERT_TRUE(isApproxEqual(z_est_pred.mean(), z_true, 1e-6));
@@ -78,17 +80,17 @@ TEST_F(UKFtest, Convergence)
 
   time.push_back(0);
   x_est.push_back(x0);
-  z_meas.push_back(sensor_model_->h(x0.mean()));
+  z_meas.push_back(sensor_model_.h(x0.mean()));
   x_true.push_back(x0.mean());
-  z_est.push_back({sensor_model_->h(x0.mean()), sensor_model_->R()});
+  z_est.push_back({sensor_model_.h(x0.mean()), sensor_model_.R()});
   for (int i = 0; i < n_steps - 1; i++) {
     // Simulate
     Vec_x v;
     v << d_disturbance(gen);
     Vec_z w = Vec_z::Zero();
     w << d_noise(gen);
-    Vec_x x_true_i = dynamic_model_->f_d(dt, x_true.back(), Vec_x::Zero(), v);
-    Vec_z z_meas_i = sensor_model_->h(x_true_i) + w;
+    Vec_x x_true_i = dynamic_model_.f_d(dt, x_true.back(), Vec_x::Zero(), v);
+    Vec_z z_meas_i = sensor_model_.h(x_true_i) + w;
     x_true.push_back(x_true_i);
     z_meas.push_back(z_meas_i);
 
@@ -115,7 +117,7 @@ TEST_F(UKFtest, Convergence)
     x_m_std.push_back(x_est.at(i).mean()(0) - std::sqrt(x_est.at(i).cov()(0, 0))); // x_est - std
   }
 
-  #ifdef GNUPLOT_ENABLE
+  #if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set terminal wxt size 1200,800\n";
   gp << "set title 'UKF convergence'\n";

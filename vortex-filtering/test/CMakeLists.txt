@@ -2,7 +2,6 @@ find_package(ament_cmake_gtest REQUIRED)
 ament_add_gtest(${PROJECT_NAME}_test 
   gtest_main.cpp
   gtest_assertions.cpp
-  
   ../src/utils/plotting.cpp
   ../src/utils/ellipse.cpp
 
@@ -12,6 +11,7 @@ ament_add_gtest(${PROJECT_NAME}_test
   numerical_integration_test.cpp
   probability_test.cpp
   sensor_model_test.cpp
+  types_test.cpp
   ukf_test.cpp
 )
 target_include_directories(${PROJECT_NAME}_test PUBLIC

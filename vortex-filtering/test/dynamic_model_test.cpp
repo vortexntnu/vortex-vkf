@@ -12,8 +12,8 @@
 
 namespace simple_dynamic_model_test {
 
-using Vec_x  = typename SimpleDynamicModel::Vec_x;
-using Mat_xx = typename SimpleDynamicModel::Mat_xx;
+using Vec_x  = typename SimpleDynamicModel::T::Vec_x;
+using Mat_xx = typename SimpleDynamicModel::T::Mat_xx;
 
 TEST(DynamicModel, initSimpleModel) { SimpleDynamicModel model; }
 
@@ -51,7 +51,7 @@ TEST(DynamicModel, sampleSimpleModel)
   EXPECT_TRUE(isApproxEqual(approx_gauss.mean(), true_gauss.mean(), 0.1));
   EXPECT_TRUE(isApproxEqual(true_gauss.cov(), true_gauss.cov(), 0.1));
 
-  #ifdef GNUPLOT_ENABLE
+  #if (GNUPLOT_ENABLE)
   // Plot
   Gnuplot gp;
   gp << "set xrange [-10:10]\nset yrange [-10:10]\n";
@@ -69,9 +69,9 @@ TEST(DynamicModel, sampleSimpleModel)
 } // namespace simple_dynamic_model_test
 
 namespace cv_model_test {
-using CVModel = vortex::models::ConstantVelocity<2>;
-using Vec_x   = typename CVModel::Vec_x;
-using Mat_xx  = typename CVModel::Mat_xx;
+using CVModel = vortex::models::ConstantVelocity;
+using Vec_x   = typename CVModel::T::Vec_x;
+using Mat_xx  = typename CVModel::T::Mat_xx;
 
 TEST(DynamicModel, initCVModel) { CVModel model(1.0); }
 
