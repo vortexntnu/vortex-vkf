@@ -174,7 +174,7 @@ TEST(PDAF, apply_gate_is_separating_correctly)
   EXPECT_EQ(inside[0], meas[0]);
   EXPECT_EQ(outside[0], meas[1]);
 
-#if (GNUPLOT_ENABLE)
+  #if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -193,7 +193,7 @@ TEST(PDAF, apply_gate_is_separating_correctly)
   gp << "set object " << ++object_counter << " ellipse center " << prediction.x() << "," << prediction.y() << " size " << prediction.major_axis() << ","
      << prediction.minor_axis() << " angle " << prediction.angle_deg() << "fs empty border lc rgb 'cyan'\n";
   gp << "replot\n";
-#endif
+  #endif
 }
 
 TEST(PDAF, apply_gate_is_separating_correctly_2)
@@ -208,7 +208,7 @@ TEST(PDAF, apply_gate_is_separating_correctly_2)
   EXPECT_EQ(inside.size(), 5u);
   EXPECT_EQ(outside.size(), 1u);
 
-#if (GNUPLOT_ENABLE)
+  #if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -227,7 +227,7 @@ TEST(PDAF, apply_gate_is_separating_correctly_2)
   gp << "set object " << ++object_counter << " ellipse center " << prediction.x() << "," << prediction.y() << " size " << prediction.major_axis() << ","
      << prediction.minor_axis() << " angle " << prediction.angle_deg() << "fs empty border lc rgb 'cyan'\n";
   gp << "replot\n";
-#endif
+  #endif
 }
 
 // testing the predict_next_state function
@@ -248,7 +248,7 @@ TEST(PDAF, predict_next_state_is_calculating)
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
-#if (GNUPLOT_ENABLE)
+  #if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -287,7 +287,7 @@ TEST(PDAF, predict_next_state_is_calculating)
      << " angle " << gate.angle_deg() << " fs empty border lc rgb 'cyan'\n";
 
   gp << "replot\n";
-#endif
+  #endif
 }
 
 TEST(PDAF, predict_next_state_2)
@@ -307,6 +307,7 @@ TEST(PDAF, predict_next_state_2)
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
+  #if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -345,6 +346,7 @@ TEST(PDAF, predict_next_state_2)
      << " angle " << gate.angle_deg() << " fs empty border lc rgb 'cyan'\n";
 
   gp << "replot\n";
+  #endif
 }
 
 TEST(PDAF, predict_next_state_3_1)
@@ -364,6 +366,7 @@ TEST(PDAF, predict_next_state_3_1)
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
+  #if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -404,6 +407,7 @@ TEST(PDAF, predict_next_state_3_1)
      << " angle " << gate.angle_deg() << " fs empty border lc rgb 'cyan'\n";
 
   gp << "replot\n";
+  #endif
 }
 
 TEST(PDAF, predict_next_state_3_2)
@@ -424,6 +428,7 @@ TEST(PDAF, predict_next_state_3_2)
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
+  #if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -468,6 +473,7 @@ TEST(PDAF, predict_next_state_3_2)
      << " angle " << gate.angle_deg() << " fs empty border lc rgb 'cyan'\n";
 
   gp << "replot\n";
+  #endif
 }
 
 TEST(PDAF, predict_next_state_3_3)
@@ -487,6 +493,7 @@ TEST(PDAF, predict_next_state_3_3)
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
+  #if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -535,6 +542,7 @@ TEST(PDAF, predict_next_state_3_3)
      << " angle " << gate.angle_deg() << " fs empty border lc rgb 'cyan'\n";
 
   gp << "replot\n";
+  #endif
 }
 
 TEST(PDAF, predict_next_state_3_4)
@@ -554,6 +562,7 @@ TEST(PDAF, predict_next_state_3_4)
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
+  #if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -606,4 +615,5 @@ TEST(PDAF, predict_next_state_3_4)
      << " angle " << gate.angle_deg() << " fs empty border lc rgb 'cyan'\n";
 
   gp << "replot\n";
+  #endif
 }
