@@ -7,20 +7,24 @@
 
 namespace vortex::filter
 {
-template <models::concepts::DynamicModelLTV DynModT, models::concepts::SensorModelLTV SensModT>
-class IPDA
-{
+template <concepts::DynamicModelLTVWithDefinedSizes DynModT, concepts::SensorModelLTVWithDefinedSizes SensModT> class IPDA {
 public:
-  using SensModI = typename SensModT::SensModI;
-  using DynModI = typename DynModT::DynModI;
-  using DynModPtr = std::shared_ptr<DynModI>;
-  using SensModPtr = std::shared_ptr<SensModI>;
-  using EKF = vortex::filter::EKF<DynModI, SensModI>;
-  using Gauss_z = typename SensModI::Gauss_z;
-  using Gauss_x = typename DynModI::Gauss_x;
-  using Vec_z = typename SensModI::Vec_z;
-  using GaussMix = vortex::prob::GaussianMixture<DynModI::N_DIM_x>;
-  using PDAF = vortex::filter::PDAF<vortex::models::ConstantVelocity<2>, vortex::models::IdentitySensorModel<4, 2>>;
+  static constexpr int N_DIM_x = DynModT::N_DIM_x;
+  static constexpr int N_DIM_z = SensModT::N_DIM_z;
+  static constexpr int N_DIM_u = DynModT::N_DIM_u;
+  static constexpr int N_DIM_v = DynModT::N_DIM_v;
+  static constexpr int N_DIM_w = SensModT::N_DIM_w;
+
+  using T = Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
+
+  using EKF = vortex::filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
+
+  using Gauss_z  = typename T::Gauss_z;
+  using Gauss_x  = typename T::Gauss_x;
+  using Vec_z    = typename T::Vec_z;
+  using GaussMix = vortex::prob::GaussianMixture<N_DIM_x>;
+  using PDAF     = vortex::filter::PDAF<vortex::models::ConstantVelocity, vortex::models::IdentitySensorModel<4, 2>>;
+
   IPDA() = delete;
 
   struct Config : public PDAF::Config
@@ -41,18 +45,18 @@ public:
   {
     double predicted_existence_probability = probability_of_survival * last_detection_probability_;  // Finds Ps
 
-    double summed = 0;
+    double sum = 0.0;
     for (const Vec_z& measurement : measurements)
     {
-      summed += z_pred.pdf(measurement);
+      sum += z_pred.pdf(measurement);
     }
-    double l_k = 1 - probability_of_detection + probability_of_detection / clutter_intensity * summed;
+    double l_k = 1 - probability_of_detection + probability_of_detection / clutter_intensity * sum;
 
     return (l_k * predicted_existence_probability) / (1 - (1 - l_k) * predicted_existence_probability);
   }
 
   static std::tuple<Gauss_x, double, std::vector<Vec_z>, std::vector<Vec_z>, Gauss_x, Gauss_z, std::vector<Gauss_x>>
-  step(const DynModPtr& dyn_model, const SensModPtr& sen_model, double timestep, const Gauss_x& x_est,
+  step(const DynModT& dyn_model, const SensModT& sen_model, double timestep, const Gauss_x& x_est,
        const std::vector<Vec_z>& z_meas, double survive_est, const IPDA::Config& config)
   {
     auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
