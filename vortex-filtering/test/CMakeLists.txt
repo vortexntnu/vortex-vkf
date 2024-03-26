@@ -8,7 +8,9 @@ ament_add_gtest(${PROJECT_NAME}_test
   dynamic_model_test.cpp
   ekf_test.cpp
   imm_test.cpp
+  ipda_test.cpp
   numerical_integration_test.cpp
+  pdaf_test.cpp
   probability_test.cpp
   sensor_model_test.cpp
   types_test.cpp

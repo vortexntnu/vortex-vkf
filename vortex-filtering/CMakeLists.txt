@@ -23,7 +23,8 @@ find_package(ament_cmake    REQUIRED)
 find_package(rclcpp         REQUIRED)
 find_package(std_msgs       REQUIRED)
 find_package(geometry_msgs  REQUIRED)
-find_package(Eigen3         REQUIRED)
+find_package(Eigen3 3.4.0   REQUIRED)
+find_package(eigen3_cmake_module REQUIRED)
 find_package(OpenMP         REQUIRED) # For parallel processing with Eigen
 
 find_package(Gnuplot REQUIRED)
@@ -81,6 +82,7 @@ install(TARGETS ${PROJECT_NAME}_lib
 
 # === Export libraries ===
 ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_export_dependencies(eigen3_cmake_module)
 ament_export_dependencies(${lib_deps}) # Export the dependencies so the package using this package can find them
 
 
