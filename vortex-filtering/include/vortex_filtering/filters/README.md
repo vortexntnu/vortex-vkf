@@ -6,9 +6,11 @@ All classes and functions are under the namespace `vortex::filters`.
 Here is a great intro to Kalman filters in general: [Kalman and Bayesian Filters in Python](https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python/blob/master/00-Preface.ipynb)
 
 ## Overview
-- [`ekf.hpp`](ekf.hpp) contains the EKF filter
-- [`ukf.hpp`](ukf.hpp) contains the UKF filter
+- [`ekf.hpp`](ekf.hpp) contains the EKF
+- [`ukf.hpp`](ukf.hpp) contains the UKF
 - [`imm_filter.hpp`](imm_filter.hpp) contains the IMM filter
+- [`pdaf.hpp`](pdaf.hpp) contains the pdaf
+- [`ipda.hpp`](ipda.hpp) contains the ipda filter
 
 ### EKF
 This class represents an [Extended Kalman Filter](https://en.wikipedia.org/wiki/Extended_Kalman_filter). It is a template class with parameters `DynamicModelT` and `SensorModelT` for the dynamic model and sensor model respectively. It works with models derived from `vortex::models::DynamicModelLTV` and `vortex::models::SensorModelLTV`. All methods are static, so there is no need to create an instance of this class.
@@ -227,3 +229,90 @@ using ImmFilter = vortex::filters::IMMFilter<SensModT, IMM>;
 auto [weights_upd, x_est_upds, x_est_preds, z_est_preds] = 
     IMM::step(imm_model, sensor_model, dt, x_est_prevs, z_meas, model_weights, states_min_max);
 ```
+
+### PDAF
+
+This class represents the **P**robalistic **D**ata **A**ssociation **F**ilter. It is implemented according to the textbook "Fundamentals of Sensor Fusion" (Chapter 7) by *Edmund Brekke*. The class works as a "toolbox" to provide the usage of the PDAF. Other classes can use the given functions to implement the PDAF for their particular tasks.
+
+However, the PDAF is mainly used by us for target tracking. Additionally, PDAF is **single**-target tracking. That means that all other measurements (besides the tracked target) are considered to be clutter. If multiple targets should be tracked, multiple single-target trackers can be initialized. Notable here is that the PDAF itself doesn't have to be initialized. In fact, it can't be initialized. It just provides static functions. Therefore, you can use the namespace and, with it, the PDAF functions.
+
+The main usage of the PDAF is the function **step()**. It will predict the next state of a given target. The step function will need several parameters to work:
+* Dynamic model,
+* sensor model,
+* current time step,
+* x estimation (the last known state of the target),
+* z measurements,
+* and config (which is a struct that holds:)
+    * mahalanobis threshold
+    * minimum gate threshold
+    * maximum gate threshold
+    * probability of detection
+    * clutter intensity
+
+#### Dynamic/Sensor Models
+
+If you want to use the PDAF for your measurements, you have to define how your measurements behave. That is what the models are for. The **dynamic** model (or transition model) describes how states change over time. A common example of this would be velocity. The **sensor** model is a bit less intuitive and difficult to explain. Let's consider the following example:
+We want to measure the temperature inside a rocket drive. We know in theory how the temperature should change over time. That would be our dynamic model. We basically want to compare this model with the actual measurements and find a good estimated final value for the current state of the temperature in the drive. It's a bit of a design choice if you trust the model or the actual measurements. Both could be accurate or wrong. The main problem is that we can't put sensors directly into the drive (they would melt and be destroyed instantly). Therefore, we put a sensor outside the rocket and measure the temperature there. Here, we have to know how the temperature we measure corresponds to the actual temperature inside the drive. In other words, the temperature that we measure is not the actual value we need. But we know how to convert the measurement to the value we search for. This is the sensor model. If you want to get a better explanation of those models, I suggest using the Textbook "Artificial Intelligence: A Modern Approach, 4th Edition" by *Stuart Russell* and *Peter Norvig*. The book explains those models in Chapter 14 - *Probabilistic Reasoning Over Time*. All in all, you have to define those models and pass them to the function. Under the name space **vortex::models**, you can find simple predefined models to use:
+
+```c++
+// example how to define models using vortex::models
+using DynMod = vortex::models::ConstantVelocity;
+using SensorMod = vortex::models::IdentitySensorModel<4, 2>;
+// example how to use PDAF in pratice
+using PDAF = vortex::filter::PDAF<DynMod, SensorMod>;
+auto [x_final, inside, outside, x_pred, z_pred, x_updated] = PDAF::step(parameters...)
+```
+
+#### Previous State Estimate
+The step function needs to know what the previous state was. Based on this state, the dynamic model will be used. The model will give us a predicted new state. This state will be compared to the actual measurements. The previous state must be a Gaussian distribution. 
+
+#### Measurements
+The perceived measurements. This parameter consists of an Eigen vector. It should hold all perceived measurements. (The dimension must be the same as defined in the models.)
+
+#### Basic Principle
+This will be a short description of what is happening inside the step function. For a more clear and specific explanation of the steps of the PDAF please look into the recommended textbooks.
+* The step function will first use the dynamic model to calculate the next state (only considering the given model). Then the sensor model is used to convert the predicted state into the measurement space. That means to get the value, we would measure with our sensor if the perceived state is like the predicted state (of the dynamic model). Concerning our rocket example: We predict the drive temperature with the dynamic model and use the sensor model to convert the drive temperature to the temperature we would measure from the outside.
+Both of those steps are done in one line of code by using the EKF explained earlier.
+* The second step is the gating of the measurements. This is to exclude measurements that are too far away. SO, we can assume that they are definitely clutter, and we won't use them. The **mahalanobis_threshold** parameter is used to define the threshold used for gating. This value will scale the covariance of the predicted state. All measurements inside this will be considered. Additionally,**min_gate_threshold** and **max_gate_threshold** are used here. Since we scale the over-time-changing covariance, we implemented a min and max threshold. If the scaled covariance is too large or too small, we still take measurements in a fixed area into account.
+* The next step is the update states step. All measurements inside the gate will be compared to the predicted state estimate (by the dynamic model). This results in a Gaussian distribution for all of these measurements.
+* In the last step, the weighted average of estimated Gaussian distributions will be calculated. This weighted average will be the final output of the PDAF and is considered to be the current state estimate. Therefore, it will be the previous state estimate in the next iteration.
+
+It is highly recommended to look into "Fundamentals of Sensor Fusion" (Chapter 7) by *Edmund Brekke*. You will find there a visualization of the explained process, which makes it easier to understand. Also, the implemented tests for the PDAF will plot the given outcome. This will also help to understand what is happening.
+In order for the test to work with visualization you have to uncomment following statement in the CMakeLists.txt of *vortex-filtering*.
+```
+if(BUILD_TESTING)
+  # add_compile_definitions(GNUPLOT_ENABLE=1) <- uncomment this 
+  add_subdirectory(test)
+endif()
+```
+
+#### Other Parameters
+
+* Current time step: The current iteration.
+* Probability of detection: This is the probability that we will detect the target. Defining this, for example, with 0.8 means that there is a 20% chance that no measurement is assumed to be the target. (In this case, we will only take the dynamic model into consideration)
+* Clutter intensity: Here you can define how much clutter you expect within the region.
+
+#### Returns
+
+The step()-function will return return the new estimated state and all outputs of the substeps. Returning those in addition, enables us to visualize the outputs of the PDAF.
+
+### IPDA
+
+IPDA stand for **I**ntegrated **P**robabilistic **D**ata **A**ssociation. It uses extra steps in addition to the regular PDAF. The PDAF is extended to also include a probability value which describes the target's existence. The main reason for this is to evaluate not only the state of the target but also the probability of existence dependent on the previous states.
+IPDA works in terms of usage the same way the PDAF works. The class provides a static function (also called *step*). You can use this function by referencing the namespace.
+
+```c++
+using ConstantVelocity = vortex::models::ConstantVelocity;
+using IdentitySensorModel = vortex::models::IdentitySensorModel<4, 2>;
+using IPDA = vortex::filter::IPDA<ConstantVelocity, IdentitySensorModel>;
+
+auto [x_final, existence_pred, inside, outside, x_pred, z_pred, x_updated] = IPDA::step(parameters...);
+```
+
+#### Parameters
+The parameters of the step() function are mainly the same as those of the PDAF. However, two parameters are added:
+* Survival estimate: This is the survival estimate of the previous state estimate (corresponding to x_estimate). It describes the target existence, which we also want to estimate for the current state.
+* Probability of survival: This is a general hyperparameter that defines how likely a target is to survive. This parameter shouldn't be confused with the probability of detection. If no measurement is considered to correspond to the target, we consider the dynamic model. The track still *survives*. If a target *dies*, it can't come back, and the track will be deleted.
+
+#### Returns
+In addition to all the return parameters of the PDAF the IPDA will return the estimated existence prediction for the current state (corresponding to x_final). 
