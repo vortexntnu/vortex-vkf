@@ -7,7 +7,9 @@
 
 namespace vortex::filter
 {
-template <concepts::DynamicModelLTVWithDefinedSizes DynModT, concepts::SensorModelLTVWithDefinedSizes SensModT> class IPDA {
+template <concepts::DynamicModelLTVWithDefinedSizes DynModT, concepts::SensorModelLTVWithDefinedSizes SensModT>
+class IPDA
+{
 public:
   static constexpr int N_DIM_x = DynModT::N_DIM_x;
   static constexpr int N_DIM_z = SensModT::N_DIM_z;
@@ -19,11 +21,11 @@ public:
 
   using EKF = vortex::filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 
-  using Gauss_z  = typename T::Gauss_z;
-  using Gauss_x  = typename T::Gauss_x;
-  using Vec_z    = typename T::Vec_z;
+  using Gauss_z = typename T::Gauss_z;
+  using Gauss_x = typename T::Gauss_x;
+  using Vec_z = typename T::Vec_z;
   using GaussMix = vortex::prob::GaussianMixture<N_DIM_x>;
-  using PDAF     = vortex::filter::PDAF<vortex::models::ConstantVelocity, vortex::models::IdentitySensorModel<4, 2>>;
+  using PDAF = vortex::filter::PDAF<vortex::models::ConstantVelocity, vortex::models::IdentitySensorModel<4, 2>>;
 
   IPDA() = delete;
 
@@ -32,13 +34,16 @@ public:
     double prob_of_survival = 1.0;
   };
 
-  /// @brief
-  /// @param measurements Measurements to iterate over
-  /// @param probability_of_survival How likely the object is to survive (Ps)
-  /// @param probability_of_detection How likely the object is to be detected (Pd)
-  /// @param clutter_intensity How likely it is to have a false positive
-  /// @param z_pred The predicted measurement
-  /// @return The existence probability
+  /**
+   * @brief Calculates the existence probability of an object.
+   * @param measurements The measurements to iterate over.
+   * @param probability_of_survival How likely the object is to survive (Ps).
+   * @param last_detection_probability_ The last detection probability.
+   * @param probability_of_detection How likely the object is to be detected (Pd).
+   * @param clutter_intensity How likely it is to have a false positive.
+   * @param z_pred The predicted measurement.
+   * @return The existence probability.
+   */
   static double get_existence_probability(const std::vector<Vec_z>& measurements, double probability_of_survival,
                                           double last_detection_probability_, double probability_of_detection,
                                           double clutter_intensity, Gauss_z& z_pred)
