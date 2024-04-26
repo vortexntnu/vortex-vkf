@@ -18,13 +18,13 @@ std::pair<double, Eigen::VectorXi> auction_algorithm(const Eigen::MatrixXd &cost
   double epsilon = 1.0 / (num_items + 1);
 
   while (!unassigned.empty()) {
-    int person = unassigned.back();
+    int customer = unassigned.back();
     unassigned.pop_back();
 
     double max_value = std::numeric_limits<double>::lowest();
     int max_item     = -1;
     for (int item = 0; item < num_items; ++item) {
-      double value = cost_matrix(person, item) - prices[item];
+      double value = cost_matrix(customer, item) - prices[item];
       if (value > max_value) {
         max_value = value;
         max_item  = item;
@@ -36,7 +36,7 @@ std::pair<double, Eigen::VectorXi> auction_algorithm(const Eigen::MatrixXd &cost
       unassigned.push_back(current_owner);
     }
 
-    assignment[max_item] = person;
+    assignment[max_item] = customer;
     prices[max_item] += max_value + epsilon;
   }
 

@@ -194,6 +194,7 @@ public:
    */
   template <size_t i> T<i>::Mat_vv Q_d(double dt, const T<i>::Vec_x &x) const { return get_model<i>().Q_d(dt, x); }
 
+
   static constexpr int N_DIM_x(size_t model_index) { return N_DIMS_x.at(model_index); }
   static constexpr int N_DIM_u(size_t model_index) { return N_DIMS_u.at(model_index); }
   static constexpr int N_DIM_v(size_t model_index) { return N_DIMS_v.at(model_index); }
