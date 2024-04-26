@@ -36,43 +36,83 @@ public:
 
   using EKF = vortex::filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 
-  using Gauss_z = typename T::Gauss_z;
-  using Gauss_x = typename T::Gauss_x;
-  using Vec_z = typename T::Vec_z;
-  using GaussMix = vortex::prob::GaussianMixture<N_DIM_x>;
-  using PDAF = vortex::filter::PDAF<DynModT, SensModT>;
+  using Gauss_z    = typename T::Gauss_z;
+  using Gauss_x    = typename T::Gauss_x;
+  using Vec_z      = typename T::Vec_z;
+  using GaussMix_x = typename T::GaussMix_x;
+  using Mat_zm_k   = Eigen::Matrix<double, N_DIM_z, Eigen::Dynamic>;
+  using PDAF       = vortex::filter::PDAF<vortex::models::ConstantVelocity, vortex::models::IdentitySensorModel<4, 2>>;
 
   IPDA() = delete;
 
   struct Config : public PDAF::Config
   {
-    double prob_of_survival = 1.0;
+    double prob_of_survival                           = 0.99;
+    bool estimate_clutter                             = true;
+    bool update_existence_probability_on_no_detection = true;
   };
 
   /**
    * @brief Calculates the existence probability of an object.
    * @param measurements The measurements to iterate over.
    * @param probability_of_survival How likely the object is to survive (Ps).
-   * @param last_detection_probability_ The last detection probability.
+   * @param existence_prob_est (r_{k-1}) The previous existence probability.
    * @param probability_of_detection How likely the object is to be detected (Pd).
    * @param clutter_intensity How likely it is to have a false positive.
    * @param z_pred The predicted measurement.
    * @return The existence probability.
    */
-  static double get_existence_probability(const std::vector<Vec_z>& measurements, double probability_of_survival,
-                                          double last_detection_probability_, double probability_of_detection,
-                                          double clutter_intensity, Gauss_z& z_pred)
+  static double get_existence_probability(const Mat_zm_k &measurements, double existence_prob_est, Gauss_z &z_pred, Config config)
   {
-    double predicted_existence_probability = probability_of_survival * last_detection_probability_;  // Finds Ps
-
-    double sum = 0.0;
-    for (const Vec_z& measurement : measurements)
-    {
-      sum += z_pred.pdf(measurement);
+    if (measurements.cols() == 0 && !config.update_existence_probability_on_no_detection) {
+      return existence_prob_est;
     }
-    double l_k = 1 - probability_of_detection + probability_of_detection / clutter_intensity * sum;
 
-    return (l_k * predicted_existence_probability) / (1 - (1 - l_k) * predicted_existence_probability);
+    double r_km1 = existence_prob_est;
+    double P_s   = config.prob_of_survival;
+    double P_d   = config.prob_of_detection;
+    double m_k   = measurements.size();
+
+    // predicted existence probability r_{k|k-1}
+    double r_kgkm1 = P_s * r_km1; //  r k given k minus 1
+
+    // clutter intensity
+    double lambda = config.clutter_intensity;
+    if (config.estimate_clutter) {
+      double V_k = utils::Ellipse{z_pred, config.mahalanobis_threshold}.area(); // gate area
+      lambda     = estimate_clutter_intensity(r_kgkm1, V_k, P_d, m_k);
+    }
+
+    // predicted measurement probability
+    double z_pred_prob = 0.0;
+    for (const Vec_z &z_k : measurements.colwise()) {
+      z_pred_prob += z_pred.pdf(z_k);
+    }
+
+    // posterior existence probability r_k
+    double L_k = 1 - P_d + P_d / lambda * z_pred_prob;        // (7.33)
+    double r_k = (L_k * r_kgkm1) / (1 - (1 - L_k) * r_kgkm1); // (7.32)
+    return r_k;
+  }
+
+  /**
+   * @brief Estimates the clutter intensity using (7.31)
+   * @param predicted_existence_probability (r_{k|k-1})  The predicted existence probability.
+   * @param gate_area (V_k) The area of the gate.
+   * @param prob_of_detection (P_d) The probability of detection.
+   * @param num_measurements (m_k) The number of measurements.
+   * @return The clutter intensity.
+   */
+  static double estimate_clutter_intensity(double predicted_existence_probability, double gate_area, double probability_of_detection, double num_measurements)
+  {
+    size_t m_k = num_measurements;
+    if (m_k == 0) {
+      return 0.0;
+    }
+    double P_d = probability_of_detection;
+    double r_k = predicted_existence_probability;
+    double V_k = gate_area;
+    return 1 / V_k * (m_k - r_k * P_d); // (7.31)
   }
 
   /**
