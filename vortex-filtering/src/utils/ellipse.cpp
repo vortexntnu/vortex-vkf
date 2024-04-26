@@ -38,5 +38,7 @@ double Ellipse::angle_rad() const { return angle_; }
 double Ellipse::angle_deg() const { return angle_ * 180 / pi; }
 double Ellipse::area() const { return pi * a_ * b_; }
 
+double Ellipse::area() const { return M_PI * a() * b(); }
+
 } // namespace utils
 } // namespace vortex
