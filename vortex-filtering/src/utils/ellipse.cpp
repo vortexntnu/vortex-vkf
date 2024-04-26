@@ -34,5 +34,7 @@ Eigen::Vector2d Ellipse::axes() const { return Eigen::Vector2d(2 * a_, 2 * b_); 
 double Ellipse::angle_rad() const { return angle_; }
 double Ellipse::angle_deg() const { return angle_ * 180 / M_PI; }
 
+double Ellipse::area() const { return M_PI * a() * b(); }
+
 } // namespace utils
 } // namespace vortex
