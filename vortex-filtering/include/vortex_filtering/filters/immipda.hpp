@@ -21,8 +21,9 @@ public:
   };
 
   template <size_t s_k>
-  using T                     = Types_xzuvw<ImmModelT::N_DIMS_x(s_k), SensModT::N_DIM_z, ImmModelT::N_DIMS_u(s_k), ImmModelT::N_DIMS_v(s_k), SensModT::N_DIM_w>;
-  using ImmFilter             = ImmFilter<SensModT, ImmModelT>;
+  using T         = Types_xzuvw<ImmModelT::N_DIMS_x(s_k), SensModT::N_DIM_z, ImmModelT::N_DIMS_u(s_k), ImmModelT::N_DIMS_v(s_k), SensModT::N_DIM_w>;
+  using ImmFilter = ImmFilter<SensModT, ImmModelT>;
+
   template <size_t s_k> using PDAF = PDAF<ImmModelT::DynModT<s_k>, SensModT>;
   template <size_t s_k> using IPDA = IPDA<ImmModelT::DynModT<s_k>, SensModT>;
 
@@ -81,9 +82,8 @@ public:
 
     // Calculate the mode-conditional association probabilities (7.57)
     Arr_nX mode_conditional_association_probabilities = association_probabilities * posterior_mode_probabilities;
-    mode_conditional_association_probabilities /= mode_conditional_association_probabilities.rowwise().sum().replicate(m_k + 1, 1);
-
-    ImmModelT::Vec_n mode_prob_upd = mode_conditional_association_probabilities.rowwise().sum();
+    ImmModelT::Vec_n mode_prob_upd                    = mode_conditional_association_probabilities.rowwise().sum();
+    mode_conditional_association_probabilities /= mode_prob_upd.replicate(ImmModelT::N_MODELS, 1);
 
     // PDAF mixture reduction (7.58)
     ImmModelT::GaussTuple_x x_est_upds;
@@ -95,7 +95,7 @@ public:
                 for (const auto &imm_estimations_a_k : imm_estimations) {
                   imm_estimations_s_k = std::get<s_k>(imm_estimations_a_k);
                 }
-                std::get<s_k>(x_est_upds) = T<s_k>::GaussMix_x{imm_estimations_s_k, mode_probability_upd(s_k)}.reduce();
+                std::get<s_k>(x_est_upds) = T<s_k>::GaussMix_x{imm_estimations_s_k, mode_conditional_association_probabilities.row(s_k)}.reduce();
               },
               ...);
         },
