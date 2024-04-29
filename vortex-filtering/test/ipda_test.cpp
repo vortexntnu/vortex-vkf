@@ -47,8 +47,8 @@ TEST(IPDA, get_existence_probability_is_calculating)
   vortex::prob::Gauss2d z_pred;
   z_pred = vortex::prob::Gauss2d(Eigen::Vector2d(1.0, 1.0), Eigen::Matrix2d::Identity() * 0.1);
 
-  double existence_probability = IPDA::get_existence_probability(
-      meas, probability_of_survival, last_detection_probability, prob_of_detection, clutter_intensity, z_pred);
+  double existence_probability =
+      IPDA::existence_probability(meas, probability_of_survival, last_detection_probability, prob_of_detection, clutter_intensity, z_pred);
 
   std::cout << "Existence probability: " << existence_probability << std::endl;
 }

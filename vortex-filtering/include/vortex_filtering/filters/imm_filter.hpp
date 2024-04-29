@@ -31,7 +31,10 @@ public:
   static constexpr size_t N_MODELS = ImmModelT::N_MODELS;
 
   static constexpr auto N_DIMS_x = ImmModelT::N_DIMS_x;
+  static constexpr auto N_DIMS_u = ImmModelT::N_DIMS_u;
+  static constexpr auto N_DIMS_v = ImmModelT::N_DIMS_v;
   static constexpr int N_DIM_z   = SensModT::N_DIM_z;
+  static constexpr int N_DIM_w   = SensModT::N_DIM_w;
 
   template <size_t i> using T = Types_xz<N_DIMS_x.at(i), N_DIM_z>;
 
@@ -94,7 +97,21 @@ public:
   static std::tuple<GaussTuple_x, GaussTuple_x, GaussArr_z> mode_matched_filter(const ImmModelT &imm_model, const SensModT &sensor_model, double dt,
                                                                                 const GaussTuple_x &moment_based_preds, const Vec_z &z_meas)
   {
-    return step_kalman_filters(imm_model, sensor_model, dt, moment_based_preds, z_meas, std::make_index_sequence<N_MODELS>{});
+    GaussTuple_x x_est_upds;
+    GaussTuple_x x_est_preds;
+    GaussArr_z z_est_preds;
+
+    std::apply(
+        [&](auto &&...Is) {
+          ((std::tie(std::get<Is>(x_est_upds), std::get<Is>(x_est_preds), z_est_preds.at(Is)) =
+                kalman_filter_step(imm_model.template get_model<Is>(), sensor_model, dt, std::get<Is>(moment_based_preds), z_meas)),
+           ...);
+        },
+        std::make_index_sequence<N_MODELS>{});
+
+    return {x_est_upds, x_est_preds, z_est_preds};
+
+    // return kalman_filter_steps(imm_model, sensor_model, dt, moment_based_preds, z_meas, std::make_index_sequence<N_MODELS>{});
   }
 
   /**
@@ -157,25 +174,56 @@ private:
    * @return Tuple of updated states, predicted states, predicted measurements
    */
   template <size_t... Is>
-  static std::tuple<GaussTuple_x, GaussTuple_x, GaussArr_z> step_kalman_filters(const ImmModelT &imm_model, const SensModT &sensor_model, double dt,
+  static std::tuple<GaussTuple_x, GaussTuple_x, GaussArr_z> kalman_filter_steps(const ImmModelT &imm_model, const SensModT &sensor_model, double dt,
                                                                                 const GaussTuple_x &moment_based_preds, const Vec_z &z_meas,
                                                                                 std::index_sequence<Is...>)
   {
 
     // Calculate mode-matched filter outputs and save them in a tuple of tuples
     std::tuple<std::tuple<typename T<Is>::Gauss_x, typename T<Is>::Gauss_x, Gauss_z>...> ekf_outs;
-    ((std::get<Is>(ekf_outs) = step_kalman_filter<Is>(imm_model.template get_model<Is>(), sensor_model, dt, std::get<Is>(moment_based_preds), z_meas)), ...);
+    ((std::get<Is>(ekf_outs) = kalman_filter_step<Is>(imm_model.template get_model<Is>(), sensor_model, dt, std::get<Is>(moment_based_preds), z_meas)), ...);
 
-    // Convert tuple of tuples to tuple of tuples
     GaussTuple_x x_est_upds;
     GaussTuple_x x_est_preds;
     GaussArr_z z_est_preds;
 
+    // Convert tuple of tuples to tuple of tuples
     ((std::get<Is>(x_est_upds) = std::get<0>(std::get<Is>(ekf_outs))), ...);
     ((std::get<Is>(x_est_preds) = std::get<1>(std::get<Is>(ekf_outs))), ...);
     ((z_est_preds.at(Is) = std::get<2>(std::get<Is>(ekf_outs))), ...);
 
     return {x_est_upds, x_est_preds, z_est_preds};
+  }
+
+  static std::tuple<GaussTuple_x, GaussArr_z> kalman_filter_predictions(const ImmModelT &imm_model, const SensModT &sensor_model, double dt,
+                                                                        const GaussTuple_x &x_est_prevs)
+  {
+    GaussTuple_x x_est_preds;
+    GaussArr_z z_est_preds;
+
+    std::apply(
+        [&](auto &&...s_k) {
+          ((std::tie(std::get<s_k>(x_est_preds), z_est_preds.at(s_k)) =
+                kalman_filter_predict(imm_model.template get_model<s_k>(), sensor_model, dt, std::get<s_k>(x_est_prevs))),
+           ...);
+        },
+        std::make_index_sequence<N_MODELS>{});
+
+    return {x_est_preds, z_est_preds};
+  }
+
+  static GaussTuple_x kalman_filter_updates(const ImmModelT &imm_model, const SensModT &sensor_model, double dt, const GaussTuple_x &x_est_prevs,
+                                            const Vec_z &z_meas)
+  {
+    GaussTuple_x x_est_upds;
+
+    std::apply(
+        [&](auto &&...s_k) {
+          ((std::get<s_k>(x_est_upds) = kalman_filter_update(imm_model.template get_model<s_k>(), sensor_model, dt, std::get<s_k>(x_est_prevs), z_meas)), ...);
+        },
+        std::make_index_sequence<N_MODELS>{});
+
+    return x_est_upds;
   }
 
   /**
@@ -189,26 +237,54 @@ private:
    * @return Tuple of updated state, predicted state, predicted measurement
    */
   template <size_t i>
-  static std::tuple<typename T<i>::Gauss_x, typename T<i>::Gauss_x, Gauss_z> step_kalman_filter(const DynModT<i> &dyn_model, const SensModT &sensor_model,
+  static std::tuple<typename T<i>::Gauss_x, typename T<i>::Gauss_x, Gauss_z> kalman_filter_step(const DynModT<i> &dyn_model, const SensModT &sensor_model,
                                                                                                 double dt, const T<i>::Gauss_x &x_est_prev, const Vec_z &z_meas)
   {
-    static constexpr size_t N_DIM_x = ImmModelT::N_DIM_x(i);
-    static constexpr size_t N_DIM_z = SensModT::N_DIM_z;
-    static constexpr size_t N_DIM_u = ImmModelT::N_DIM_u(i);
-    static constexpr size_t N_DIM_v = ImmModelT::N_DIM_v(i);
-    static constexpr size_t N_DIM_w = SensModT::N_DIM_w;
-
     if constexpr (concepts::DynamicModelLTVWithDefinedSizes<DynModT<i>> && concepts::SensorModelLTVWithDefinedSizes<SensModT>) {
       using ImmSensMod  = models::ImmSensorModelLTV<N_DIM_x, SensModT>;
-      using EKF         = filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
+      using EKF         = filter::EKF_t<N_DIMs_x(i), N_DIM_z, N_DIMS_u(i), N_DIMS_v(i), N_DIM_w>;
       ImmSensMod imm_sens_mod{sensor_model};
       return EKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
     }
     else {
       using ImmSensMod  = models::ImmSensorModel<N_DIM_x, SensModT>;
-      using UKF         = filter::UKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
+      using UKF         = filter::UKF_t<N_DIMs_x(i), N_DIM_z, N_DIMS_u(i), N_DIMS_v(i), N_DIM_w>;
       ImmSensMod imm_sens_mod{sensor_model};
       return UKF::step(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
+    }
+  }
+
+  static std::tuple<typename T<i>::Gauss_x, Gauss_z> kalman_filter_predict(const DynModT<i> &dyn_model, const SensModT &sensor_model, double dt,
+                                                                           const T<i>::Gauss_x &x_est_prev)
+  {
+    if constexpr (concepts::DynamicModelLTVWithDefinedSizes<DynModT<i>> && concepts::SensorModelLTVWithDefinedSizes<SensModT>) {
+      using ImmSensMod = models::ImmSensorModelLTV<N_DIM_x, SensModT>;
+      using EKF        = filter::EKF_t<N_DIMs_x(i), N_DIM_z, N_DIMS_u(i), N_DIMS_v(i), N_DIM_w>;
+      ImmSensMod imm_sens_mod{sensor_model};
+      return EKF::predict(dyn_model, imm_sens_mod, dt, x_est_prev);
+    }
+    else {
+      using ImmSensMod = models::ImmSensorModel<N_DIM_x, SensModT>;
+      using UKF        = filter::UKF_t<N_DIMs_x(i), N_DIM_z, N_DIMS_u(i), N_DIMS_v(i), N_DIM_w>;
+      ImmSensMod imm_sens_mod{sensor_model};
+      return UKF::predict(dyn_model, imm_sens_mod, dt, x_est_prev);
+    }
+  }
+
+  static T<i>::Gauss_x kalman_filter_update(const DynModT<i> &dyn_model, const SensModT &sensor_model, double dt, const T<i>::Gauss_x &x_est_prev,
+                                            const Vec_z &z_meas)
+  {
+    if constexpr (concepts::DynamicModelLTVWithDefinedSizes<DynModT<i>> && concepts::SensorModelLTVWithDefinedSizes<SensModT>) {
+      using ImmSensMod = models::ImmSensorModelLTV<N_DIM_x, SensModT>;
+      using EKF        = filter::EKF_t<N_DIMs_x(i), N_DIM_z, N_DIMS_u(i), N_DIMS_v(i), N_DIM_w>;
+      ImmSensMod imm_sens_mod{sensor_model};
+      return EKF::update(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
+    }
+    else {
+      using ImmSensMod = models::ImmSensorModel<N_DIM_x, SensModT>;
+      using UKF        = filter::UKF_t<N_DIMs_x(i), N_DIM_z, N_DIMS_u(i), N_DIMS_v(i), N_DIM_w>;
+      ImmSensMod imm_sens_mod{sensor_model};
+      return UKF::update(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
     }
   }
 

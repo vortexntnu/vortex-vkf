@@ -13,6 +13,7 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <vector>
 #include <vortex_filtering/vortex_filtering.hpp>
@@ -177,6 +178,25 @@ public:
     weights /= weights.sum();
 
     return weights;
+  }
+
+  static Eigen::ArrayXd association_probabilities(const Eigen::ArrayXd &z_likelyhoods, double prob_of_detection, double clutter_intensity)
+  {
+    size_t m_k    = z_likelyhoods.size();
+    double lambda = clutter_intensity;
+    double P_d    = prob_of_detection;
+
+    Eigen::ArrayXd weights(m_k + 1);
+
+    // Accociation probabilities (Corrolary 7.3.3)
+    weights(0) = lambda * (1 - P_d);         
+    weights.tail(m_k) = P_d * z_likelyhoods;
+
+    // normalize weights
+    weights /= weights.sum();
+
+    return weights;
+
   }
 };
 
