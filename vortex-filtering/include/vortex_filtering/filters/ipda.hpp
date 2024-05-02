@@ -40,7 +40,7 @@ public:
   using Gauss_x    = typename T::Gauss_x;
   using Vec_z      = typename T::Vec_z;
   using GaussMix_x = typename T::GaussMix_x;
-  using Mat_zm_k   = Eigen::Matrix<double, N_DIM_z, Eigen::Dynamic>;
+  using Arr_zm_k   = Eigen::Array<double, N_DIM_z, Eigen::Dynamic>;
   using PDAF       = vortex::filter::PDAF<vortex::models::ConstantVelocity, vortex::models::IdentitySensorModel<4, 2>>;
 
   IPDA() = delete;
@@ -60,19 +60,18 @@ public:
   }
 
   /**
-   * @brief Calculates the existence probability of an object.
+   * @brief Calculates the existence probability given the measurements and the previous existence probability.
    * @param z_measurements The measurements to iterate over.
    * @param z_pred The predicted measurement.
    * @param existence_prob_est (r_{k-1}) The previous existence probability.
    * @param config The configuration for the IPDA.
    * @return The existence probability.
    */
-  static double existence_prob_update(const Mat_zm_k &z_measurements, Gauss_z &z_pred, double existence_prob_pred, Config config)
+  static double existence_prob_update(const Arr_zm_k &z_measurements, Gauss_z &z_pred, double existence_prob_pred, Config config)
   {
     double r_kgkm1 = existence_prob_pred;
-    double P_s     = config.prob_of_survival;
     double P_d     = config.prob_of_detection;
-    double m_k     = z_measurements.size();
+    double lambda  = config.clutter_intensity;
 
     // predicted measurement probability
     double z_pred_prob = 0.0;
@@ -87,7 +86,7 @@ public:
   }
 
   /**
-   * @brief Calculates the existence probability of an object.
+   * @brief Calculates the existence probability given the likelyhood of the measurements and the previous existence probability.
    * @param z_likelyhoods (l_a_k) The likelyhood of the measurements
    * @param existence_prob_est (r_{k-1}) The previous existence probability.
    * @param config The configuration for the IPDA.
@@ -96,9 +95,8 @@ public:
   static double existence_prob_update(const Eigen::VectorXd z_likelyhoods, double existence_prob_pred, Config config)
   {
     double r_kgkm1 = existence_prob_pred; // r_k given k minus 1
-    double P_s     = config.prob_of_survival;
     double P_d     = config.prob_of_detection;
-    double m_k     = z_measurements.size();
+    double lambda  = config.clutter_intensity;
 
     // posterior existence probability r_k
     double L_k = 1 - P_d + P_d / lambda * z_likelyhoods.sum(); // (7.33)
@@ -110,18 +108,19 @@ public:
    * @brief Estimates the clutter intensity using (7.31)
    * @param z_pred The predicted measurement.
    * @param predicted_existence_probability (r_{k|k-1})  The predicted existence probability.
-   * @param prob_of_detection (P_d) The probability of detection.
    * @param num_measurements (m_k) The number of z_measurements.
+   * @param config The configuration for the IPDA.
    * @return The clutter intensity.
    */
-  static double estimate_clutter_intensity(const Gauss_z &z_pred, double predicted_existence_probability, double probability_of_detection,
-                                           double num_measurements)
+  static double estimate_clutter_intensity(const Gauss_z &z_pred, double predicted_existence_probability,
+                                           double num_measurements, Config config)
   {
     size_t m_k = num_measurements;
-    double P_d = probability_of_detection;
+    double P_d = config.prob_of_detection;
     double r_k = predicted_existence_probability;
     // TODO: make this work for N_DIM_z /= 2
-    static_assert(N_DIM_z == 2) double V_k = utils::Ellipse(z_pred, config.mahalanobis_threshold).area(); // gate area
+    static_assert(N_DIM_z == 2);
+    double V_k = utils::Ellipse(z_pred, config.mahalanobis_threshold).area(); // gate area
 
     if (m_k == 0) {
       return 0.0;
@@ -146,19 +145,20 @@ public:
   step(const DynModT &dyn_mod, const SensModT &sens_mod, double timestep, const Gauss_x &x_est, const std::vector<Vec_z> &z_meas, double existence_prob_est,
        IPDA::Config &config)
   {
-    double existence_prop_pred = existence_prediction(existence_prob_est, config.prob_of_survival);
+    double existence_prob_pred = existence_prediction(existence_prob_est, config.prob_of_survival);
 
     if (config.estimate_clutter) {
-      config.clutter_intensity = estimate_clutter_intensity(z_pred, existence_prob_pred, config.prob_of_detection, z_meas.size());
+      Gauss_z z_pred;
+      std::tie(std::ignore, z_pred) = EKF::predict(dyn_mod, sens_mod, timestep, x_est);
+      config.clutter_intensity = estimate_clutter_intensity(z_pred, existence_prob_pred, z_measurements.cols(), config);
     }
 
     auto [x_post, z_meas_inside, z_meas_outside, x_pred, z_pred, x_upd] =
-        PDAF::step(dyn_mod, sens_mod, timestep, x_est, z_meas, static_cast<PDAF::Config>(config));
+        PDAF::step(dyn_mod, sens_mod, timestep, x_est, z_measurements, static_cast<PDAF::Config>(config));
 
-    Eigen::Matrix2i z_measurements(z_meas.size(), 2);
-    double existence_probability_upd = existence_prop_pred;
+    double existence_probability_upd = existence_prob_pred;
     if (z_measurements.cols() == 0 && !config.update_existence_probability_on_no_detection) {
-      existence_probability_upd = existence_prob_update(z_meas_inside, z_pred, existence_prob_est, config);
+      existence_probability_upd = existence_prob_update(z_meas_inside, z_pred, existence_prob_pred, config);
     }
     return {x_post, existence_probability_upd, z_meas_inside, z_meas_outside, x_pred, z_pred, x_upd};
   }

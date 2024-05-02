@@ -37,13 +37,13 @@ public:
 
   using T = Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 
-  using EKF = vortex::filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
-  using Gauss_z = typename T::Gauss_z;
-  using Gauss_x = typename T::Gauss_x;
-  using Vec_z = typename T::Vec_z;
-  using MeasurementsZd = std::vector<Vec_z>;
-  using StatesXd = std::vector<Gauss_x>;
-  using GaussMixXd = vortex::prob::GaussianMixture<N_DIM_x>;
+  using EKF            = vortex::filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
+  using Gauss_z        = typename T::Gauss_z;
+  using Gauss_x        = typename T::Gauss_x;
+  using Vec_z          = typename T::Vec_z;
+  using Arr_zm_k       = Eigen::Array<double, N_DIM_z, Eigen::Dynamic>;
+  using StatesXd       = std::vector<Gauss_x>;
+  using GaussMixZd     = vortex::prob::GaussianMixture<N_DIM_x>;
 
   struct Config
   {
@@ -102,21 +102,17 @@ public:
                                                                double min_gate_threshold = 0.0,
                                                                double max_gate_threshold = HUGE_VAL)
   {
-    MeasurementsZd inside_meas;
-    MeasurementsZd outside_meas;
+    Arr_zm_k inside_meas;
+    Arr_zm_k outside_meas;
 
-    for (const auto& measurement : z_meas)
-    {
-      double mahalanobis_distance = z_pred.mahalanobis_distance(measurement);
-      double regular_distance = (z_pred.mean() - measurement).norm();
-      if ((mahalanobis_distance <= mahalanobis_threshold || regular_distance <= min_gate_threshold) &&
-          regular_distance <= max_gate_threshold)
-      {
-        inside_meas.push_back(measurement);
+    for (size_t in_k = 0, out_k = 0; const Vec_z &z_k : z_measurements.colwise()) {
+      double mahalanobis_distance = z_pred.mahalanobis_distance(z_k);
+      double regular_distance     = (z_pred.mean() - z_k).norm();
+      if ((mahalanobis_distance <= mahalanobis_threshold || regular_distance <= min_gate_threshold) && regular_distance <= max_gate_threshold) {
+        inside_meas.col(in_k++) = z_k;
       }
-      else
-      {
-        outside_meas.push_back(measurement);
+      else {
+        outside_meas.col(out_k++) = z_k;
       }
     }
 
@@ -141,7 +137,7 @@ public:
     states.push_back(x_pred);
     states.insert(states.end(), updated_states.begin(), updated_states.end());
 
-    Eigen::VectorXd weights = get_weights(z_meas, z_pred, prob_of_detection, clutter_intensity);
+    Eigen::VectorXd weights = get_weights(z_measurements, z_pred, prob_of_detection, clutter_intensity);
 
     GaussMixXd gaussian_mixture(weights, states);
 
@@ -162,16 +158,17 @@ public:
   static Eigen::VectorXd get_weights(const MeasurementsZd& z_meas, const Gauss_z& z_pred, double prob_of_detection,
                                      double clutter_intensity)
   {
-    Eigen::VectorXd weights(z_meas.size() + 1);
+    double lambda = clutter_intensity;
+    double P_d    = prob_of_detection;
+
+    Eigen::VectorXd weights(z_measurements.size() + 1);
 
     // in case no measurement assosiates with the target
-    double no_association = clutter_intensity * (1 - prob_of_detection);
-    weights(0) = no_association;
+    weights(0) = lambda * (1 - P_d);
 
     // measurements associating with the target
-    for (size_t k = 1; k < z_meas.size() + 1; k++)
-    {
-      weights(k) = (prob_of_detection * z_pred.pdf(z_meas.at(k - 1)));
+    for (size_t a_k = 1; const Vec_z &z_k : z_measurements.colwise()) {
+      weights(a_k++) = P_d * z_pred.pdf(z_k);
     }
 
     // normalize weights
