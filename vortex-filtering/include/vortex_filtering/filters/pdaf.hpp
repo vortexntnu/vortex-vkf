@@ -102,17 +102,19 @@ public:
                                                                double min_gate_threshold = 0.0,
                                                                double max_gate_threshold = HUGE_VAL)
   {
-    Arr_zm_k inside_meas;
-    Arr_zm_k outside_meas;
+    Arr_zm_k inside_meas(SensModT::N_DIM_z, 0);
+    Arr_zm_k outside_meas(SensModT::N_DIM_z, 0);
 
-    for (size_t in_k = 0, out_k = 0; const Vec_z &z_k : z_measurements.colwise()) {
+    for (const Vec_z &z_k : z_measurements.colwise()) {
       double mahalanobis_distance = z_pred.mahalanobis_distance(z_k);
       double regular_distance     = (z_pred.mean() - z_k).norm();
       if ((mahalanobis_distance <= mahalanobis_threshold || regular_distance <= min_gate_threshold) && regular_distance <= max_gate_threshold) {
-        inside_meas.col(in_k++) = z_k;
+        inside_meas.conservativeResize(Eigen::NoChange, inside_meas.cols() + 1);
+        inside_meas.rightCols(1) = z_k;
       }
       else {
-        outside_meas.col(out_k++) = z_k;
+        outside_meas.conservativeResize(Eigen::NoChange, outside_meas.cols() + 1);
+        outside_meas.rightCols(1) = z_k;
       }
     }
 
@@ -161,7 +163,7 @@ public:
     double lambda = clutter_intensity;
     double P_d    = prob_of_detection;
 
-    Eigen::VectorXd weights(z_measurements.size() + 1);
+    Eigen::VectorXd weights(z_measurements.cols() + 1);
 
     // in case no measurement assosiates with the target
     weights(0) = lambda * (1 - P_d);
