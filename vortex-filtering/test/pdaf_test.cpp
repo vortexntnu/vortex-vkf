@@ -6,7 +6,8 @@
 
 using ConstantVelocity = vortex::models::ConstantVelocity;
 using IdentitySensorModel = vortex::models::IdentitySensorModel<4, 2>;
-using PDAF = vortex::filter::PDAF<ConstantVelocity, IdentitySensorModel>;
+using PDAF                = vortex::filter::PDAF<ConstantVelocity, IdentitySensorModel>;
+using Arr_zm_k            = Eigen::Array<double, 2, Eigen::Dynamic>;
 
 // testing the get_weights function
 TEST(PDAF, get_weights_is_calculating)
@@ -15,7 +16,7 @@ TEST(PDAF, get_weights_is_calculating)
   double clutter_intensity = 1.0;
 
   vortex::prob::Gauss2d z_pred(Eigen::Vector2d(0.0, 0.0), Eigen::Matrix2d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { 0.0, 0.0 }, { 2.0, 1.0 } };
+  Arr_zm_k meas = {{0.0, 2.0}, {0.0, 1.0}};
 
   Eigen::VectorXd weights = PDAF::get_weights(meas, z_pred, prob_of_detection, clutter_intensity);
 
@@ -30,7 +31,7 @@ TEST(PDAF, if_no_clutter_first_weight_is_zero)
   double clutter_intensity = 0.0;
 
   vortex::prob::Gauss2d z_pred(Eigen::Vector2d(0.0, 0.0), Eigen::Matrix2d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { 0.0, 0.0 }, { 2.0, 1.0 } };
+  Arr_zm_k meas = {{0.0, 2.0}, {0.0, 1.0}};
 
   Eigen::VectorXd weights = PDAF::get_weights(meas, z_pred, prob_of_detection, clutter_intensity);
 
@@ -45,7 +46,7 @@ TEST(PDAF, weights_are_decreasing_with_distance)
   double clutter_intensity = 1.0;
 
   vortex::prob::Gauss2d z_pred(Eigen::Vector2d(1.0, 1.0), Eigen::Matrix2d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { 2.0, 1.0 }, { 3.0, 1.0 }, { 4.0, 1.0 } };
+  Arr_zm_k meas = {{2.0, 3.0, 4.0}, {1.0, 1.0, 1.0}};
 
   Eigen::VectorXd weights = PDAF::get_weights(meas, z_pred, prob_of_detection, clutter_intensity);
 
@@ -63,7 +64,7 @@ TEST(PDAF, get_weighted_average_is_calculating)
 
   vortex::prob::Gauss2d z_pred(Eigen::Vector2d(0.0, 0.0), Eigen::Matrix2d::Identity());
   vortex::prob::Gauss4d x_pred(Eigen::Vector4d(0.0, 0.0, 0.0, 0.0), Eigen::Matrix4d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { 0.0, 0.0 }, { 2.0, 1.0 } };
+  Arr_zm_k meas                                     = {{0.0, 2.0}, {0.0, 1.0}};
   std::vector<vortex::prob::Gauss4d> updated_states = {
     vortex::prob::Gauss4d(Eigen::Vector4d(0.0, 0.0, 0.0, 0.0), Eigen::Matrix4d::Identity()),
     vortex::prob::Gauss4d(Eigen::Vector4d(1.0, 1.0, 1.0, 1.0), Eigen::Matrix4d::Identity())
@@ -82,7 +83,8 @@ TEST(PDAF, average_state_is_in_between_prediction_and_measurement_y_axis)
 
   vortex::prob::Gauss2d z_pred(Eigen::Vector2d(1.0, 1.0), Eigen::Matrix2d::Identity());
   vortex::prob::Gauss4d x_pred(Eigen::Vector4d(1.0, 1.0, 0.0, 0.0), Eigen::Matrix4d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { 1.0, 2.0 } };
+  Arr_zm_k meas = {{1.0}, {2.0}};
+
   std::vector<vortex::prob::Gauss4d> updated_states = { vortex::prob::Gauss4d(Eigen::Vector4d(1.0, 1.5, 0.0, 0.0),
                                                                               Eigen::Matrix4d::Identity()) };
 
@@ -91,7 +93,7 @@ TEST(PDAF, average_state_is_in_between_prediction_and_measurement_y_axis)
 
   EXPECT_GT(weighted_average.mean()(1), x_pred.mean()(1));
   EXPECT_GT(weighted_average.mean()(1), z_pred.mean()(1));
-  EXPECT_LT(weighted_average.mean()(1), meas[0](1));
+  EXPECT_LT(weighted_average.mean()(1), meas(1, 0));
   EXPECT_LT(weighted_average.mean()(1), updated_states[0].mean()(1));
 
   std::cout << "weighted average: " << weighted_average.mean() << std::endl;
@@ -104,7 +106,8 @@ TEST(PDAF, average_state_is_in_between_prediction_and_measurement_x_axis)
 
   vortex::prob::Gauss2d z_pred(Eigen::Vector2d(1.0, 1.0), Eigen::Matrix2d::Identity());
   vortex::prob::Gauss4d x_pred(Eigen::Vector4d(1.0, 1.0, 0.0, 0.0), Eigen::Matrix4d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { 2.0, 1.0 } };
+  Arr_zm_k meas = {{2.0}, {1.0}};
+
   std::vector<vortex::prob::Gauss4d> updated_states = { vortex::prob::Gauss4d(Eigen::Vector4d(1.5, 1.0, 0.0, 0.0),
                                                                               Eigen::Matrix4d::Identity()) };
 
@@ -113,7 +116,7 @@ TEST(PDAF, average_state_is_in_between_prediction_and_measurement_x_axis)
 
   EXPECT_GT(weighted_average.mean()(0), x_pred.mean()(0));
   EXPECT_GT(weighted_average.mean()(0), z_pred.mean()(0));
-  EXPECT_LT(weighted_average.mean()(0), meas[0](0));
+  EXPECT_LT(weighted_average.mean()(0), meas(0, 0));
   EXPECT_LT(weighted_average.mean()(0), updated_states[0].mean()(0));
 
   std::cout << "weighted average: " << weighted_average.mean() << std::endl;
@@ -126,7 +129,8 @@ TEST(PDAF, average_state_is_in_between_prediction_and_measurement_both_axes)
 
   vortex::prob::Gauss2d z_pred(Eigen::Vector2d(1.0, 1.0), Eigen::Matrix2d::Identity());
   vortex::prob::Gauss4d x_pred(Eigen::Vector4d(1.0, 1.0, 0.0, 0.0), Eigen::Matrix4d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { 2.0, 2.0 } };
+  Arr_zm_k meas = {{2.0}, {2.0}};
+
   std::vector<vortex::prob::Gauss4d> updated_states = { vortex::prob::Gauss4d(Eigen::Vector4d(1.5, 1.5, 0.0, 0.0),
                                                                               Eigen::Matrix4d::Identity()) };
 
@@ -135,12 +139,12 @@ TEST(PDAF, average_state_is_in_between_prediction_and_measurement_both_axes)
 
   EXPECT_GT(weighted_average.mean()(0), x_pred.mean()(0));
   EXPECT_GT(weighted_average.mean()(0), z_pred.mean()(0));
-  EXPECT_LT(weighted_average.mean()(0), meas[0](0));
+  EXPECT_LT(weighted_average.mean()(0), meas(0, 0));
   EXPECT_LT(weighted_average.mean()(0), updated_states[0].mean()(0));
 
   EXPECT_GT(weighted_average.mean()(1), x_pred.mean()(1));
   EXPECT_GT(weighted_average.mean()(1), z_pred.mean()(1));
-  EXPECT_LT(weighted_average.mean()(1), meas[0](1));
+  EXPECT_LT(weighted_average.mean()(1), meas(1, 0));
   EXPECT_LT(weighted_average.mean()(1), updated_states[0].mean()(1));
 
   std::cout << "weighted average: " << weighted_average.mean() << std::endl;
@@ -152,8 +156,7 @@ TEST(PDAF, apply_gate_is_calculating)
   double mahalanobis_threshold = 1.8;
 
   vortex::prob::Gauss2d z_pred(Eigen::Vector2d(0.0, 0.0), Eigen::Matrix2d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { 0.0, 1.0 }, { 1.0, 0.0 }, { 1.0, 1.0 },
-                                        { 0.0, 2.0 }, { 2.0, 0.0 }, { 2.0, 2.0 } };
+  Arr_zm_k meas = {{0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0}, {0.0, 2.0}, {2.0, 0.0}, {2.0, 2.0}};
 
   auto [inside, outside] = PDAF::apply_gate(meas, z_pred, mahalanobis_threshold);
 }
@@ -165,14 +168,14 @@ TEST(PDAF, apply_gate_is_separating_correctly)
   cov << 1.0, 0.0, 0.0, 4.0;
 
   vortex::prob::Gauss2d z_pred(Eigen::Vector2d(0.0, 0.0), cov);
-  std::vector<Eigen::Vector2d> meas = { { 0.0, 4.0 }, { 4.0, 0.0 } };
+  Arr_zm_k meas = {{0.0, 4.0}, {4.0, 0.0}};
 
   auto [inside, outside] = PDAF::apply_gate(meas, z_pred, mahalanobis_threshold);
 
-  EXPECT_EQ(inside.size(), 1u);
-  EXPECT_EQ(outside.size(), 1u);
-  EXPECT_EQ(inside[0], meas[0]);
-  EXPECT_EQ(outside[0], meas[1]);
+  EXPECT_EQ(inside.cols(), 1u);
+  EXPECT_EQ(outside.cols(), 1u);
+  EXPECT_EQ(inside(0,0), meas(0,0));
+  EXPECT_EQ(outside(0,0), meas(0,1));
 
 #if (GNUPLOT_ENABLE)
   Gnuplot gp;
@@ -201,8 +204,7 @@ TEST(PDAF, apply_gate_is_separating_correctly_2)
 {
   double mahalanobis_threshold = 2.1;
   vortex::prob::Gauss2d z_pred(Eigen::Vector2d(0.0, 0.0), Eigen::Matrix2d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { 0.0, 1.0 }, { 1.0, 0.0 }, { 1.0, 1.0 },
-                                        { 0.0, 2.0 }, { 2.0, 0.0 }, { 2.0, 2.0 } };
+  Arr_zm_k meas = {{0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0}, {0.0, 2.0}, {2.0, 0.0}, {2.0, 2.0}};
 
   auto [inside, outside] = PDAF::apply_gate(meas, z_pred, mahalanobis_threshold);
 
@@ -240,8 +242,7 @@ TEST(PDAF, predict_next_state_is_calculating)
   config.prob_of_detection = 0.8;
   config.clutter_intensity = 1.0;
   vortex::prob::Gauss4d x_est(Eigen::Vector4d(0.0, 0.0, 0.0, 0.0), Eigen::Matrix4d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { 0.0, 1.0 }, { 1.0, 0.0 }, { 1.0, 1.0 },
-                                        { 0.0, 2.0 }, { 2.0, 0.0 }, { 2.0, 2.0 } };
+  Arr_zm_k meas = {{0.0, 1.0}, {1.0, 0.0}, {1.0, 1.0}, {0.0, 2.0}, {2.0, 0.0}, {2.0, 2.0}};
 
   ConstantVelocity dyn_model{ 1.0 };
   IdentitySensorModel sen_model{ 1.0 };
@@ -302,8 +303,7 @@ TEST(PDAF, predict_next_state_2)
   config.prob_of_detection = 0.8;
   config.clutter_intensity = 1.0;
   vortex::prob::Gauss4d x_est(Eigen::Vector4d(1.0, 1.5, -2.0, 0.0), Eigen::Matrix4d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { -3.0, -3.0 }, { 0.0, 0.0 }, { -1.2, 1.5 },
-                                        { -2.0, -2.0 }, { 2.0, 0.0 }, { -1.0, 1.0 } };
+  Arr_zm_k meas = {{-3.0, -3.0}, {0.0, 0.0}, {-1.2, 1.5}, {-2.0, -2.0}, {2.0, 0.0}, {-1.0, 1.0}};
 
   ConstantVelocity dyn_model{ 1.0 };
   IdentitySensorModel sen_model{ 0.5 };
@@ -364,8 +364,7 @@ TEST(PDAF, predict_next_state_3_1)
   config.prob_of_detection = 0.9;
   config.clutter_intensity = 1.0;
   vortex::prob::Gauss4d x_est(Eigen::Vector4d(0.5, 0.5, -0.75, -0.75), Eigen::Matrix4d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { 0.0, 0.5 }, { 0.2, 0.2 }, { 0.8, 2.3 },
-                                        { 0.5, 0.0 }, { 4.2, 2.7 }, { 1.4, 2.5 } };
+  Arr_zm_k meas = {{0.0, 0.5}, {0.2, 0.2}, {0.8, 2.3}, {0.5, 0.0}, {4.2, 2.7}, {1.4, 2.5}};
 
   ConstantVelocity dyn_model{ 0.5 };
   IdentitySensorModel sen_model{ 1.0 };
@@ -429,8 +428,7 @@ TEST(PDAF, predict_next_state_3_2)
   config.clutter_intensity = 1.0;
   vortex::prob::Gauss4d x_est(Eigen::Vector4d(-0.00173734, 0.0766262, -0.614584, -0.57184),
                               Eigen::Matrix4d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { -0.5, 2.0 }, { -0.23, 0.5 }, { -2.0, 3.4 },
-                                        { 0.0, 1.3 },  { 0.14, 0.5 },  { -2.5, 0.89 } };
+  Arr_zm_k meas = {{-0.5, 2.0}, {-0.23, 0.5}, {-2.0, 3.4}, {0.0, 1.3}, {0.14, 0.5}, {-2.5, 0.89}};
 
   ConstantVelocity dyn_model{ 0.5 };
   IdentitySensorModel sen_model{ 1.0 };
@@ -497,8 +495,7 @@ TEST(PDAF, predict_next_state_3_3)
   config.prob_of_detection = 0.9;
   config.clutter_intensity = 1.0;
   vortex::prob::Gauss4d x_est(Eigen::Vector4d(-0.55929, 0.0694888, -0.583476, -0.26382), Eigen::Matrix4d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { -1.5, 2.5 }, { -1.2, 2.7 }, { -0.8, 2.3 },
-                                        { -1.7, 1.9 }, { -2.0, 3.0 }, { -1.11, 2.04 } };
+  Arr_zm_k meas = {{-1.5, 2.5}, {-1.2, 2.7}, {-0.8, 2.3}, {-1.7, 1.9}, {-2.0, 3.0}, {-1.11, 2.04}};
 
   ConstantVelocity dyn_model{ 0.5 };
   IdentitySensorModel sen_model{ 1.0 };
@@ -569,8 +566,7 @@ TEST(PDAF, predict_next_state_3_4)
   config.prob_of_detection = 0.9;
   config.clutter_intensity = 1.0;
   vortex::prob::Gauss4d x_est(Eigen::Vector4d(-1.20613, 0.610616, -0.618037, 0.175242), Eigen::Matrix4d::Identity());
-  std::vector<Eigen::Vector2d> meas = { { -2.0, 2.2 }, { -1.8, 2.3 }, { -2.3, 2.0 },
-                                        { 0.6, 1.5 },  { -2.0, 2.0 }, { -1.4, 2.5 } };
+  Arr_zm_k meas = {{-2.0, 2.2}, {-1.8, 2.3}, {-2.3, 2.0}, {0.6, 1.5}, {-2.0, 2.0}, {-1.4, 2.5}};
 
   ConstantVelocity dyn_model{ 0.5 };
   IdentitySensorModel sen_model{ 1.0 };
