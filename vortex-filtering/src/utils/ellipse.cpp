@@ -1,5 +1,6 @@
 #include <numbers>
 #include <vortex_filtering/utils/ellipse.hpp>
+#include <numbers>
 
 using std::numbers::pi;
 
@@ -35,10 +36,8 @@ double Ellipse::major_axis() const { return 2 * a_; }
 double Ellipse::minor_axis() const { return 2 * b_; }
 Eigen::Vector2d Ellipse::axes() const { return Eigen::Vector2d(2 * a_, 2 * b_); }
 double Ellipse::angle_rad() const { return angle_; }
-double Ellipse::angle_deg() const { return angle_ * 180 / pi; }
-double Ellipse::area() const { return pi * a_ * b_; }
-
-double Ellipse::area() const { return M_PI * a() * b(); }
+double Ellipse::angle_deg() const { return angle_ * 180 / std::numbers::pi; }
+double Ellipse::area() const { return std::numbers::pi * a() * b(); }
 
 } // namespace utils
 } // namespace vortex

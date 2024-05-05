@@ -30,10 +30,10 @@ concept is_container = requires(Container c) {
   {
     std::size(c)
   } -> std::convertible_to<std::size_t>;
-  // Accessing an element by index must return a reference to ValueType.
+  // Accessing an element by index must return a reference to ValueType or a type convertible to ValueType.
   {
     c[std::declval<std::size_t>()]
-  } -> std::same_as<ValueType &>;
+  } -> std::convertible_to<ValueType>;
 };
 
 } // namespace concepts

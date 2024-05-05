@@ -9,6 +9,7 @@ ament_add_gtest(${PROJECT_NAME}_test
   ekf_test.cpp
   ellipsoid_test.cpp
   imm_test.cpp
+  immipda_test.cpp
   ipda_test.cpp
   numerical_integration_test.cpp
   pdaf_test.cpp

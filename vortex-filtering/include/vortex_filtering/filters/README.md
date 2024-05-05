@@ -208,7 +208,7 @@ auto sensor_model = std::make_shared<SensModT>(0.1);
 // Specify min and max values for the states that are not comparable
 vortex::models::StateMap min_max_values{
     {ST::vel, {-10, 10}},
-    {ST::turn, {-M_PI, M_PI}}
+    {ST::turn, {-std::numbers::pi, std::numbers::pi}}
 };
 
 // Initial state probabilities

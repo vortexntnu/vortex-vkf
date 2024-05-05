@@ -12,11 +12,23 @@
 
 #include <Eigen/Dense>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <ranges>
 #include <string>
 #include <vector>
 #include <vortex_filtering/vortex_filtering.hpp>
+
+
+namespace config {
+struct PDAF {
+  double mahalanobis_threshold = 1.0;
+  double min_gate_threshold    = 0.0;
+  double max_gate_threshold    = std::numeric_limits<double>::max();
+  double prob_of_detection     = 1.0;
+  double clutter_intensity     = 1.0;
+};
+} // namespace config
 
 namespace vortex::filter
 {
@@ -28,6 +40,7 @@ namespace vortex::filter
 template <concepts::DynamicModelLTVWithDefinedSizes DynModT, concepts::SensorModelLTVWithDefinedSizes SensModT>
 class PDAF
 {
+template <concepts::DynamicModelLTVWithDefinedSizes DynModT, concepts::SensorModelLTVWithDefinedSizes SensModT> class PDAF {
 public:
   static constexpr int N_DIM_x = DynModT::N_DIM_x;
   static constexpr int N_DIM_z = SensModT::N_DIM_z;
@@ -41,7 +54,8 @@ public:
   using Gauss_z        = typename T::Gauss_z;
   using Gauss_x        = typename T::Gauss_x;
   using Vec_z          = typename T::Vec_z;
-  using Arr_zm_k       = Eigen::Array<double, N_DIM_z, Eigen::Dynamic>;
+  using Arr_zXd        = Eigen::Array<double, N_DIM_z, Eigen::Dynamic>;
+  using Arr_1Xb        = Eigen::Array<bool, 1, Eigen::Dynamic>;
   using StatesXd       = std::vector<Gauss_x>;
   using GaussMixZd     = vortex::prob::GaussianMixture<N_DIM_x>;
 
@@ -102,21 +116,19 @@ public:
                                                                double min_gate_threshold = 0.0,
                                                                double max_gate_threshold = HUGE_VAL)
   {
-    Arr_zm_k inside_meas(SensModT::N_DIM_z, 0);
-    Arr_zm_k outside_meas(SensModT::N_DIM_z, 0);
+    double mahalanobis_threshold = config.pdaf.mahalanobis_threshold;
+    double min_gate_threshold    = config.pdaf.min_gate_threshold;
+    double max_gate_threshold    = config.pdaf.max_gate_threshold;
 
-    for (const Vec_z &z_k : z_measurements.colwise()) {
+    Arr_1Xb gated_measurements(1, z_measurements.cols());
+
+    for (size_t a_k = 0; const Vec_z &z_k : z_measurements.colwise()) {
       double mahalanobis_distance = z_pred.mahalanobis_distance(z_k);
       double regular_distance     = (z_pred.mean() - z_k).norm();
-      if ((mahalanobis_distance <= mahalanobis_threshold || regular_distance <= min_gate_threshold) && regular_distance <= max_gate_threshold) {
-        inside_meas.conservativeResize(Eigen::NoChange, inside_meas.cols() + 1);
-        inside_meas.rightCols(1) = z_k;
-      }
-      else {
-        outside_meas.conservativeResize(Eigen::NoChange, outside_meas.cols() + 1);
-        outside_meas.rightCols(1) = z_k;
-      }
+      gated_measurements(a_k++) = (mahalanobis_distance <= mahalanobis_threshold || regular_distance <= min_gate_threshold) && regular_distance <= max_gate_threshold;
     }
+    return gated_measurements;
+  }
 
     return { inside_meas, outside_meas };
   }
