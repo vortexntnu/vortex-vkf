@@ -152,7 +152,9 @@ TEST(PDAF, average_state_is_in_between_prediction_and_measurement_both_axes)
 // testing the apply_gate function
 TEST(PDAF, apply_gate_is_calculating)
 {
-  double mahalanobis_threshold = 1.8;
+  PDAF::Config config = {.pdaf = {
+                             .mahalanobis_threshold = 1.8,
+                         }};
 
   vortex::prob::Gauss2d z_pred(Eigen::Vector2d(0.0, 0.0), Eigen::Matrix2d::Identity());
   // clang-format off
@@ -160,12 +162,14 @@ TEST(PDAF, apply_gate_is_calculating)
                           {1.0, 0.0, 1.0, 2.0, 0.0, 2.0}};
   // clang-format on
 
-  auto [inside, outside] = PDAF::apply_gate(meas, z_pred, mahalanobis_threshold);
+  auto gated = PDAF::apply_gate(meas, z_pred, config);
 }
 
 TEST(PDAF, apply_gate_is_separating_correctly)
 {
-  double mahalanobis_threshold = 3;
+  PDAF::Config config = {.pdaf = {
+                             .mahalanobis_threshold = 3,
+                         }};
   Eigen::Matrix2d cov;
   cov << 1.0, 0.0, 0.0, 4.0;
 
@@ -175,12 +179,10 @@ TEST(PDAF, apply_gate_is_separating_correctly)
                           {4.0, 0.0}};
   // clang-format on
 
-  auto [inside, outside] = PDAF::apply_gate(meas, z_pred, mahalanobis_threshold);
+  auto gated = PDAF::apply_gate(meas, z_pred, config);
 
-  EXPECT_EQ(inside.cols(), 1u);
-  EXPECT_EQ(outside.cols(), 1u);
-  EXPECT_EQ(inside(0,0), meas(0,0));
-  EXPECT_EQ(outside(0,0), meas(0,1));
+  EXPECT_TRUE(gated(0));
+  EXPECT_FALSE(gated(1));
 
 #if (GNUPLOT_ENABLE)
   Gnuplot gp;
@@ -207,7 +209,9 @@ TEST(PDAF, apply_gate_is_separating_correctly)
 
 TEST(PDAF, apply_gate_is_separating_correctly_2)
 {
-  double mahalanobis_threshold = 2.1;
+  PDAF::Config config = {.pdaf = {
+                             .mahalanobis_threshold = 2.1,
+                         }};
   vortex::prob::Gauss2d z_pred(Eigen::Vector2d(0.0, 0.0), Eigen::Matrix2d::Identity());
 
   // clang-format off
@@ -215,10 +219,9 @@ TEST(PDAF, apply_gate_is_separating_correctly_2)
                           {1.0, 0.0, 1.0, 2.0, 0.0, 2.0}};
   // clang-format on
 
-  auto [inside, outside] = PDAF::apply_gate(meas, z_pred, mahalanobis_threshold);
+  auto gated = PDAF::apply_gate(meas, z_pred, config);
 
-  EXPECT_EQ(inside.cols(), 5u);
-  EXPECT_EQ(outside.cols(), 1u);
+  EXPECT_EQ(gated.count(), 5u);
 
 #if (GNUPLOT_ENABLE)
   Gnuplot gp;
@@ -246,10 +249,12 @@ TEST(PDAF, apply_gate_is_separating_correctly_2)
 // testing the predict_next_state function
 TEST(PDAF, predict_next_state_is_calculating)
 {
-  PDAF::Config config;
-  config.mahalanobis_threshold = 1.12;
-  config.prob_of_detection = 0.8;
-  config.clutter_intensity = 1.0;
+  PDAF::Config config = {.pdaf = {
+                             .mahalanobis_threshold = 1.12,
+                             .prob_of_detection     = 0.8,
+                             .clutter_intensity     = 1.0,
+                         }};
+
   vortex::prob::Gauss4d x_est(Eigen::Vector4d(0.0, 0.0, 0.0, 0.0), Eigen::Matrix4d::Identity());
 
   // clang-format off
@@ -259,7 +264,7 @@ TEST(PDAF, predict_next_state_is_calculating)
   ConstantVelocity dyn_model{ 1.0 };
   IdentitySensorModel sen_model{ 1.0 };
 
-  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+  auto [x_final, x_pred, z_pred, x_updated, gated] =
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
@@ -310,10 +315,14 @@ TEST(PDAF, predict_next_state_is_calculating)
 
 TEST(PDAF, predict_next_state_2)
 {
-  PDAF::Config config;
-  config.mahalanobis_threshold = 2.0;
-  config.prob_of_detection = 0.8;
-  config.clutter_intensity = 1.0;
+  PDAF::Config config = {.pdaf =
+        {
+          .mahalanobis_threshold = 2.0,
+          .prob_of_detection     = 0.8,
+          .clutter_intensity     = 1.0,
+        }
+  };
+
   vortex::prob::Gauss4d x_est(Eigen::Vector4d(1.0, 1.5, -2.0, 0.0), Eigen::Matrix4d::Identity());
 
   // clang-format off
@@ -324,7 +333,7 @@ TEST(PDAF, predict_next_state_2)
   ConstantVelocity dyn_model{ 1.0 };
   IdentitySensorModel sen_model{ 0.5 };
 
-  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+  auto [x_final, x_pred, z_pred, x_updated, gated] =
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
@@ -375,10 +384,12 @@ TEST(PDAF, predict_next_state_2)
 
 TEST(PDAF, predict_next_state_3_1)
 {
-  PDAF::Config config;
-  config.mahalanobis_threshold = 4.0;
-  config.prob_of_detection = 0.9;
-  config.clutter_intensity = 1.0;
+  PDAF::Config config = {.pdaf = {
+                             .mahalanobis_threshold = 4.0,
+                             .prob_of_detection     = 0.9,
+                             .clutter_intensity     = 1.0,
+                         }};
+
   vortex::prob::Gauss4d x_est(Eigen::Vector4d(0.5, 0.5, -0.75, -0.75), Eigen::Matrix4d::Identity());
 
   // clang-format off
@@ -389,7 +400,7 @@ TEST(PDAF, predict_next_state_3_1)
   ConstantVelocity dyn_model{ 0.5 };
   IdentitySensorModel sen_model{ 1.0 };
 
-  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+  auto [x_final, x_pred, z_pred, x_updated, gated] =
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
@@ -442,10 +453,11 @@ TEST(PDAF, predict_next_state_3_1)
 
 TEST(PDAF, predict_next_state_3_2)
 {
-  PDAF::Config config;
-  config.mahalanobis_threshold = 4.0;
-  config.prob_of_detection = 0.9;
-  config.clutter_intensity = 1.0;
+  PDAF::Config config = {.pdaf = {
+                             .mahalanobis_threshold = 4.0,
+                             .prob_of_detection     = 0.9,
+                             .clutter_intensity     = 1.0,
+                         }};
   vortex::prob::Gauss4d x_est(Eigen::Vector4d(-0.00173734, 0.0766262, -0.614584, -0.57184),
                               Eigen::Matrix4d::Identity());
 
@@ -457,7 +469,7 @@ TEST(PDAF, predict_next_state_3_2)
   ConstantVelocity dyn_model{ 0.5 };
   IdentitySensorModel sen_model{ 1.0 };
 
-  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+  auto [x_final, x_pred, z_pred, x_updated, gated] =
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
@@ -514,10 +526,11 @@ TEST(PDAF, predict_next_state_3_2)
 
 TEST(PDAF, predict_next_state_3_3)
 {
-  PDAF::Config config;
-  config.mahalanobis_threshold = 4.0;
-  config.prob_of_detection = 0.9;
-  config.clutter_intensity = 1.0;
+  PDAF::Config config = {.pdaf = {
+                             .mahalanobis_threshold = 4.0,
+                             .prob_of_detection     = 0.9,
+                             .clutter_intensity     = 1.0,
+                         }};
   vortex::prob::Gauss4d x_est(Eigen::Vector4d(-0.55929, 0.0694888, -0.583476, -0.26382), Eigen::Matrix4d::Identity());
 
   // clang-format off
@@ -528,7 +541,7 @@ TEST(PDAF, predict_next_state_3_3)
   ConstantVelocity dyn_model{ 0.5 };
   IdentitySensorModel sen_model{ 1.0 };
 
-  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+  auto [x_final, x_pred, z_pred, x_updated, gated] =
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
@@ -589,10 +602,12 @@ TEST(PDAF, predict_next_state_3_3)
 
 TEST(PDAF, predict_next_state_3_4)
 {
-  PDAF::Config config;
-  config.mahalanobis_threshold = 4.0;
-  config.prob_of_detection = 0.9;
-  config.clutter_intensity = 1.0;
+  PDAF::Config config = {.pdaf = {
+                             .mahalanobis_threshold = 4.0,
+                             .prob_of_detection     = 0.9,
+                             .clutter_intensity     = 1.0,
+                         }};
+
   vortex::prob::Gauss4d x_est(Eigen::Vector4d(-1.20613, 0.610616, -0.618037, 0.175242), Eigen::Matrix4d::Identity());
   // clang-format off
   Eigen::Array2Xd meas = {{-2.0, -1.8, -2.3, 0.6, -2.0, -1.4}, 
@@ -602,7 +617,7 @@ TEST(PDAF, predict_next_state_3_4)
   ConstantVelocity dyn_model{ 0.5 };
   IdentitySensorModel sen_model{ 1.0 };
 
-  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+  auto [x_final, x_pred, z_pred, x_updated, gated] =
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 

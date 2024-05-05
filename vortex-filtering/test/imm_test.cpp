@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include <memory>
+#include <numbers>
 #include <vortex_filtering/filters/imm_filter.hpp>
 #include <vortex_filtering/models/dynamic_models.hpp>
 #include <vortex_filtering/models/imm_model.hpp>
@@ -129,7 +130,7 @@ TEST(ImmFilter, init)
   using vortex::models::ConstantPosition;
   using SensModT   = vortex::models::IdentitySensorModel<2, 1>;
   using ImmModelT  = vortex::models::ImmModel<ConstantPosition, ConstantPosition>;
-  using ImmFilterT = vortex::filter::ImmFilter<SensModT, ImmModelT>;
+  using ImmFilterT = vortex::filter::ImmFilter<ImmModelT, SensModT>;
 
   EXPECT_EQ(ImmFilterT::N_MODELS, 2u);
   EXPECT_EQ(ImmFilterT::N_DIM_z, SensModT::N_DIM_z);
@@ -151,7 +152,7 @@ TEST(ImmFilter, calculateMixingProbs)
 
   auto sensor_model = std::make_shared<vortex::models::IdentitySensorModel<2, 1>>(dt);
 
-  using ImmFilterT = vortex::filter::ImmFilter<vortex::models::IdentitySensorModel<2, 1>, ImmModelT>;
+  using ImmFilterT = vortex::filter::ImmFilter<ImmModelT, vortex::models::IdentitySensorModel<2, 1>>;
 
   Eigen::Vector2d model_weights = {0.5, 0.5};
 
@@ -185,7 +186,7 @@ TEST(ImmFilter, mixing_two_of_the_same_model)
 
   auto sensor_model = std::make_shared<vortex::models::IdentitySensorModel<2, 1>>(dt);
 
-  using ImmFilterT = vortex::filter::ImmFilter<vortex::models::IdentitySensorModel<2, 1>, ImmModelT>;
+  using ImmFilterT = vortex::filter::ImmFilter<ImmModelT, vortex::models::IdentitySensorModel<2, 1>>;
 
   Eigen::Vector2d model_weights{0.5, 0.5};
 
@@ -216,7 +217,7 @@ TEST(ImmFilter, mixing_two_different_models)
   Eigen::Vector2d hold_times{1, 1};
 
   using ImmModelT  = ImmModel<ConstantPosition, ConstantVelocity>;
-  using ImmFilterT = vortex::filter::ImmFilter<IdentitySensorModel<2, 2>, ImmModelT>;
+  using ImmFilterT = vortex::filter::ImmFilter<ImmModelT, IdentitySensorModel<2, 2>>;
 
   double dt      = 1;
   double std_pos = 0.1;
@@ -262,7 +263,7 @@ TEST(ImmFilter, modeMatchedFilter)
   Eigen::Vector2d hold_times{1, 1};
 
   using ImmModelT  = ImmModel<ConstantPosition, ConstantVelocity>;
-  using ImmFilterT = vortex::filter::ImmFilter<IdentitySensorModel<2, 2>, ImmModelT>;
+  using ImmFilterT = vortex::filter::ImmFilter<ImmModelT, IdentitySensorModel<2, 2>>;
 
   double dt      = 1;
   double std_pos = 0.1;
@@ -310,7 +311,7 @@ TEST(ImmFilter, updateProbabilities)
   double std_vel = 1;
 
   using ImmModelT  = ImmModel<ConstantPosition, ConstantVelocity>;
-  using ImmFilterT = vortex::filter::ImmFilter<IdentitySensorModel<2, 2>, ImmModelT>;
+  using ImmFilterT = vortex::filter::ImmFilter<ImmModelT, IdentitySensorModel<2, 2>>;
 
   using ST = vortex::models::StateType;
   ImmModelT imm_model{jump_mat,
@@ -351,7 +352,7 @@ TEST(ImmFilter, step)
   double std_turn_rate = 0.1;
 
   using ImmModelT  = ImmModel<ConstantPosition, ConstantVelocity, CoordinatedTurn>;
-  using ImmFilterT = vortex::filter::ImmFilter<IdentitySensorModel<2, 2>, ImmModelT>;
+  using ImmFilterT = vortex::filter::ImmFilter<ImmModelT, IdentitySensorModel<2, 2>>;
 
   ImmModelT imm_model{jump_mat,
                       hold_times,
@@ -367,7 +368,7 @@ TEST(ImmFilter, step)
       Gauss2d::Standard(), {{0, 0, 0.9, 0}, Eigen::Matrix4d::Identity()}, {{0, 0, 0.9, 0, 1}, Eigen::Matrix<double, 5, 5>::Identity()}};
   Eigen::Vector2d z_meas = {1, 0};
 
-  StateMap states_min_max{{StateType::velocity, {-10, 10}}, {StateType::turn_rate, {-M_PI, M_PI}}};
+  StateMap states_min_max{{StateType::velocity, {-10, 10}}, {StateType::turn_rate, {-std::numbers::pi, std::numbers::pi}}};
 
   auto [weights_upd, x_est_upds, x_est_preds, z_est_preds] = ImmFilterT::step(imm_model, sensor_model, dt, x_est_prevs, z_meas, model_weights, states_min_max);
 

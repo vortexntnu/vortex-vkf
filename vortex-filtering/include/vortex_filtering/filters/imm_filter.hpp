@@ -26,7 +26,7 @@
 
 namespace vortex::filter {
 
-template <concepts::SensorModelWithDefinedSizes SensModT, models::concepts::ImmModel ImmModelT> class ImmFilter {
+template <models::concepts::ImmModel ImmModelT, concepts::SensorModelWithDefinedSizes SensModT> class ImmFilter {
 public:
   static constexpr size_t N_MODELS = ImmModelT::N_MODELS;
 
@@ -41,6 +41,7 @@ public:
   template <size_t s_k> using DynModT = typename ImmModelT::template DynModT<s_k>;
 
   using Vec_n        = Eigen::Vector<double, N_MODELS>;
+  using Arr_nb       = Eigen::Array<bool, N_MODELS, 1>;
   using Mat_nn       = Eigen::Matrix<double, N_MODELS, N_MODELS>;
   using Vec_z        = typename T<0>::Vec_z;
   using Gauss_z      = typename T<0>::Gauss_z;
@@ -126,8 +127,8 @@ public:
     Vec_n weights_pred = transition_matrix.transpose() * prev_weights;
 
     Vec_n z_probs;
-    for (size_t s_k = 0; s_k < N_MODELS; s_k++) {
-      z_probs(s_k) = z_preds.at(s_k).pdf(z_meas);
+    for (size_t s_k = 0; const Gauss_z &z_pred : z_preds) {
+      z_probs(s_k++) = z_pred.pdf(z_meas);
     }
 
     Vec_n weights_upd = z_probs.cwiseProduct(weights_pred);
@@ -160,66 +161,33 @@ public:
     return {weights_upd, x_est_upds, x_est_preds, z_est_preds};
   }
 
-private:
-  /**
-   * @brief Calculate the Kalman filter outputs for each mode.
-   * @tparam Is Indices of models
-   * @param imm_model The IMM model.
-   * @param sensor_model The sensor model.
-   * @param dt double Time step
-   * @param moment_based_preds Moment-based predictions
-   * @param z_meas Vec_z Measurement
-   * @return Tuple of updated states, predicted states, predicted measurements
-   */
-  template <size_t... Is>
-  static std::tuple<GaussTuple_x, GaussTuple_x, GaussArr_z> kalman_filter_steps(const ImmModelT &imm_model, const SensModT &sensor_model, double dt,
-                                                                                const GaussTuple_x &moment_based_preds, const Vec_z &z_meas,
-                                                                                std::index_sequence<Is...>)
-  {
-
-    // Calculate mode-matched filter outputs and save them in a tuple of tuples
-    std::tuple<std::tuple<typename T<Is>::Gauss_x, typename T<Is>::Gauss_x, Gauss_z>...> ekf_outs;
-    ((std::get<Is>(ekf_outs) = kalman_filter_step<Is>(imm_model.template get_model<Is>(), sensor_model, dt, std::get<Is>(moment_based_preds), z_meas)), ...);
-
-    GaussTuple_x x_est_upds;
-    GaussTuple_x x_est_preds;
-    GaussArr_z z_est_preds;
-
-    // Convert tuple of tuples to tuple of tuples
-    ((std::get<Is>(x_est_upds) = std::get<0>(std::get<Is>(ekf_outs))), ...);
-    ((std::get<Is>(x_est_preds) = std::get<1>(std::get<Is>(ekf_outs))), ...);
-    ((z_est_preds.at(Is) = std::get<2>(std::get<Is>(ekf_outs))), ...);
-
-    return {x_est_upds, x_est_preds, z_est_preds};
-  }
-
   static std::tuple<GaussTuple_x, GaussArr_z> kalman_filter_predictions(const ImmModelT &imm_model, const SensModT &sensor_model, double dt,
                                                                         const GaussTuple_x &x_est_prevs)
   {
     GaussTuple_x x_est_preds;
     GaussArr_z z_est_preds;
 
-    std::apply(
-        [&](auto &&...s_k) {
-          ((std::tie(std::get<s_k>(x_est_preds), z_est_preds.at(s_k)) =
-                kalman_filter_predict(imm_model.template get_model<s_k>(), sensor_model, dt, std::get<s_k>(x_est_prevs))),
-           ...);
-        },
-        std::index_sequence_for<GaussTuple_x>{});
+    [&]<size_t... s_k>(std::index_sequence<s_k...>) {
+      ((std::tie(std::get<s_k>(x_est_preds), z_est_preds.at(s_k)) =
+            kalman_filter_predict<s_k>(imm_model.template get_model<s_k>(), sensor_model, dt, std::get<s_k>(x_est_prevs))),
+       ...);
+    }(std::make_index_sequence<N_MODELS>{});
 
     return {x_est_preds, z_est_preds};
   }
 
-  static GaussTuple_x kalman_filter_updates(const ImmModelT &imm_model, const SensModT &sensor_model, double dt, const GaussTuple_x &x_est_prevs,
-                                            const Vec_z &z_meas)
+  static GaussTuple_x kalman_filter_updates(const ImmModelT &imm_model, const SensModT &sensor_model, double dt, const GaussTuple_x &x_est_preds,
+                                            const GaussArr_z &z_est_preds, const Vec_z &z_meas, const Arr_nb &gated_measurements = Arr_nb::Ones())
   {
     GaussTuple_x x_est_upds;
 
-    std::apply(
-        [&](auto &&...s_k) {
-          ((std::get<s_k>(x_est_upds) = kalman_filter_update(imm_model.template get_model<s_k>(), sensor_model, dt, std::get<s_k>(x_est_prevs), z_meas)), ...);
-        },
-        std::index_sequence_for<GaussTuple_x>{});
+    [&]<size_t... s_k>(std::index_sequence<s_k...>) {
+      ((std::get<s_k>(x_est_upds) =
+            gated_measurements(s_k)
+                ? kalman_filter_update<s_k>(imm_model.template get_model<s_k>(), sensor_model, dt, std::get<s_k>(x_est_preds), z_est_preds.at(s_k), z_meas)
+                : std::get<s_k>(x_est_preds)),
+       ...);
+    }(std::index_sequence_for<GaussTuple_x>{});
 
     return x_est_upds;
   }
@@ -271,23 +239,24 @@ private:
   }
 
   template <size_t s_k>
-  static T<s_k>::Gauss_x kalman_filter_update(const DynModT<s_k> &dyn_model, const SensModT &sensor_model, double dt, const T<s_k>::Gauss_x &x_est_prev,
-                                              const Vec_z &z_meas)
+  static T<s_k>::Gauss_x kalman_filter_update(const DynModT<s_k> &dyn_model, const SensModT &sensor_model, double dt, const T<s_k>::Gauss_x &x_est_pred,
+                                              const T<s_k>::Gauss_z &z_est_pred, const Vec_z &z_meas)
   {
     if constexpr (concepts::DynamicModelLTVWithDefinedSizes<DynModT<s_k>> && concepts::SensorModelLTVWithDefinedSizes<SensModT>) {
       using ImmSensMod = models::ImmSensorModelLTV<N_DIMS_x.at(s_k), SensModT>;
       using EKF        = filter::EKF_t<N_DIMS_x.at(s_k), N_DIM_z, N_DIMS_u.at(s_k), N_DIMS_v.at(s_k), N_DIM_w>;
       ImmSensMod imm_sens_mod{sensor_model};
-      return EKF::update(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
+      return EKF::update(imm_sens_mod, x_est_pred, z_est_pred, z_meas);
     }
     else {
       using ImmSensMod = models::ImmSensorModel<N_DIMS_x.at(s_k), SensModT>;
       using UKF        = filter::UKF_t<N_DIMS_x.at(s_k), N_DIM_z, N_DIMS_u.at(s_k), N_DIMS_v.at(s_k), N_DIM_w>;
       ImmSensMod imm_sens_mod{sensor_model};
-      return UKF::update(dyn_model, imm_sens_mod, dt, x_est_prev, z_meas);
+      return UKF::update(dyn_model, imm_sens_mod, dt, x_est_pred, z_est_pred, z_meas);
     }
   }
 
+private:
   /** Helper function to mix the components (modes) of the IMM filter
    * @tparam model_indices
    * @param x_est_prevs Gaussians from previous time step
