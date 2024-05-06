@@ -59,6 +59,9 @@ public:
       : weights_(Eigen::Map<const Eigen::VectorXd>(weights.data(), std::distance(std::begin(weights), std::end(weights)))),
         gaussians_(std::begin(gaussians), std::end(gaussians))
   {
+    if ((size_t)weights_.size() != gaussians_.size()) {
+      throw std::invalid_argument("The number of weights must match the number of Gaussians");
+    }
   }
 
   /** Default Constructor
