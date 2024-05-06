@@ -1,3 +1,4 @@
+#define EIGEN_NO_AUTOMATIC_RESIZING
 #include <gtest/gtest.h>
 #include <limits>
 #include <vortex_filtering/filters/immipda.hpp>
@@ -33,9 +34,9 @@ protected:
                     .states_min_max = {{ST::position, {0.0, 100.0}}, {ST::velocity, {-100.0, 100.0}}},
                 }} {};
 
-  double dt_ = 0.1;
+  double dt_ = 1;
   Eigen::Matrix2d jump_matrix{{0.0, 1.0}, {1.0, 0.0}};
-  Eigen::Vector2d hold_times{1.0, 1.0};
+  Eigen::Vector2d hold_times{100.0, 100.0};
   ImmModel_::StateNames state_names = {{ST::position, ST::velocity}, {ST::position, ST::position, ST::velocity, ST::velocity}};
 
   ImmModel_ imm_model_;
@@ -43,26 +44,26 @@ protected:
   IMMIPDA_::Config config_;
 };
 
-TEST_F(IMMIPDA, init) { ASSERT_TRUE(true); }
+TEST_F(IMMIPDA, init) { ASSERT_TRUE(hold_times.size() == 2); }
 
 TEST_F(IMMIPDA, step)
 {
   using namespace vortex;
 
-  ImmModel_::GaussTuple_x x0     = {prob::Gauss2d::Standard(), {{0.0, 0.0, 1.0, 0.0}, Eigen::Matrix4d::Identity()}};
+  ImmModel_::GaussTuple_x x0     = {prob::Gauss2d::Standard(), {{1.0, 0.0, 0.0, 0.0}, Eigen::Matrix4d::Identity()}};
   ImmModel_::Vec_n model_weights = {0.5, 0.5};
 
-  Eigen::Array<double, 2, 4> z0 = {
-      {0.0, 1.0, 1.0, 1.0},
-      {0.0, 1.0, -1.0, 0.0},
+  Eigen::Array<double, 2, -1> z0 = {
+      {1.0, 1.0, 1.0, 20},
+      {0.1, -0.1, 0.0, 0},
   };
 
-  IMMIPDA_::Output out = IMMIPDA_::step(imm_model_, sensor_model_, dt_, x0, z0, 0.5, model_weights, config_);
+  IMMIPDA_::Output out = IMMIPDA_::step(imm_model_, sensor_model_, dt_, {x0, model_weights, 0.5}, z0, config_);
 
-  ASSERT_GT(out.mode_prob_upd(0), 0.0);
-  ASSERT_GT(out.mode_prob_upd(1), 0.0);
-  ASSERT_LT(out.mode_prob_upd(0), 1.0);
-  ASSERT_LT(out.mode_prob_upd(1), 1.0);
-  ASSERT_LT(out.mode_prob_upd(0), 0.5);
-  ASSERT_GT(out.mode_prob_upd(1), 0.5);
+  ASSERT_GT(out.state.mode_probabilities(0), 0.0);
+  ASSERT_GT(out.state.mode_probabilities(1), 0.0);
+  ASSERT_LT(out.state.mode_probabilities(0), 1.0);
+  ASSERT_LT(out.state.mode_probabilities(1), 1.0);
+  ASSERT_LT(out.state.mode_probabilities(0), 0.5);
+  ASSERT_GT(out.state.mode_probabilities(1), 0.5);
 }
