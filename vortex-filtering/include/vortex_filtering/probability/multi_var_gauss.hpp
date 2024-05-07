@@ -3,6 +3,7 @@
 #include <numbers>
 #include <random>
 #include <numbers>
+#include <sstream>
 
 namespace vortex::prob {
 
@@ -24,10 +25,14 @@ public:
   MultiVarGauss(const Vec_n &mean, const Mat_nn &cov) : mean_(mean), cov_(cov), cov_inv_(cov_.llt().solve(Mat_nn::Identity()))
   {
     if (!cov_.isApprox(cov_.transpose(), 1e-6)) {
-      throw std::invalid_argument("Covariance matrix is not symmetric");
+      std::stringstream ss;
+      ss << "Covariance matrix is not symmetric, covariance matrix:\n" << cov_;
+      throw std::invalid_argument(ss.str());
     }
     if (cov_.llt().info() != Eigen::Success) {
-      throw std::invalid_argument("Covariance matrix is not positive definite");
+      std::stringstream ss;
+      ss << "Covariance matrix is not positive definite, covariance matrix:\n" << cov_;
+      throw std::invalid_argument(ss.str());
     }
   }
 
@@ -57,10 +62,12 @@ public:
     return exponent - 0.5 * std::log(std::pow(2 * std::numbers::pi, size()) * cov().determinant());
   }
 
-  Vec_n mean() const { return mean_; }
-  Mat_nn cov() const { return cov_; }
-  Mat_nn cov_inv() const { return cov_inv_; }
+  const Vec_n &mean() const { return mean_; }
+  Vec_n &mean() { return mean_; }
 
+  const Mat_nn &cov() const { return cov_; }
+  Mat_nn &cov() { return cov_; }
+  Mat_nn cov_inv() const { return cov().llt().solve(Mat_nn::Identity()); }
   /** Calculate the Mahalanobis distance of x given the Gaussian
    * @param x
    * @return double
