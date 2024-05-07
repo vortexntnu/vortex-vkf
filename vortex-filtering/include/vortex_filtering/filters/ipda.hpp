@@ -1,3 +1,13 @@
+/**
+ * @file ipda.hpp
+ * @author Tristan Wolfram
+ * @brief File for the IPDA filter
+ * @version 1.0
+ * @date 2024-05-07
+ *
+ * @copyright Copyright (c) 2024
+ *
+ */
 #pragma once
 #include <vector>
 #include <Eigen/Dense>
@@ -7,6 +17,11 @@
 
 namespace vortex::filter
 {
+/**
+ * @brief The IPDA filter class
+ * @tparam DynModT The dynamic model type
+ * @tparam SensModT The sensor model type
+ */
 template <concepts::DynamicModelLTVWithDefinedSizes DynModT, concepts::SensorModelLTVWithDefinedSizes SensModT>
 class IPDA
 {
@@ -25,7 +40,7 @@ public:
   using Gauss_x = typename T::Gauss_x;
   using Vec_z = typename T::Vec_z;
   using GaussMix = vortex::prob::GaussianMixture<N_DIM_x>;
-  using PDAF = vortex::filter::PDAF<vortex::models::ConstantVelocity, vortex::models::IdentitySensorModel<4, 2>>;
+  using PDAF = vortex::filter::PDAF<DynModT, SensModT>;
 
   IPDA() = delete;
 
@@ -60,6 +75,19 @@ public:
     return (l_k * predicted_existence_probability) / (1 - (1 - l_k) * predicted_existence_probability);
   }
 
+  /**
+   * @brief The IPDAF step function. Gets following parameters and calculates the next state with the probablity of
+   * existence.
+   * @param dyn_model The dynamic model.
+   * @param sen_model The sensor model.
+   * @param timestep The timestep.
+   * @param x_est The estimated state.
+   * @param z_meas The percieved measurements.
+   * @param survive_est The estimated survival probability (current state).
+   * @param config configuration data - see Config struct of PDAF.
+   * @return A tuple containing the final state, the existence probability, the inside (of the gate) measurements, the
+   * outside (of the gate) measurements, the predicted state, the predicted measurements, and the updated state.
+   */
   static std::tuple<Gauss_x, double, std::vector<Vec_z>, std::vector<Vec_z>, Gauss_x, Gauss_z, std::vector<Gauss_x>>
   step(const DynModT& dyn_model, const SensModT& sen_model, double timestep, const Gauss_x& x_est,
        const std::vector<Vec_z>& z_meas, double survive_est, const IPDA::Config& config)

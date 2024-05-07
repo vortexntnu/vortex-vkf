@@ -4,9 +4,9 @@
 #include <vortex_filtering/filters/pdaf.hpp>
 #include <vortex_filtering/utils/ellipse.hpp>
 
-using ConstantVelocity    = vortex::models::ConstantVelocity;
+using ConstantVelocity = vortex::models::ConstantVelocity;
 using IdentitySensorModel = vortex::models::IdentitySensorModel<4, 2>;
-using PDAF                = vortex::filter::PDAF<ConstantVelocity, IdentitySensorModel>;
+using PDAF = vortex::filter::PDAF<ConstantVelocity, IdentitySensorModel>;
 
 // testing the get_weights function
 TEST(PDAF, get_weights_is_calculating)
@@ -174,7 +174,7 @@ TEST(PDAF, apply_gate_is_separating_correctly)
   EXPECT_EQ(inside[0], meas[0]);
   EXPECT_EQ(outside[0], meas[1]);
 
-  #if (GNUPLOT_ENABLE)
+#if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -190,10 +190,11 @@ TEST(PDAF, apply_gate_is_separating_correctly)
 
   vortex::utils::Ellipse prediction = vortex::plotting::gauss_to_ellipse(z_pred, mahalanobis_threshold);
 
-  gp << "set object " << ++object_counter << " ellipse center " << prediction.x() << "," << prediction.y() << " size " << prediction.major_axis() << ","
-     << prediction.minor_axis() << " angle " << prediction.angle_deg() << "fs empty border lc rgb 'cyan'\n";
+  gp << "set object " << ++object_counter << " ellipse center " << prediction.x() << "," << prediction.y() << " size "
+     << prediction.major_axis() << "," << prediction.minor_axis() << " angle " << prediction.angle_deg()
+     << "fs empty border lc rgb 'cyan'\n";
   gp << "replot\n";
-  #endif
+#endif
 }
 
 TEST(PDAF, apply_gate_is_separating_correctly_2)
@@ -208,7 +209,7 @@ TEST(PDAF, apply_gate_is_separating_correctly_2)
   EXPECT_EQ(inside.size(), 5u);
   EXPECT_EQ(outside.size(), 1u);
 
-  #if (GNUPLOT_ENABLE)
+#if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -224,10 +225,11 @@ TEST(PDAF, apply_gate_is_separating_correctly_2)
 
   vortex::utils::Ellipse prediction = vortex::plotting::gauss_to_ellipse(z_pred, mahalanobis_threshold);
 
-  gp << "set object " << ++object_counter << " ellipse center " << prediction.x() << "," << prediction.y() << " size " << prediction.major_axis() << ","
-     << prediction.minor_axis() << " angle " << prediction.angle_deg() << "fs empty border lc rgb 'cyan'\n";
+  gp << "set object " << ++object_counter << " ellipse center " << prediction.x() << "," << prediction.y() << " size "
+     << prediction.major_axis() << "," << prediction.minor_axis() << " angle " << prediction.angle_deg()
+     << "fs empty border lc rgb 'cyan'\n";
   gp << "replot\n";
-  #endif
+#endif
 }
 
 // testing the predict_next_state function
@@ -241,14 +243,14 @@ TEST(PDAF, predict_next_state_is_calculating)
   std::vector<Eigen::Vector2d> meas = { { 0.0, 1.0 }, { 1.0, 0.0 }, { 1.0, 1.0 },
                                         { 0.0, 2.0 }, { 2.0, 0.0 }, { 2.0, 2.0 } };
 
-  ConstantVelocity dyn_model{1.0};
-  IdentitySensorModel sen_model{1.0};
+  ConstantVelocity dyn_model{ 1.0 };
+  IdentitySensorModel sen_model{ 1.0 };
 
   auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
-  #if (GNUPLOT_ENABLE)
+#if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -264,10 +266,12 @@ TEST(PDAF, predict_next_state_is_calculating)
     vortex::prob::Gauss2d gauss(state.mean().head(2), state.cov().topLeftCorner(2, 2));
     vortex::utils::Ellipse ellipse = vortex::plotting::gauss_to_ellipse(gauss);
 
-    gp << "set object " << ++object_counter << " ellipse center " << ellipse.x() << "," << ellipse.y() << " size " << ellipse.major_axis() << ","
-       << ellipse.minor_axis() << " angle " << ellipse.angle_deg() << " back fc rgb 'skyblue' fs transparent solid 0.4 noborder\n";
+    gp << "set object " << ++object_counter << " ellipse center " << ellipse.x() << "," << ellipse.y() << " size "
+       << ellipse.major_axis() << "," << ellipse.minor_axis() << " angle " << ellipse.angle_deg()
+       << " back fc rgb 'skyblue' fs transparent solid 0.4 noborder\n";
 
-    gp << "set object " << ++object_counter << " circle center " << ellipse.x() << "," << ellipse.y() << " size " << 0.02 << " fs empty border lc rgb 'blue'\n";
+    gp << "set object " << ++object_counter << " circle center " << ellipse.x() << "," << ellipse.y() << " size "
+       << 0.02 << " fs empty border lc rgb 'blue'\n";
   }
 
   gp << "set object " << ++object_counter << " circle center " << x_est.mean()(0) << "," << x_est.mean()(1) << " size "
@@ -283,11 +287,12 @@ TEST(PDAF, predict_next_state_is_calculating)
      << x_final.mean()(1) << " nohead lc rgb 'green'\n";
 
   vortex::utils::Ellipse gate = vortex::plotting::gauss_to_ellipse(z_pred, config.mahalanobis_threshold);
-  gp << "set object " << ++object_counter << " ellipse center " << gate.x() << "," << gate.y() << " size " << gate.major_axis() << "," << gate.minor_axis()
-     << " angle " << gate.angle_deg() << " fs empty border lc rgb 'cyan'\n";
+  gp << "set object " << ++object_counter << " ellipse center " << gate.x() << "," << gate.y() << " size "
+     << gate.major_axis() << "," << gate.minor_axis() << " angle " << gate.angle_deg()
+     << " fs empty border lc rgb 'cyan'\n";
 
   gp << "replot\n";
-  #endif
+#endif
 }
 
 TEST(PDAF, predict_next_state_2)
@@ -300,14 +305,14 @@ TEST(PDAF, predict_next_state_2)
   std::vector<Eigen::Vector2d> meas = { { -3.0, -3.0 }, { 0.0, 0.0 }, { -1.2, 1.5 },
                                         { -2.0, -2.0 }, { 2.0, 0.0 }, { -1.0, 1.0 } };
 
-  ConstantVelocity dyn_model{1.0};
-  IdentitySensorModel sen_model{0.5};
+  ConstantVelocity dyn_model{ 1.0 };
+  IdentitySensorModel sen_model{ 0.5 };
 
   auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
-  #if (GNUPLOT_ENABLE)
+#if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -323,10 +328,12 @@ TEST(PDAF, predict_next_state_2)
     vortex::prob::Gauss2d gauss(state.mean().head(2), state.cov().topLeftCorner(2, 2));
     vortex::utils::Ellipse ellipse = vortex::plotting::gauss_to_ellipse(gauss);
 
-    gp << "set object " << ++object_counter << " ellipse center " << ellipse.x() << "," << ellipse.y() << " size " << ellipse.major_axis() << ","
-       << ellipse.minor_axis() << " angle " << ellipse.angle_deg() << " back fc rgb 'skyblue' fs transparent solid 0.4 noborder\n";
+    gp << "set object " << ++object_counter << " ellipse center " << ellipse.x() << "," << ellipse.y() << " size "
+       << ellipse.major_axis() << "," << ellipse.minor_axis() << " angle " << ellipse.angle_deg()
+       << " back fc rgb 'skyblue' fs transparent solid 0.4 noborder\n";
 
-    gp << "set object " << ++object_counter << " circle center " << ellipse.x() << "," << ellipse.y() << " size " << 0.02 << " fs empty border lc rgb 'blue'\n";
+    gp << "set object " << ++object_counter << " circle center " << ellipse.x() << "," << ellipse.y() << " size "
+       << 0.02 << " fs empty border lc rgb 'blue'\n";
   }
 
   gp << "set object " << ++object_counter << " circle center " << x_est.mean()(0) << "," << x_est.mean()(1) << " size "
@@ -342,11 +349,12 @@ TEST(PDAF, predict_next_state_2)
      << x_final.mean()(1) << " nohead lc rgb 'green'\n";
 
   vortex::utils::Ellipse gate = vortex::plotting::gauss_to_ellipse(z_pred, config.mahalanobis_threshold);
-  gp << "set object " << ++object_counter << " ellipse center " << gate.x() << "," << gate.y() << " size " << gate.major_axis() << "," << gate.minor_axis()
-     << " angle " << gate.angle_deg() << " fs empty border lc rgb 'cyan'\n";
+  gp << "set object " << ++object_counter << " ellipse center " << gate.x() << "," << gate.y() << " size "
+     << gate.major_axis() << "," << gate.minor_axis() << " angle " << gate.angle_deg()
+     << " fs empty border lc rgb 'cyan'\n";
 
   gp << "replot\n";
-  #endif
+#endif
 }
 
 TEST(PDAF, predict_next_state_3_1)
@@ -359,14 +367,14 @@ TEST(PDAF, predict_next_state_3_1)
   std::vector<Eigen::Vector2d> meas = { { 0.0, 0.5 }, { 0.2, 0.2 }, { 0.8, 2.3 },
                                         { 0.5, 0.0 }, { 4.2, 2.7 }, { 1.4, 2.5 } };
 
-  ConstantVelocity dyn_model{0.5};
-  IdentitySensorModel sen_model{1.0};
+  ConstantVelocity dyn_model{ 0.5 };
+  IdentitySensorModel sen_model{ 1.0 };
 
   auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
-  #if (GNUPLOT_ENABLE)
+#if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -382,10 +390,12 @@ TEST(PDAF, predict_next_state_3_1)
     vortex::prob::Gauss2d gauss(state.mean().head(2), state.cov().topLeftCorner(2, 2));
     vortex::utils::Ellipse ellipse = vortex::plotting::gauss_to_ellipse(gauss);
 
-    gp << "set object " << ++object_counter << " ellipse center " << ellipse.x() << "," << ellipse.y() << " size " << ellipse.major_axis() << ","
-       << ellipse.minor_axis() << " angle " << ellipse.angle_deg() << " back fc rgb 'skyblue' fs transparent solid 0.4 noborder\n";
+    gp << "set object " << ++object_counter << " ellipse center " << ellipse.x() << "," << ellipse.y() << " size "
+       << ellipse.major_axis() << "," << ellipse.minor_axis() << " angle " << ellipse.angle_deg()
+       << " back fc rgb 'skyblue' fs transparent solid 0.4 noborder\n";
 
-    gp << "set object " << ++object_counter << " circle center " << ellipse.x() << "," << ellipse.y() << " size " << 0.02 << " fs empty border lc rgb 'blue'\n";
+    gp << "set object " << ++object_counter << " circle center " << ellipse.x() << "," << ellipse.y() << " size "
+       << 0.02 << " fs empty border lc rgb 'blue'\n";
   }
 
   gp << "set object " << ++object_counter << " circle center " << x_est.mean()(0) << "," << x_est.mean()(1) << " size "
@@ -403,11 +413,12 @@ TEST(PDAF, predict_next_state_3_1)
      << x_final.mean()(1) << " nohead lc rgb 'green'\n";
 
   vortex::utils::Ellipse gate = vortex::plotting::gauss_to_ellipse(z_pred, config.mahalanobis_threshold);
-  gp << "set object " << ++object_counter << " ellipse center " << gate.x() << "," << gate.y() << " size " << gate.major_axis() << "," << gate.minor_axis()
-     << " angle " << gate.angle_deg() << " fs empty border lc rgb 'cyan'\n";
+  gp << "set object " << ++object_counter << " ellipse center " << gate.x() << "," << gate.y() << " size "
+     << gate.major_axis() << "," << gate.minor_axis() << " angle " << gate.angle_deg()
+     << " fs empty border lc rgb 'cyan'\n";
 
   gp << "replot\n";
-  #endif
+#endif
 }
 
 TEST(PDAF, predict_next_state_3_2)
@@ -421,14 +432,14 @@ TEST(PDAF, predict_next_state_3_2)
   std::vector<Eigen::Vector2d> meas = { { -0.5, 2.0 }, { -0.23, 0.5 }, { -2.0, 3.4 },
                                         { 0.0, 1.3 },  { 0.14, 0.5 },  { -2.5, 0.89 } };
 
-  ConstantVelocity dyn_model{0.5};
-  IdentitySensorModel sen_model{1.0};
+  ConstantVelocity dyn_model{ 0.5 };
+  IdentitySensorModel sen_model{ 1.0 };
 
   auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
-  #if (GNUPLOT_ENABLE)
+#if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -444,10 +455,12 @@ TEST(PDAF, predict_next_state_3_2)
     vortex::prob::Gauss2d gauss(state.mean().head(2), state.cov().topLeftCorner(2, 2));
     vortex::utils::Ellipse ellipse = vortex::plotting::gauss_to_ellipse(gauss);
 
-    gp << "set object " << ++object_counter << " ellipse center " << ellipse.x() << "," << ellipse.y() << " size " << ellipse.major_axis() << ","
-       << ellipse.minor_axis() << " angle " << ellipse.angle_deg() << " back fc rgb 'skyblue' fs transparent solid 0.4 noborder\n";
+    gp << "set object " << ++object_counter << " ellipse center " << ellipse.x() << "," << ellipse.y() << " size "
+       << ellipse.major_axis() << "," << ellipse.minor_axis() << " angle " << ellipse.angle_deg()
+       << " back fc rgb 'skyblue' fs transparent solid 0.4 noborder\n";
 
-    gp << "set object " << ++object_counter << " circle center " << ellipse.x() << "," << ellipse.y() << " size " << 0.02 << " fs empty border lc rgb 'blue'\n";
+    gp << "set object " << ++object_counter << " circle center " << ellipse.x() << "," << ellipse.y() << " size "
+       << 0.02 << " fs empty border lc rgb 'blue'\n";
   }
 
   gp << "set object " << ++object_counter << " circle center " << x_est.mean()(0) << "," << x_est.mean()(1) << " size "
@@ -469,11 +482,12 @@ TEST(PDAF, predict_next_state_3_2)
      << " nohead lc rgb 'orange-red'\n";
 
   vortex::utils::Ellipse gate = vortex::plotting::gauss_to_ellipse(z_pred, config.mahalanobis_threshold);
-  gp << "set object " << ++object_counter << " ellipse center " << gate.x() << "," << gate.y() << " size " << gate.major_axis() << "," << gate.minor_axis()
-     << " angle " << gate.angle_deg() << " fs empty border lc rgb 'cyan'\n";
+  gp << "set object " << ++object_counter << " ellipse center " << gate.x() << "," << gate.y() << " size "
+     << gate.major_axis() << "," << gate.minor_axis() << " angle " << gate.angle_deg()
+     << " fs empty border lc rgb 'cyan'\n";
 
   gp << "replot\n";
-  #endif
+#endif
 }
 
 TEST(PDAF, predict_next_state_3_3)
@@ -486,14 +500,14 @@ TEST(PDAF, predict_next_state_3_3)
   std::vector<Eigen::Vector2d> meas = { { -1.5, 2.5 }, { -1.2, 2.7 }, { -0.8, 2.3 },
                                         { -1.7, 1.9 }, { -2.0, 3.0 }, { -1.11, 2.04 } };
 
-  ConstantVelocity dyn_model{0.5};
-  IdentitySensorModel sen_model{1.0};
+  ConstantVelocity dyn_model{ 0.5 };
+  IdentitySensorModel sen_model{ 1.0 };
 
   auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
-  #if (GNUPLOT_ENABLE)
+#if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -509,10 +523,12 @@ TEST(PDAF, predict_next_state_3_3)
     vortex::prob::Gauss2d gauss(state.mean().head(2), state.cov().topLeftCorner(2, 2));
     vortex::utils::Ellipse ellipse = vortex::plotting::gauss_to_ellipse(gauss);
 
-    gp << "set object " << ++object_counter << " ellipse center " << ellipse.x() << "," << ellipse.y() << " size " << ellipse.major_axis() << ","
-       << ellipse.minor_axis() << " angle " << ellipse.angle_deg() << " back fc rgb 'skyblue' fs transparent solid 0.4 noborder\n";
+    gp << "set object " << ++object_counter << " ellipse center " << ellipse.x() << "," << ellipse.y() << " size "
+       << ellipse.major_axis() << "," << ellipse.minor_axis() << " angle " << ellipse.angle_deg()
+       << " back fc rgb 'skyblue' fs transparent solid 0.4 noborder\n";
 
-    gp << "set object " << ++object_counter << " circle center " << ellipse.x() << "," << ellipse.y() << " size " << 0.02 << " fs empty border lc rgb 'blue'\n";
+    gp << "set object " << ++object_counter << " circle center " << ellipse.x() << "," << ellipse.y() << " size "
+       << 0.02 << " fs empty border lc rgb 'blue'\n";
   }
 
   gp << "set object " << ++object_counter << " circle center " << x_est.mean()(0) << "," << x_est.mean()(1) << " size "
@@ -538,11 +554,12 @@ TEST(PDAF, predict_next_state_3_3)
      << " nohead lc rgb 'orange-red'\n";
 
   vortex::utils::Ellipse gate = vortex::plotting::gauss_to_ellipse(z_pred, config.mahalanobis_threshold);
-  gp << "set object " << ++object_counter << " ellipse center " << gate.x() << "," << gate.y() << " size " << gate.major_axis() << "," << gate.minor_axis()
-     << " angle " << gate.angle_deg() << " fs empty border lc rgb 'cyan'\n";
+  gp << "set object " << ++object_counter << " ellipse center " << gate.x() << "," << gate.y() << " size "
+     << gate.major_axis() << "," << gate.minor_axis() << " angle " << gate.angle_deg()
+     << " fs empty border lc rgb 'cyan'\n";
 
   gp << "replot\n";
-  #endif
+#endif
 }
 
 TEST(PDAF, predict_next_state_3_4)
@@ -555,14 +572,14 @@ TEST(PDAF, predict_next_state_3_4)
   std::vector<Eigen::Vector2d> meas = { { -2.0, 2.2 }, { -1.8, 2.3 }, { -2.3, 2.0 },
                                         { 0.6, 1.5 },  { -2.0, 2.0 }, { -1.4, 2.5 } };
 
-  ConstantVelocity dyn_model{0.5};
-  IdentitySensorModel sen_model{1.0};
+  ConstantVelocity dyn_model{ 0.5 };
+  IdentitySensorModel sen_model{ 1.0 };
 
   auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
       PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
   std::cout << "x_final: " << x_final.mean() << std::endl;
 
-  #if (GNUPLOT_ENABLE)
+#if (GNUPLOT_ENABLE)
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
@@ -578,10 +595,12 @@ TEST(PDAF, predict_next_state_3_4)
     vortex::prob::Gauss2d gauss(state.mean().head(2), state.cov().topLeftCorner(2, 2));
     vortex::utils::Ellipse ellipse = vortex::plotting::gauss_to_ellipse(gauss);
 
-    gp << "set object " << ++object_counter << " ellipse center " << ellipse.x() << "," << ellipse.y() << " size " << ellipse.major_axis() << ","
-       << ellipse.minor_axis() << " angle " << ellipse.angle_deg() << " back fc rgb 'skyblue' fs transparent solid 0.4 noborder\n";
+    gp << "set object " << ++object_counter << " ellipse center " << ellipse.x() << "," << ellipse.y() << " size "
+       << ellipse.major_axis() << "," << ellipse.minor_axis() << " angle " << ellipse.angle_deg()
+       << " back fc rgb 'skyblue' fs transparent solid 0.4 noborder\n";
 
-    gp << "set object " << ++object_counter << " circle center " << ellipse.x() << "," << ellipse.y() << " size " << 0.02 << " fs empty border lc rgb 'blue'\n";
+    gp << "set object " << ++object_counter << " circle center " << ellipse.x() << "," << ellipse.y() << " size "
+       << 0.02 << " fs empty border lc rgb 'blue'\n";
   }
 
   gp << "set object " << ++object_counter << " circle center " << x_est.mean()(0) << "," << x_est.mean()(1) << " size "
@@ -611,9 +630,35 @@ TEST(PDAF, predict_next_state_3_4)
      << " nohead lc rgb 'orange-red'\n";
 
   vortex::utils::Ellipse gate = vortex::plotting::gauss_to_ellipse(z_pred, config.mahalanobis_threshold);
-  gp << "set object " << ++object_counter << " ellipse center " << gate.x() << "," << gate.y() << " size " << gate.major_axis() << "," << gate.minor_axis()
-     << " angle " << gate.angle_deg() << " fs empty border lc rgb 'cyan'\n";
+  gp << "set object " << ++object_counter << " ellipse center " << gate.x() << "," << gate.y() << " size "
+     << gate.major_axis() << "," << gate.minor_axis() << " angle " << gate.angle_deg()
+     << " fs empty border lc rgb 'cyan'\n";
 
   gp << "replot\n";
-  #endif
+#endif
+}
+
+TEST(PDAF_2, test_with_other_model)
+{
+  using TestDynamicModel = vortex::models::ConstantAcceleration;
+  using TestSensorModel = vortex::models::IdentitySensorModel<6, 2>;
+  using PDAF = vortex::filter::PDAF<TestDynamicModel, TestSensorModel>;
+
+  PDAF::Config config;
+  config.mahalanobis_threshold = 1.0;
+  config.prob_of_detection = 0.8;
+  config.clutter_intensity = 1.0;
+  vortex::prob::Gauss6d x_est({ 0.0, 1.0, 3.0, -1.0, 0.0, 0.5 }, Eigen::MatrixXd::Identity(6, 6));
+  std::vector<Eigen::Vector2d> meas = { { 0.0, 1.0 }, { 1.0, 0.0 }, { 1.0, 1.0 },
+                                        { 0.0, 2.0 }, { 2.0, 0.0 }, { 2.0, 2.0 } };
+
+  TestDynamicModel dyn_model{ 1.0, 1.0 };
+  TestSensorModel sen_model{ 1.0 };
+
+  auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
+      PDAF::step(dyn_model, sen_model, 1.0, x_est, meas, config);
+  std::cout << "x_final: " << x_final.mean() << std::endl;
+
+  // it compiles -> other template parameters are working with the PDAF class
+  ASSERT_TRUE(true);
 }
