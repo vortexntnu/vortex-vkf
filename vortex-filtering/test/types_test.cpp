@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vortex_filtering/models/dynamic_models.hpp>
 #include <vortex_filtering/models/sensor_models.hpp>
+#include <vortex_filtering/models/state.hpp>
 #include <vortex_filtering/types/model_concepts.hpp>
 #include <vortex_filtering/types/type_aliases.hpp>
 TEST(Types, x_2_z_1)
@@ -25,6 +26,22 @@ TEST(Concepts, MatConvertibleTo)
   static_assert(std::convertible_to<Eigen::Matrix3d, Eigen::Matrix2d>);
   static_assert(vortex::concepts::mat_convertible_to<Eigen::Matrix3d, Eigen::Matrix3d>);
   static_assert(!vortex::concepts::mat_convertible_to<Eigen::Matrix3d, Eigen::Matrix2d>);
+
+  ASSERT_TRUE(true);
+}
+
+TEST(Concepts, MultiVarGaussLike)
+{
+  using vortex::prob::Gauss2d, vortex::prob::Gauss3d;
+
+  static_assert(vortex::concepts::MultiVarGaussLike<Gauss2d, 2>);
+  static_assert(vortex::concepts::MultiVarGaussLike<Gauss3d, 3>);
+
+  static_assert(!vortex::concepts::MultiVarGaussLike<Gauss2d, 3>);
+
+  using S      = StateName;
+  using StateT = State<S::position, S::position, S::velocity, S::velocity>;
+  static_assert(vortex::concepts::MultiVarGaussLike<StateT, StateT::N_STATES>);
 
   ASSERT_TRUE(true);
 }

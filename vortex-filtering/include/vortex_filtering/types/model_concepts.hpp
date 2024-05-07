@@ -2,9 +2,71 @@
 #include <concepts>
 #include <vortex_filtering/types/type_aliases.hpp>
 #include <vortex_filtering/types/general_concepts.hpp>
+#include <vortex_filtering/models/state.hpp>
 
 namespace vortex::concepts {
 using std::size_t;
+
+/**
+ * @brief Concept for MultiVarGauss-like classes. Requires the following functions:
+ * @brief - `double pdf(Vec_n)`
+ * @brief - `double logpdf(Vec_n)`
+ * @brief - `Vec_n mean()`
+ * @brief - `Mat_nn cov()`
+ * @brief - `int size()`
+ * @brief - `Vec_n sample(std::mt19937_64&)`
+ * @brief - `double mahalanobis_distance(Vec_n)`
+ *
+ * @tparam T The MultiVarGauss-like class
+ * @tparam n_dim Dimension of the state
+ */
+template <typename T, size_t n_dim>
+concept MultiVarGaussLike = requires {
+  {
+    std::declval<T>().pdf(std::declval<typename Types_n<n_dim>::Vec_n>())
+  } -> std::convertible_to<double>;
+
+  {
+    std::declval<T>().logpdf(std::declval<typename Types_n<n_dim>::Vec_n>())
+  } -> std::convertible_to<double>;
+
+  {
+    std::declval<T>().mean()
+  } -> mat_convertible_to<typename Types_n<n_dim>::Vec_n>;
+
+  {
+    std::declval<T>().cov()
+  } -> mat_convertible_to<typename Types_n<n_dim>::Mat_nn>;
+
+  {
+    std::declval<T>().size()
+  } -> std::convertible_to<size_t>;
+
+  {
+    std::declval<T>().sample(std::declval<std::mt19937 &>())
+  } -> mat_convertible_to<typename Types_n<n_dim>::Vec_n>;
+
+  {
+    std::declval<T>().mahalanobis_distance(std::declval<typename Types_n<n_dim>::Vec_n>())
+  } -> std::convertible_to<double>;
+};
+
+template <typename T, size_t n_dim>
+concept StateLike = requires {
+  requires MultiVarGaussLike<T, n_dim>;
+
+  {
+    T::N_STATES
+  } -> std::convertible_to<size_t>;
+
+  {
+    T::STATE_NAMES
+  } -> std::convertible_to<std::array<StateName, T::N_STATES>>;
+
+  {
+    std::declval<T>().state_loc(std::declval<StateName>())
+  } -> std::convertible_to<typename T::StateMap>;
+};
 
 /**
  * @brief Concept for dynamic models. Requires the following functions:
