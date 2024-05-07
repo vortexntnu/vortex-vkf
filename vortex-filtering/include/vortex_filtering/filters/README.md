@@ -252,7 +252,7 @@ The main usage of the PDAF is the function **step()**. It will predict the next 
 #### Dynamic/Sensor Models
 
 If you want to use the PDAF for your measurements, you have to define how your measurements behave. That is what the models are for. The **dynamic** model (or transition model) describes how states change over time. A common example of this would be velocity. The **sensor** model is a bit less intuitive and difficult to explain. Let's consider the following example:
-We want to measure the temperature inside a rocket drive. We know in theory how the temperature should change over time. That would be our dynamic model. We basically want to compare this model with the actual measurements and find a good estimated final value for the current state of the temperature in the drive. It's a bit of a design choice if you trust the model or the actual measurements. Both could be accurate or wrong. The main problem is that we can't put sensors directly into the drive (they would melt and be destroyed instantly). Therefore, we put a sensor outside the rocket and measure the temperature there. Here, we have to know how the temperature we measure corresponds to the actual temperature inside the drive. In other words, the temperature that we measure is not the actual value we need. But we know how to convert the measurement to the value we search for. This is the sensor model. If you want to get a better explanation of those models, I suggest using the Textbook "Artificial Intelligence: A Modern Approach, 4th Edition" by *Stuart Russell* and *Peter Norvig*. The book explains those models in Chapter 14 - *Probabilistic Reasoning Over Time*. All in all, you have to define those models and pass them to the function. Under the name space **vortex::models**, you can find simple predefined models to use:
+We want to measure the temperature inside a rocket drive. We know in theory, how the temperature should change over time. That would be our dynamic model. We basically want to compare this model with the actual measurements and find a good estimated final value for the current state of the temperature in the drive. It's a bit of a design choice if you trust the model or the actual measurements. Both could be accurate or wrong. The main problem is that we can't put sensors directly into the drive (they would melt and be destroyed instantly). Therefore, we put a sensor outside the rocket and measure the temperature there. Here, we have to know how the temperature we measure corresponds to the actual temperature inside the drive. In other words, the temperature that we measure is not the actual value of what we want to measure. But we know which value corresponds to the measurent value (a measured value of X degrees outside the drive corresponds to Y degrees inside the drive). This is given by the sensor model. If you want to get a better explanation of those models, I suggest using the Textbook "Artificial Intelligence: A Modern Approach, 4th Edition" by *Stuart Russell* and *Peter Norvig*. The book explains those models in Chapter 14 - *Probabilistic Reasoning Over Time*. All in all, you have to define those models and pass them to the function. Under the name space **vortex::models**, you can find simple predefined models to use:
 
 ```c++
 // example how to define models using vortex::models
@@ -267,7 +267,7 @@ auto [x_final, inside, outside, x_pred, z_pred, x_updated] = PDAF::step(paramete
 The step function needs to know what the previous state was. Based on this state, the dynamic model will be used. The model will give us a predicted new state. This state will be compared to the actual measurements. The previous state must be a Gaussian distribution. 
 
 #### Measurements
-The perceived measurements. This parameter consists of an Eigen vector. It should hold all perceived measurements. (The dimension must be the same as defined in the models.)
+The perceived measurements. This parameter consists of an `Eigen::Vector`. It should hold all perceived measurements. (The dimension must be the same as defined in the models.)
 
 #### Basic Principle
 This will be a short description of what is happening inside the step function. For a more clear and specific explanation of the steps of the PDAF please look into the recommended textbooks.
@@ -311,7 +311,7 @@ auto [x_final, existence_pred, inside, outside, x_pred, z_pred, x_updated] = IPD
 
 #### Parameters
 The parameters of the step() function are mainly the same as those of the PDAF. However, two parameters are added:
-* Survival estimate: This is the survival estimate of the previous state estimate (corresponding to x_estimate). It describes the target existence, which we also want to estimate for the current state.
+* Existence Probability: This is the survival estimate of the previous state estimate (corresponding to x_estimate). It describes the target existence, which we also want to estimate for the current state.
 * Probability of survival: This is a general hyperparameter that defines how likely a target is to survive. This parameter shouldn't be confused with the probability of detection. If no measurement is considered to correspond to the target, we consider the dynamic model. The track still *survives*. If a target *dies*, it can't come back, and the track will be deleted.
 
 #### Returns

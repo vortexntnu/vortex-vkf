@@ -83,20 +83,20 @@ public:
    * @param timestep The timestep.
    * @param x_est The estimated state.
    * @param z_meas The percieved measurements.
-   * @param survive_est The estimated survival probability (current state).
+   * @param existence_prob The estimated survival probability (current state).
    * @param config configuration data - see Config struct of PDAF.
    * @return A tuple containing the final state, the existence probability, the inside (of the gate) measurements, the
    * outside (of the gate) measurements, the predicted state, the predicted measurements, and the updated state.
    */
   static std::tuple<Gauss_x, double, std::vector<Vec_z>, std::vector<Vec_z>, Gauss_x, Gauss_z, std::vector<Gauss_x>>
   step(const DynModT& dyn_model, const SensModT& sen_model, double timestep, const Gauss_x& x_est,
-       const std::vector<Vec_z>& z_meas, double survive_est, const IPDA::Config& config)
+       const std::vector<Vec_z>& z_meas, double existence_prob, const IPDA::Config& config)
   {
     auto [x_final, inside, outside, x_pred, z_pred, x_updated] =
         PDAF::step(dyn_model, sen_model, timestep, x_est, z_meas, static_cast<PDAF::Config>(config));
 
     double existence_probability = get_existence_probability(
-        inside, config.prob_of_survival, survive_est, config.prob_of_detection, config.clutter_intensity, z_pred);
+        inside, config.prob_of_survival, existence_prob, config.prob_of_detection, config.clutter_intensity, z_pred);
     return { x_final, existence_probability, inside, outside, x_pred, z_pred, x_updated };
   }
 };
