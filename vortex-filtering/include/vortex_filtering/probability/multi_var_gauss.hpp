@@ -26,12 +26,12 @@ public:
   {
     if (!cov_.isApprox(cov_.transpose(), 1e-6)) {
       std::stringstream ss;
-      ss << "Covariance matrix is not symmetric, covariance matrix:\n" << cov_;
+      ss << "Covariance matrix is not symmetric:\n" << cov_;
       throw std::invalid_argument(ss.str());
     }
     if (cov_.llt().info() != Eigen::Success) {
       std::stringstream ss;
-      ss << "Covariance matrix is not positive definite, covariance matrix:\n" << cov_;
+      ss << "Covariance matrix is not positive definite:\n" << cov_;
       throw std::invalid_argument(ss.str());
     }
   }

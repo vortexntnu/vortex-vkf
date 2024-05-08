@@ -11,14 +11,14 @@ TEST(State, typeChecks)
   using StateT = State<S::position, S::velocity, S::velocity, S::acceleration>;
 
   ASSERT_EQ(StateT::N_STATES, 4);
-  ASSERT_EQ(StateT::UNIQUE_STATES, 3);
-  ASSERT_EQ(StateT::state_loc<S::position>().start_index, 0);
-  ASSERT_EQ(StateT::state_loc<S::velocity>().start_index, 1);
-  ASSERT_EQ(StateT::state_loc<S::acceleration>().start_index, 3);
+  ASSERT_EQ(StateT::UNIQUE_STATES_COUNT, 3);
+  ASSERT_EQ(StateT::state_loc(S::position).start_index, 0);
+  ASSERT_EQ(StateT::state_loc(S::velocity).start_index, 1);
+  ASSERT_EQ(StateT::state_loc(S::acceleration).start_index, 3);
 
-  ASSERT_EQ(StateT::state_loc<S::position>().end_index, 1);
-  ASSERT_EQ(StateT::state_loc<S::velocity>().end_index, 3);
-  ASSERT_EQ(StateT::state_loc<S::acceleration>().end_index, 4);
+  ASSERT_EQ(StateT::state_loc(S::position).end_index, 1);
+  ASSERT_EQ(StateT::state_loc(S::velocity).end_index, 3);
+  ASSERT_EQ(StateT::state_loc(S::acceleration).end_index, 4);
 
   ASSERT_TRUE(StateT::has_state_name(S::position));
   ASSERT_TRUE(StateT::has_state_name(S::velocity));

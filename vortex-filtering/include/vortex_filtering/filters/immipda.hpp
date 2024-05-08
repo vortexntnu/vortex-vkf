@@ -16,7 +16,7 @@ namespace vortex::filter {
 
 namespace config {
 struct IMMIPDA {
-  models::StateMap states_min_max;
+  StateMap states_min_max;
 };
 } // namespace config
 
@@ -79,7 +79,7 @@ public:
     auto mixing_probs      = ImmFilter_::calculate_mixing_probs(transition_matrix, mode_prob_est_prevs);
 
     // IMM mixing
-    auto moment_based_preds = ImmFilter_::mixing(x_est_prevs, mixing_probs, imm_model.get_all_state_names(), config.immipda.states_min_max);
+    auto moment_based_preds = ImmFilter_::mixing(x_est_prevs, mixing_probs, config.immipda.states_min_max);
 
     // IMM Kalman prediction
     auto [x_est_preds, z_est_preds] = ImmFilter_::kalman_filter_predictions(imm_model, sens_mod, timestep, moment_based_preds);

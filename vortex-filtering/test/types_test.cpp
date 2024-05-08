@@ -39,8 +39,8 @@ TEST(Concepts, MultiVarGaussLike)
 
   static_assert(!vortex::concepts::MultiVarGaussLike<Gauss2d, 3>);
 
-  using S      = StateName;
-  using StateT = State<S::position, S::position, S::velocity, S::velocity>;
+  using S      = vortex::StateName;
+  using StateT = vortex::State<S::position, S::position, S::velocity, S::velocity>;
   static_assert(vortex::concepts::MultiVarGaussLike<StateT, StateT::N_STATES>);
 
   ASSERT_TRUE(true);
