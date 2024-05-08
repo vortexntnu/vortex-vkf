@@ -2,6 +2,7 @@
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/imm_model.hpp>
 #include <vortex_filtering/types/type_aliases.hpp>
+#include <vortex_filtering/models/state.hpp>
 
 namespace vortex {
 namespace models {
@@ -56,10 +57,10 @@ public:
   static constexpr int N_DIM_u = Parent::N_DIM_u;
   static constexpr int N_DIM_v = Parent::N_DIM_v;
 
-  using T = vortex::Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
+  using T = Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
 
-  using ST = StateType;
-  static constexpr std::array StateNames{ST::position, ST::position};
+  using S = StateName;
+  using StateT = State<S::position, S::position>;
 
   /** Constant Position Model in 2D
    * x = [x, y]
@@ -119,12 +120,13 @@ public:
 
   using T = vortex::Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
 
+  using S = StateName;
+  using StateT = State<S::position, S::position, S::velocity, S::velocity>;
+
 
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
   using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
 
-  using ST = StateType;
-  static constexpr std::array<ST, N_STATES> StateNames{ST::position, ST::position, ST::velocity, ST::velocity};
 
   /**
    * @brief Constant Velocity Model in 2D
@@ -194,11 +196,13 @@ public:
 
   using T = vortex::Types_xv<N_STATES, N_DIM_v>;
 
+  using S = StateName;
+  using StateT = State<S::position, S::position, S::velocity, S::velocity, S::acceleration, S::acceleration>;
+
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
   using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
 
-  using ST = StateType;
-  static constexpr std::array<ST, N_STATES> StateNames{ST::position, ST::position, ST::velocity, ST::velocity, ST::acceleration, ST::acceleration};
+
   /** Constant Acceleration Model
    * @param std_vel Standard deviation of velocity
    * @param std_acc Standard deviation of acceleration
@@ -268,8 +272,9 @@ public:
   static constexpr int N_STATES = 5;
   using T = vortex::Types_xv<N_DIM_x, N_DIM_v>;
 
-  using ST = StateType;
-  static constexpr std::array<ST, N_DIM_x> StateNames{ST::position, ST::position, ST::velocity, ST::velocity, ST::turn_rate};
+  using S = StateName;
+  using StateT = State<S::position, S::position, S::velocity, S::velocity, S::turn_rate>;
+
   /** (Nearly) Coordinated Turn Model in 2D. (Nearly constant speed, nearly constant turn rate)
    * State = [x, y, x_dot, y_dot, omega]
    * @param std_vel Standard deviation of velocity

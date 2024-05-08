@@ -11,10 +11,10 @@ protected:
   using ImmModel_ = vortex::models::ImmModel<DynMod1_, DynMod2_>;
   using IMMIPDA_ = vortex::filter::IMMIPDA<ImmModel_, SensMod_>;
 
-  using ST = vortex::models::StateType;
+  using S = vortex::StateName;
 
   IMMIPDA()
-      : imm_model_(jump_matrix, hold_times, DynMod1_(0.5), DynMod2_(0.5), state_names)
+      : imm_model_(jump_matrix, hold_times, DynMod1_(0.5), DynMod2_(0.5))
       , sensor_model_(2)
       , config_{.pdaf =
                     {
@@ -31,13 +31,12 @@ protected:
                         .update_existence_probability_on_no_detection = true,
                     },
                 .immipda = {
-                    .states_min_max = {{ST::position, {0.0, 100.0}}, {ST::velocity, {-100.0, 100.0}}},
+                    .states_min_max = {{S::position, {0.0, 100.0}}, {S::velocity, {-100.0, 100.0}}},
                 }} {};
 
   double dt_ = 1;
   Eigen::Matrix2d jump_matrix{{0.0, 1.0}, {1.0, 0.0}};
   Eigen::Vector2d hold_times{100.0, 100.0};
-  ImmModel_::StateNames state_names = {{ST::position, ST::velocity}, {ST::position, ST::position, ST::velocity, ST::velocity}};
 
   ImmModel_ imm_model_;
   SensMod_ sensor_model_;
