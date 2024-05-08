@@ -83,7 +83,10 @@ public:
    */
   static GaussTuple_x mixing(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs, const StateMap &states_min_max = {})
   {
-    return mix_components(x_est_prevs, mixing_probs, states_min_max, std::make_index_sequence<N_MODELS>{});
+    return [&]<size_t... s_k>(std::index_sequence<s_k...>) -> GaussTuple_x {
+      return {mix_one_component<s_k>(x_est_prevs, mixing_probs.col(s_k), states_min_max)...};
+    }(std::make_index_sequence<N_MODELS>{});
+
   }
 
   /**
@@ -254,21 +257,6 @@ public:
     }
   }
 
-private:
-  /** Helper function to mix the components (modes) of the IMM filter
-   * @tparam model_indices
-   * @param x_est_prevs Gaussians from previous time step
-   * @param mixing_probs Mixing probabilities
-   * @param states_min_max The minimum and maximum value each state can take
-   * @return std::tuple<Gauss_x<model_indices>...>
-   */
-  template <size_t... model_indices>
-  static std::tuple<typename T<model_indices>::Gauss_x...> mix_components(const GaussTuple_x &x_est_prevs, const Mat_nn &mixing_probs,
-                                                                          const StateMap &states_min_max, std::integer_sequence<size_t, model_indices...>)
-  {
-    return {mix_one_component<model_indices>(x_est_prevs, mixing_probs.col(model_indices), states_min_max)...};
-  }
-
   /** Helper function to mix one component (mode) of the IMM filter. It mixes all the components with the target model.
    * @tparam target_model_index The model to mix the other models into
    * @param x_est_prevs Gaussians from previous time step
@@ -280,24 +268,12 @@ private:
   template <size_t target_model_index>
   static T<target_model_index>::Gauss_x mix_one_component(const GaussTuple_x &x_est_prevs, const Vec_n &weights, const StateMap &states_min_max = {})
   {
-    constexpr size_t N_DIM_x = ImmModelT::N_DIMS_x.at(target_model_index);
-    using GaussMix_x         = prob::GaussianMixture<N_DIM_x>;
-    auto moment_based_preds  = prepare_models<target_model_index>(x_est_prevs, states_min_max, std::make_index_sequence<N_MODELS>{});
-    return GaussMix_x{weights, moment_based_preds}.reduce();
-  }
+    auto moment_based_preds =
+        [&]<size_t... mixing_model_indices>(std::index_sequence<mixing_model_indices...>) -> std::array<typename T<target_model_index>::Gauss_x, N_MODELS> {
+      return {prepare_mixing_model<target_model_index, mixing_model_indices>(x_est_prevs, states_min_max)...};
+    }(std::make_index_sequence<N_MODELS>{});
 
-  /** Helper function to prepare the models for mixing in case of mismatching dimensions or state names
-   * @tparam target_model_index The model to mix the other models into
-   * @tparam mixing_model_indices The models to mix into the target model
-   * @param x_est_prevs Gaussians from previous time step
-   * @param states_min_max The minimum and maximum value each state can take
-   * @return std::array<Gauss_x<target_model_index>, N_MODELS>
-   */
-  template <size_t target_model_index, size_t... mixing_model_indices>
-  static std::array<typename T<target_model_index>::Gauss_x, N_MODELS> prepare_models(const GaussTuple_x &x_est_prevs, const StateMap &states_min_max,
-                                                                                      std::integer_sequence<size_t, mixing_model_indices...>)
-  {
-    return {prepare_mixing_model<target_model_index, mixing_model_indices>(x_est_prevs, states_min_max)...};
+    return typename T<target_model_index>::GaussMix_x{weights, moment_based_preds}.reduce();
   }
 
   /**
@@ -358,42 +334,6 @@ private:
     // Set the states and covariances that are not in the target model to 0
     x = x.cwiseProduct(matching_states_vec);
     P = P.cwiseProduct(matching_states_mat);
-
-    // using TargetState = typename DynModT<target_model_index>::StateT;
-    // using MixingState = typename DynModT<mixing_model_index>::StateT;
-
-    // [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-    //   (
-    //       [&]<std::size_t i>(std::integral_constant<std::size_t, i>) {
-    //         constexpr auto target_state_map = TargetState::state_loc(target_state_names.at(i));
-
-    //         if (i < MixingState::UNIQUE_STATES_COUNT) {
-    //           constexpr auto mixing_state_map = MixingState::state_loc(mixing_state_names.at(std::min(i, MixingState::UNIQUE_STATES_COUNT - 1)));
-    //           if (target_state_map == mixing_state_map) {
-    //             return; // Skip the rest of the loop
-    //           }
-    //         }
-    //         constexpr StateName state_name = target_state_map.name;
-    //         constexpr size_t start_index   = target_state_map.start_index;
-    //         constexpr size_t end_index     = target_state_map.end_index;
-    //         constexpr size_t size          = target_state_map.size();
-
-    //         if (!states_min_max.contains(state_name)) {
-    //           x.template segment<size>(start_index) = TargetState{target_state}.template mean_of<state_name>();
-    //           P.template block<size, size>(start_index, start_index) =
-    //               TargetState{target_state}.template cov_of<state_name>() * 10; // More uncertainty for missing states
-    //           return; // Skip the rest of the loop
-    //         }
-
-    //         auto [min, max] = states_min_max.at(state_name);
-    //         Uniform initial_estimate{min, max};
-    //         for (size_t j : std::ranges::views::iota(start_index, end_index)) {
-    //           x(j)    = initial_estimate.mean();
-    //           P(j, j) = initial_estimate.cov();
-    //         }
-    //       }(std::integral_constant<std::size_t, Is>{}),
-    //       ...);
-    // }(std::make_index_sequence<TargetState::UNIQUE_STATES_COUNT>{}); // Loop over the unique state names
 
     for (size_t i = 0; i < N_DIM_target; i++) {
       if (matching_states_vec(i))

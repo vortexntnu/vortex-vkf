@@ -46,8 +46,7 @@ private:
 };
 
 /** (Nearly) Constant Position Model
- * State x = [pos], where pos is a `n_spatial_dim`-dimensional vector
- * @tparam n_spatial_dim Number of spatial dimensions
+ * State x = [position, position]
  */
 class ConstantPosition : public interface::DynamicModelLTV<2, UNUSED, 2> {
   using Parent = interface::DynamicModelLTV<2, UNUSED, 2>;
@@ -104,8 +103,7 @@ private:
 };
 
 /** (Nearly) Constant Velocity Model.
- * State x = [pos, vel], where pos and vel are `n_spatial_dim`-dimensional vectors
- * @tparam n_spatial_dim Number of spatial dimensions
+ * State x = [position, position, velocity, velocity]
  */
 class ConstantVelocity : public interface::DynamicModelLTV<4, UNUSED, 2> {
   using Parent = interface::DynamicModelLTV<4, UNUSED, 2>;
@@ -186,8 +184,7 @@ private:
 };
 
 /** (Nearly) Constant Acceleration Model.
- * State vector x = [pos, vel, acc], where pos, vel and acc are `n_spatial_dim`-dimensional vectors
- * @tparam n_spatial_dim Number of spatial dimensions
+ * State vector x = [position, position, velocity, velocity, acceleration, acceleration]
  */
 class ConstantAcceleration : public interface::DynamicModelLTV<3 * 2, UNUSED, 2 * 2> {
 public:
@@ -265,7 +262,7 @@ private:
 };
 
 /** Coordinated Turn Model in 2D.
- * x = [x_pos, y_pos, x_vel, y_vel, turn_rate]
+ * x = [position, position, velocity, velocity, turn_rate]
  */
 class CoordinatedTurn : public interface::DynamicModelCTLTV<5, UNUSED, 3> {
 public:
