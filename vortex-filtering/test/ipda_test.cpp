@@ -35,10 +35,10 @@ TEST(IPDA, ipda_runs)
   ConstantVelocity dyn_model{1.0};
   IdentitySensorModel sen_model{1.0};
 
-  auto [x_final, existence_pred, x_pred, z_pred, x_updated, gated_measurements] =
-      IPDA::step(dyn_model, sen_model, 1.0, x_est, z_meas, last_detection_probability, config);
+  auto [state_post, x_pred, z_pred, x_updated, gated_measurements] =
+      IPDA::step(dyn_model, sen_model, 1.0, {x_est, last_detection_probability}, z_meas, config);
 
-  std::cout << "Existence probability: " << existence_pred << std::endl;
+  std::cout << "Existence probability: " << state_post.existence_probability << std::endl;
 }
 
 TEST(IPDA, get_existence_probability_is_calculating)
