@@ -185,12 +185,17 @@ TEST(PDAF, apply_gate_is_separating_correctly)
   EXPECT_FALSE(gated(1));
 
 #if (GNUPLOT_ENABLE)
+  std::vector<std::pair<double, double>> meas_vec;
+  for (Eigen::Vector2d m : meas.colwise()) {
+    meas_vec.push_back({m(0), m(1)});
+  }
+
   Gnuplot gp;
   gp << "set xrange [-8:8]\nset yrange [-8:8]\n";
   gp << "set size ratio -1\n";
   gp << "set style circle radius 0.05\n";
   gp << "plot '-' with circles title 'Samples' linecolor rgb 'red' fs transparent solid 1 noborder\n";
-  gp.send1d(meas);
+  gp.send1d(meas_vec);
 
   int object_counter = 0;
 
@@ -198,7 +203,7 @@ TEST(PDAF, apply_gate_is_separating_correctly)
      << " size " << 0.05 << " fs empty border lc rgb 'green'\n";
   gp << "replot\n";
 
-  vortex::utils::Ellipse prediction = vortex::plotting::gauss_to_ellipse(z_pred, mahalanobis_threshold);
+  vortex::utils::Ellipse prediction = vortex::plotting::gauss_to_ellipse(z_pred, config.pdaf.mahalanobis_threshold);
 
   gp << "set object " << ++object_counter << " ellipse center " << prediction.x() << "," << prediction.y() << " size "
      << prediction.major_axis() << "," << prediction.minor_axis() << " angle " << prediction.angle_deg()
@@ -229,7 +234,7 @@ TEST(PDAF, apply_gate_is_separating_correctly_2)
   gp << "set size ratio -1\n";
   gp << "set style circle radius 0.05\n";
   gp << "plot '-' with circles title 'Samples' linecolor rgb 'red' fs transparent solid 1 noborder\n";
-  gp.send1d(meas);
+  gp.send1d(meas_vec);
 
   int object_counter = 0;
 
@@ -237,7 +242,7 @@ TEST(PDAF, apply_gate_is_separating_correctly_2)
      << " size " << 0.05 << " fs empty border lc rgb 'green'\n";
   gp << "replot\n";
 
-  vortex::utils::Ellipse prediction = vortex::plotting::gauss_to_ellipse(z_pred, mahalanobis_threshold);
+  vortex::utils::Ellipse prediction = vortex::plotting::gauss_to_ellipse(z_pred, config.pdaf.mahalanobis_threshold);
 
   gp << "set object " << ++object_counter << " ellipse center " << prediction.x() << "," << prediction.y() << " size "
      << prediction.major_axis() << "," << prediction.minor_axis() << " angle " << prediction.angle_deg()
@@ -275,7 +280,7 @@ TEST(PDAF, predict_next_state_is_calculating)
 
   gp << "set style circle radius 0.05\n";
   gp << "plot '-' with circles title 'Samples' linecolor rgb 'red' fs transparent solid 1 noborder\n";
-  gp.send1d(meas);
+  gp.send1d(meas_vec);
 
   int object_counter = 0;
 
@@ -344,7 +349,7 @@ TEST(PDAF, predict_next_state_2)
 
   gp << "set style circle radius 0.05\n";
   gp << "plot '-' with circles title 'Samples' linecolor rgb 'red' fs transparent solid 1 noborder\n";
-  gp.send1d(meas);
+  gp.send1d(meas_vec);
 
   int object_counter = 0;
 
@@ -411,7 +416,7 @@ TEST(PDAF, predict_next_state_3_1)
 
   gp << "set style circle radius 0.05\n";
   gp << "plot '-' with circles title 'Samples' linecolor rgb 'red' fs transparent solid 1 noborder\n";
-  gp.send1d(meas);
+  gp.send1d(meas_vec);
 
   int object_counter = 0;
 
@@ -480,7 +485,7 @@ TEST(PDAF, predict_next_state_3_2)
 
   gp << "set style circle radius 0.05\n";
   gp << "plot '-' with circles title 'Samples' linecolor rgb 'red' fs transparent solid 1 noborder\n";
-  gp.send1d(meas);
+  gp.send1d(meas_vec);
 
   int object_counter = 0;
 
@@ -552,7 +557,7 @@ TEST(PDAF, predict_next_state_3_3)
 
   gp << "set style circle radius 0.05\n";
   gp << "plot '-' with circles title 'Samples' linecolor rgb 'red' fs transparent solid 1 noborder\n";
-  gp.send1d(meas);
+  gp.send1d(meas_vec);
 
   int object_counter = 0;
 
@@ -628,7 +633,7 @@ TEST(PDAF, predict_next_state_3_4)
 
   gp << "set style circle radius 0.05\n";
   gp << "plot '-' with circles title 'Samples' linecolor rgb 'red' fs transparent solid 1 noborder\n";
-  gp.send1d(meas);
+  gp.send1d(meas_vec);
 
   int object_counter = 0;
 

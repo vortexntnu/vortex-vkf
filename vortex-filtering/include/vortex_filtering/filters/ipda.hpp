@@ -43,14 +43,9 @@ public:
 
   using T = Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 
-  using EKF = vortex::filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
-
-  using Gauss_z    = typename T::Gauss_z;
-  using Gauss_x    = typename T::Gauss_x;
-  using Vec_z      = typename T::Vec_z;
-  using GaussMix_x = typename T::GaussMix_x;
   using Arr_zXd    = Eigen::Array<double, N_DIM_z, Eigen::Dynamic>;
   using Arr_1Xb    = Eigen::Array<bool, 1, Eigen::Dynamic>;
+  using EKF        = vortex::filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
   using PDAF       = vortex::filter::PDAF<DynModT, SensModT>;
 
   IPDA() = delete;
@@ -58,6 +53,19 @@ public:
   struct Config {
     config::PDAF pdaf;
     config::IPDA ipda;
+  };
+
+  struct State {
+    T::Gauss_x x_estimate;
+    double existence_probability;
+  };
+
+  struct Output {
+    State state;
+    T::Gauss_x x_prediction;
+    T::Gauss_z z_prediction;
+    std::vector<typename T::Gauss_x> x_updates;
+    Arr_1Xb gated_measurements;
   };
 
   static double existence_prediction(double existence_prob_est, double prob_of_survival)
@@ -75,7 +83,7 @@ public:
    * @param config The configuration for the IPDA.
    * @return The existence probability.
    */
-  static double existence_prob_update(const Arr_zXd &z_measurements, Gauss_z &z_pred, double existence_prob_pred, Config config)
+  static double existence_prob_update(const Arr_zXd &z_measurements, T::Gauss_z &z_pred, double existence_prob_pred, Config config)
   {
     double r_kgkm1 = existence_prob_pred;
     double P_d     = config.pdaf.prob_of_detection;
@@ -83,7 +91,7 @@ public:
 
     // predicted measurement probability
     double z_pred_prob = 0.0;
-    for (const Vec_z &z_k : z_measurements.colwise()) {
+    for (const typename T::Vec_z &z_k : z_measurements.colwise()) {
       z_pred_prob += z_pred.pdf(z_k);
     }
 
@@ -120,8 +128,7 @@ public:
    * @param config The configuration for the IPDA.
    * @return The clutter intensity.
    */
-  static double estimate_clutter_intensity(const Gauss_z &z_pred, double predicted_existence_probability,
-                                           double num_measurements, Config config)
+  static double estimate_clutter_intensity(const T::Gauss_z &z_pred, double predicted_existence_probability, double num_measurements, Config config)
   {
     size_t m_k = num_measurements;
     double P_d = config.pdaf.prob_of_detection;
@@ -153,16 +160,16 @@ public:
   step(const DynModT &dyn_mod, const SensModT &sens_mod, double timestep, const Gauss_x &x_est, const std::vector<Vec_z> &z_meas, double existence_prob_est,
        IPDA::Config &config)
   {
-    double existence_prob_pred = existence_prediction(existence_prob_est, config.ipda.prob_of_survival);
+    double existence_prob_pred = existence_prediction(state_est_prev.existence_probability, config.ipda.prob_of_survival);
 
     if (config.ipda.estimate_clutter) {
-      Gauss_z z_pred;
-      std::tie(std::ignore, z_pred) = EKF::predict(dyn_mod, sens_mod, timestep, x_est);
+      typename T::Gauss_z z_pred;
+      std::tie(std::ignore, z_pred) = EKF::predict(dyn_mod, sens_mod, timestep, state_est_prev.x_estimate);
       config.pdaf.clutter_intensity = estimate_clutter_intensity(z_pred, existence_prob_pred, z_measurements.cols(), config);
     }
 
     auto [x_post, x_pred, z_pred, x_upd, gated_measurements] =
-        PDAF::step(dyn_mod, sens_mod, timestep, x_est, z_measurements, {config.pdaf});
+        PDAF::step(dyn_mod, sens_mod, timestep, state_est_prev.x_estimate, z_measurements, {config.pdaf});
 
     Arr_zXd z_meas_inside = PDAF::get_inside_measurements(z_measurements, gated_measurements);
 
@@ -170,7 +177,18 @@ public:
     if (z_measurements.cols() == 0 && !config.ipda.update_existence_probability_on_no_detection) {
       existence_probability_upd = existence_prob_update(z_meas_inside, z_pred, existence_prob_pred, config);
     }
-    return {x_post, existence_probability_upd, x_pred, z_pred, x_upd, gated_measurements};
+    // clang-format off
+    return {
+      .state = {
+        .x_estimate            = x_post,
+        .existence_probability = existence_probability_upd,
+      },
+      .x_prediction       = x_pred,
+      .z_prediction       = z_pred,
+      .x_updates          = x_upd,
+      .gated_measurements = gated_measurements
+    };
+    // clang-format on
   }
 };
 }  // namespace vortex::filter

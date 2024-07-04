@@ -50,14 +50,15 @@ public:
 
   using T = Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 
-  using EKF            = vortex::filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
-  using Gauss_z        = typename T::Gauss_z;
-  using Gauss_x        = typename T::Gauss_x;
-  using Vec_z          = typename T::Vec_z;
-  using Arr_zXd        = Eigen::Array<double, N_DIM_z, Eigen::Dynamic>;
-  using Arr_1Xb        = Eigen::Array<bool, 1, Eigen::Dynamic>;
-  using StatesXd       = std::vector<Gauss_x>;
-  using GaussMixZd     = vortex::prob::GaussianMixture<N_DIM_x>;
+  using Gauss_z    = typename T::Gauss_z;
+  using Gauss_x    = typename T::Gauss_x;
+  using Vec_z      = typename T::Vec_z;
+  using GaussMix_x = typename T::GaussMix_x;
+  using GaussMix_z = typename T::GaussMix_z; 
+  using Arr_zXd    = Eigen::Array<double, N_DIM_z, Eigen::Dynamic>;
+  using Arr_1Xb    = Eigen::Array<bool, 1, Eigen::Dynamic>;
+  using Gauss_xX   = std::vector<Gauss_x>;
+  using EKF        = vortex::filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 
   struct Config
   {
@@ -66,6 +67,22 @@ public:
     double max_gate_threshold = HUGE_VAL;
     double prob_of_detection = 1.0;
     double clutter_intensity = 1.0;
+  };
+
+  struct Output {
+    Gauss_x x_;
+    Gauss_x x_prediction;
+    Gauss_z z_prediction;
+    Gauss_xX x_updates;
+    Arr_1Xb gated_measurements;
+  };
+
+  struct Output {
+    Gauss_x x_;
+    Gauss_x x_prediction;
+    Gauss_z z_prediction;
+    Gauss_xX x_updates;
+    Arr_1Xb gated_measurements;
   };
 
   PDAF() = delete;
@@ -85,6 +102,8 @@ public:
   static std::tuple<Gauss_x, MeasurementsZd, MeasurementsZd, Gauss_x, Gauss_z, StatesXd>
   step(const DynModT& dyn_model, const SensModT& sen_model, double timestep, const Gauss_x& x_est,
        const MeasurementsZd& z_meas, const Config& config)
+  static Output step(const DynModT &dyn_model, const SensModT &sen_model, double timestep, const Gauss_x &x_est, const Arr_zXd &z_measurements,
+                     const Config &config)
   {
     auto [x_pred, z_pred] = EKF::predict(dyn_model, sen_model, timestep, x_est);
     auto [inside, outside] =
@@ -94,6 +113,9 @@ public:
     for (const auto& measurement : inside)
     {
       x_updated.push_back(EKF::update(sen_model, x_pred, z_pred, measurement));
+    Gauss_xX x_updated;
+    for (const auto &z_k : inside_meas.colwise()) {
+      x_updated.push_back(EKF::update(sen_model, x_pred, z_pred, z_k));
     }
 
     Gauss_x x_final =
@@ -147,15 +169,13 @@ public:
                                       const Gauss_z& z_pred, const Gauss_x& x_pred, double prob_of_detection,
                                       double clutter_intensity)
   {
-    StatesXd states;
+    Gauss_xX states;
     states.push_back(x_pred);
     states.insert(states.end(), updated_states.begin(), updated_states.end());
 
     Eigen::VectorXd weights = get_weights(z_measurements, z_pred, prob_of_detection, clutter_intensity);
 
-    GaussMixXd gaussian_mixture(weights, states);
-
-    return gaussian_mixture.reduce();
+    return GaussMix_x{weights, states}.reduce();
   }
 
   /**
