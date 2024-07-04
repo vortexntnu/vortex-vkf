@@ -20,11 +20,11 @@ struct StateMinMax {
 using StateMap = std::map<StateName, StateMinMax>;
 
 struct StateLocation {
-StateName name;
-size_t start_index;
-size_t end_index;
-constexpr size_t size() const { return end_index - start_index; }
-bool operator==(const StateLocation &other) const { return name == other.name && start_index == other.start_index && end_index == other.end_index; }
+  StateName name;
+  size_t start_index;
+  size_t end_index;
+  constexpr size_t size() const { return end_index - start_index; }
+  bool operator==(const StateLocation &other) const { return name == other.name && start_index == other.start_index && end_index == other.end_index; }
 };
 
 template <typename R> constexpr auto index_of(const R &range, StateName needle)
@@ -125,7 +125,7 @@ public:
     requires(has_state_name(S))
   void set_mean_of(const T_n<S>::Vec_n &mean)
   {
-    constexpr StateLocation sm                                    = state_loc(S);
+    constexpr StateLocation sm                               = state_loc(S);
     this->mean().template segment<sm.size()>(sm.start_index) = mean;
   }
 
@@ -141,11 +141,12 @@ public:
     requires(has_state_name(S))
   void set_cov_of(const T_n<S>::Mat_nn &cov)
   {
-    constexpr StateLocation sm                                                            = state_loc(S);
+    constexpr StateLocation sm                                                       = state_loc(S);
     this->cov().template block<sm.size(), sm.size()>(sm.start_index, sm.start_index) = cov;
   }
 
   T::Gauss_n gauss() const { return static_cast<typename T::Gauss_n>(*this); }
+
   template <StateName S>
     requires(has_state_name(S))
   T_n<S>::Gauss_n gauss_of() const

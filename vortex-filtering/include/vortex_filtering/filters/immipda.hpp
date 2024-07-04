@@ -121,7 +121,7 @@ public:
     }
 
     // Calculate the hypothesis-conditional likelihood (7.61)
-    // TODO: Find what the hypothesis-conditional likelihood is when a_k = 0
+    // TODO: Verify what the hypothesis-conditional likelihood is when a_k = 0
     // (for now assume it is lambda(1-P_D) for all s_k)
     Arr_nXd hypothesis_conditional_likelyhood(ImmModelT::N_MODELS, m_k_inside + 1);
     for (size_t s_k = 0; const auto &z_pred_s_k : z_est_preds) {
