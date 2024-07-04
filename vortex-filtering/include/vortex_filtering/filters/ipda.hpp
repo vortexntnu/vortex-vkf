@@ -1,22 +1,11 @@
-/**
- * @file ipda.hpp
- * @author Tristan Wolfram
- * @brief File for the IPDA filter
- * @version 1.0
- * @date 2024-05-07
- *
- * @copyright Copyright (c) 2024
- *
- */
 #pragma once
-#include <vector>
 #include <Eigen/Dense>
+#include <vector>
 #include <vortex_filtering/filters/pdaf.hpp>
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 
-namespace vortex::filter
-{
+namespace vortex::filter {
 
 namespace config {
 struct IPDA {
@@ -26,14 +15,7 @@ struct IPDA {
 };
 } // namespace config
 
-/**
- * @brief The IPDA filter class
- * @tparam DynModT The dynamic model type
- * @tparam SensModT The sensor model type
- */
-template <concepts::DynamicModelLTVWithDefinedSizes DynModT, concepts::SensorModelLTVWithDefinedSizes SensModT>
-class IPDA
-{
+template <concepts::DynamicModelLTVWithDefinedSizes DynModT, concepts::SensorModelLTVWithDefinedSizes SensModT> class IPDA {
 public:
   static constexpr int N_DIM_x = DynModT::N_DIM_x;
   static constexpr int N_DIM_z = SensModT::N_DIM_z;
@@ -43,10 +25,10 @@ public:
 
   using T = Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 
-  using Arr_zXd    = Eigen::Array<double, N_DIM_z, Eigen::Dynamic>;
-  using Arr_1Xb    = Eigen::Array<bool, 1, Eigen::Dynamic>;
-  using EKF        = vortex::filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
-  using PDAF       = vortex::filter::PDAF<DynModT, SensModT>;
+  using Arr_zXd = Eigen::Array<double, N_DIM_z, Eigen::Dynamic>;
+  using Arr_1Xb = Eigen::Array<bool, 1, Eigen::Dynamic>;
+  using EKF     = vortex::filter::EKF_t<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
+  using PDAF    = vortex::filter::PDAF<DynModT, SensModT>;
 
   IPDA() = delete;
 
@@ -143,22 +125,8 @@ public:
     return 1 / V_k * (m_k - r_k * P_d); // (7.31)
   }
 
-  /**
-   * @brief The IPDAF step function. Gets following parameters and calculates the next state with the probablity of
-   * existence.
-   * @param dyn_model The dynamic model.
-   * @param sen_model The sensor model.
-   * @param timestep The timestep.
-   * @param x_est The estimated state.
-   * @param z_meas The percieved measurements.
-   * @param existence_prob The estimated survival probability (current state).
-   * @param config configuration data - see Config struct of PDAF.
-   * @return A tuple containing the final state, the existence probability, the inside (of the gate) measurements, the
-   * outside (of the gate) measurements, the predicted state, the predicted measurements, and the updated state.
-   */
-  static std::tuple<Gauss_x, double, std::vector<Vec_z>, std::vector<Vec_z>, Gauss_x, Gauss_z, std::vector<Gauss_x>>
-  step(const DynModT &dyn_mod, const SensModT &sens_mod, double timestep, const Gauss_x &x_est, const std::vector<Vec_z> &z_meas, double existence_prob_est,
-       IPDA::Config &config)
+  static Output step(const DynModT &dyn_mod, const SensModT &sens_mod, double timestep, const State &state_est_prev, const Arr_zXd &z_measurements,
+                     Config &config)
   {
     double existence_prob_pred = existence_prediction(state_est_prev.existence_probability, config.ipda.prob_of_survival);
 
@@ -191,4 +159,4 @@ public:
     // clang-format on
   }
 };
-}  // namespace vortex::filter
+} // namespace vortex::filter
