@@ -55,6 +55,17 @@ public:
 
   PDAF() = delete;
 
+  /**
+   * @brief Perform one step of the Probabilistic Data Association Filter
+   * 
+   * @param dyn_model The dynamic model
+   * @param sen_model The sensor model
+   * @param timestep Time step in seconds
+   * @param x_est The estimated state
+   * @param z_measurements Array of measurements
+   * @param config Configuration for the PDAF
+   * @return `Output` The result of the PDAF step and some intermediate results
+   */
   static Output step(const DynModT &dyn_model, const SensModT &sen_model, double timestep, const Gauss_x &x_est, const Arr_zXd &z_measurements,
                      const Config &config)
   {
@@ -71,6 +82,14 @@ public:
     return {x_final, x_pred, z_pred, x_updated, gated_measurements};
   }
 
+  /**
+   * @brief Apply gate to the measurements
+   * 
+   * @param z_measurements Array of measurements
+   * @param z_pred Predicted measurement
+   * @param config Configuration for the PDAF
+   * @return `Arr_1Xb` Indeces of the measurements that are inside the gate
+   */
   static Arr_1Xb apply_gate(const Arr_zXd &z_measurements, const Gauss_z &z_pred, Config config)
   {
     double mahalanobis_threshold = config.pdaf.mahalanobis_threshold;
@@ -88,6 +107,13 @@ public:
     return gated_measurements;
   }
 
+  /**
+   * @brief Get the measurements that are inside the gate
+   * 
+   * @param z_measurements Array of measurements
+   * @param gated_measurements Indeces of the measurements that are inside the gate
+   * @return `Arr_zXd` The measurements that are inside the gate
+   */
   static Arr_zXd get_inside_measurements(const Arr_zXd &z_measurements, const Arr_1Xb &gated_measurements)
   {
     Arr_zXd inside_meas(N_DIM_z, gated_measurements.count());
@@ -100,7 +126,17 @@ public:
     return inside_meas;
   }
 
-  // Getting weighted average of the predicted states
+  /**
+   * @brief Get the weighted average of the states
+   * 
+   * @param z_measurements Array of measurements
+   * @param updated_states Array of updated states
+   * @param z_pred Predicted measurement
+   * @param x_pred Predicted state
+   * @param prob_of_detection Probability of detection
+   * @param clutter_intensity Clutter intensity
+   * @return `Gauss_x` The weighted average of the states
+   */
   static Gauss_x get_weighted_average(const Arr_zXd &z_measurements, const Gauss_xX &updated_states, const Gauss_z &z_pred, const Gauss_x &x_pred,
                                       double prob_of_detection, double clutter_intensity)
   {
@@ -113,7 +149,15 @@ public:
     return GaussMix_x{weights, states}.reduce();
   }
 
-  // Getting association probabilities according to textbook p. 123 "Corollary 7.3.3"
+  /**
+   * @brief Get the weights for the measurements
+   * 
+   * @param z_measurements Array of measurements
+   * @param z_pred Predicted measurement
+   * @param prob_of_detection Probability of detection
+   * @param clutter_intensity Clutter intensity
+   * @return `Eigen::VectorXd` The weights for the measurements
+   */
   static Eigen::VectorXd get_weights(const Arr_zXd &z_measurements, const Gauss_z &z_pred, double prob_of_detection, double clutter_intensity)
   {
     double lambda = clutter_intensity;
@@ -135,6 +179,14 @@ public:
     return weights;
   }
 
+  /**
+   * @brief Get association probabilities according to Corollary 7.3.3
+   * 
+   * @param z_likelyhoods Array of likelyhoods
+   * @param prob_of_detection Probability of detection
+   * @param clutter_intensity Clutter intensity
+   * @return `Eigen::VectorXd` The weights for the measurements
+   */
   static Eigen::ArrayXd association_probabilities(const Eigen::ArrayXd &z_likelyhoods, double prob_of_detection, double clutter_intensity)
   {
     size_t m_k    = z_likelyhoods.size();
