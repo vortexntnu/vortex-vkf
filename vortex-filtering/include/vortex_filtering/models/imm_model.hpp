@@ -191,6 +191,8 @@ private:
 /**
  * @brief Class for resizing the state vector of a sensor model to fit with multiple dynamic models.
  *
+ * @tparam n_dim_a The dimension of the desired state vector.
+ * @tparam SensModT The sensor model to use.
  */
 template <size_t n_dim_a, vortex::concepts::SensorModelWithDefinedSizes SensModT> class ImmSensorModel {
 public:
@@ -201,6 +203,11 @@ public:
 
   using T = Types_xzwa<N_DIM_x, N_DIM_z, N_DIM_w, N_DIM_a>;
 
+  /**
+   * @brief Construct a new Imm Sensor Model object
+   *
+   * @param sensor_model The sensor model to use. Must have a copy constructor.
+   */
   ImmSensorModel(SensModT sensor_model)
       : sensor_model_(sensor_model)
   {
@@ -215,6 +222,12 @@ private:
   SensModT sensor_model_;
 };
 
+/**
+ * @brief Class for resizing the state vector of a sensor model to fit with multiple dynamic models.
+ * 
+ * @tparam n_dim_a The dimension of the desired state vector.
+ * @tparam SensModT The sensor model to use. 
+ */
 template <size_t n_dim_a, vortex::concepts::SensorModelLTVWithDefinedSizes SensModT> class ImmSensorModelLTV {
 public:
   static constexpr int N_DIM_x = SensModT::N_DIM_x;
@@ -224,6 +237,11 @@ public:
 
   using T = Types_xzwa<N_DIM_x, N_DIM_z, N_DIM_w, N_DIM_a>;
 
+  /**
+   * @brief Construct a new Imm Sensor Model LTV object
+   * 
+   * @param sensor_model The sensor model to use. Must have a copy constructor.
+   */
   ImmSensorModelLTV(SensModT sensor_model)
       : sensor_model_(sensor_model)
   {
