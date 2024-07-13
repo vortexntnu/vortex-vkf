@@ -5,6 +5,7 @@
 #include <array>
 #include <iostream>
 #include <map>
+#include <type_traits>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 #include <vortex_filtering/types/type_aliases.hpp>
 
@@ -17,8 +18,13 @@ struct StateMinMax {
   double min;
   double max;
 };
+
+template <typename StateName>
+  requires std::is_integral_v<StateName> || std::is_enum_v<StateName>
 using StateMap = std::map<StateName, StateMinMax>;
 
+template <typename StateName>
+  requires std::is_integral_v<StateName> || std::is_enum_v<StateName>
 struct StateLocation {
   StateName name;
   size_t start_index;
@@ -27,7 +33,7 @@ struct StateLocation {
   bool operator==(const StateLocation &other) const { return name == other.name && start_index == other.start_index && end_index == other.end_index; }
 };
 
-template <typename R> constexpr auto index_of(const R &range, StateName needle)
+template <typename T, typename R> constexpr auto index_of(const R &range, T needle)
 {
   auto it = std::ranges::find(range, needle);
   if (it == std::ranges::end(range))
@@ -35,13 +41,16 @@ template <typename R> constexpr auto index_of(const R &range, StateName needle)
   return std::ranges::distance(std::ranges::begin(range), it);
 }
 
-template <StateName... Sn> class State : public vortex::prob::MultiVarGauss<sizeof...(Sn)> {
+template <typename StateName, StateName... Sn>
+  requires std::is_integral_v<StateName> || std::is_enum_v<StateName>
+class State : public vortex::prob::MultiVarGauss<sizeof...(Sn)> {
 public:
   static constexpr size_t N_STATES = sizeof...(Sn);
 
   static constexpr std::array<StateName, N_STATES> STATE_NAMES = {Sn...};
 
   using T = vortex::Types_n<N_STATES>;
+  using StateLoc = StateLocation<StateName>;
 
   State(const T::Vec_n &mean, const T::Mat_nn &cov)
       : vortex::prob::MultiVarGauss<N_STATES>(mean, cov)
@@ -88,8 +97,8 @@ public:
     return unique_state_names;
   }();
 
-  static constexpr std::array<StateLocation, UNIQUE_STATES_COUNT> STATE_MAP = []() {
-    std::array<StateLocation, UNIQUE_STATES_COUNT> state_map = {};
+  static constexpr std::array<StateLoc, UNIQUE_STATES_COUNT> STATE_MAP = []() {
+    std::array<StateLoc, UNIQUE_STATES_COUNT> state_map = {};
 
     size_t start_index = 0;
     size_t map_index   = 0;
@@ -107,7 +116,7 @@ public:
   static constexpr bool has_state_name(StateName S) { return std::find(UNIQUE_STATE_NAMES.begin(), UNIQUE_STATE_NAMES.end(), S) != UNIQUE_STATE_NAMES.end(); }
 
 public:
-  static constexpr StateLocation state_loc(StateName S) { return STATE_MAP[index_of(UNIQUE_STATE_NAMES, S)]; }
+  static constexpr StateLoc state_loc(StateName S) { return STATE_MAP[index_of(UNIQUE_STATE_NAMES, S)]; }
 
   template <StateName S>
     requires(has_state_name(S))
@@ -117,7 +126,7 @@ public:
     requires(has_state_name(S))
   T_n<S>::Vec_n mean_of() const
   {
-    constexpr StateLocation sm = state_loc(S);
+    constexpr StateLoc sm = state_loc(S);
     return this->mean().template segment<sm.size()>(sm.start_index);
   }
 
@@ -125,7 +134,7 @@ public:
     requires(has_state_name(S))
   void set_mean_of(const T_n<S>::Vec_n &mean)
   {
-    constexpr StateLocation sm                               = state_loc(S);
+    constexpr StateLoc sm                               = state_loc(S);
     this->mean().template segment<sm.size()>(sm.start_index) = mean;
   }
 
@@ -133,7 +142,7 @@ public:
     requires(has_state_name(S))
   T_n<S>::Mat_nn cov_of() const
   {
-    constexpr StateLocation sm = state_loc(S);
+    constexpr StateLoc sm = state_loc(S);
     return this->cov().template block<sm.size(), sm.size()>(sm.start_index, sm.start_index);
   }
 
@@ -141,7 +150,7 @@ public:
     requires(has_state_name(S))
   void set_cov_of(const T_n<S>::Mat_nn &cov)
   {
-    constexpr StateLocation sm                                                       = state_loc(S);
+    constexpr StateLoc sm                                                       = state_loc(S);
     this->cov().template block<sm.size(), sm.size()>(sm.start_index, sm.start_index) = cov;
   }
 
