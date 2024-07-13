@@ -47,10 +47,10 @@ public:
   static constexpr bool MIN_DIM_x   = std::min(N_DIMS_x);
   static constexpr size_t N_MODELS = sizeof...(DynModels);
 
+  using StateName    = decltype(DynModels::StateT::STATE_NAMES);
   using StateNames   = std::tuple<std::array<StateName, DynModels::N_DIM_x>...>;
 
   static constexpr StateNames ALL_STATE_NAMES = {{DynModels::StateT::STATE_NAMES}...};
-
 
   using DynModTuple  = std::tuple<DynModels...>;
   using GaussTuple_x = std::tuple<typename Types_x<DynModels::N_DIM_x>::Gauss_x...>;

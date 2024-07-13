@@ -8,7 +8,7 @@ TEST(State, typeChecks)
   using namespace vortex;
 
   using S      = StateName;
-  using StateT = State<S::position, S::velocity, S::velocity, S::acceleration>;
+  using StateT = State<S, S::position, S::velocity, S::velocity, S::acceleration>;
 
   ASSERT_EQ(StateT::N_STATES, 4);
   ASSERT_EQ(StateT::UNIQUE_STATES_COUNT, 3);
@@ -31,7 +31,7 @@ TEST(State, init)
   using namespace vortex;
 
   using S      = StateName;
-  using StateT = State<S::position, S::velocity, S::velocity, S::acceleration>;
+  using StateT = State<S, S::position, S::velocity, S::velocity, S::acceleration>;
 
   auto x = prob::Gauss4d::Standard();
   StateT state(x);
@@ -46,7 +46,7 @@ TEST(State, getMean)
   using namespace vortex;
 
   using S      = StateName;
-  using StateT = State<S::position, S::velocity, S::velocity, S::acceleration>;
+  using StateT = State<S, S::position, S::velocity, S::velocity, S::acceleration>;
 
   auto x = prob::Gauss4d::Standard();
   StateT state(x);
@@ -61,7 +61,7 @@ TEST(State, getCov)
   using namespace vortex;
 
   using S      = StateName;
-  using StateT = State<S::position, S::velocity, S::velocity, S::acceleration>;
+  using StateT = State<S, S::position, S::velocity, S::velocity, S::acceleration>;
 
   auto x = prob::Gauss4d::Standard();
   StateT state(x);
@@ -76,14 +76,15 @@ TEST(State, setMean)
   using namespace vortex;
 
   using S      = StateName;
-  using StateT = State<S::position, S::velocity, S::velocity, S::acceleration>;
+  using StateT = State<S, S::position, S::velocity, S::velocity, S::acceleration>;
 
   auto x = prob::Gauss4d::Standard();
   StateT state(x);
 
   StateT::T::Vec_n mean = StateT::T::Vec_n::Random();
   StateT::T::Mat_nn cov = StateT::T::Mat_nn::Random();
-  cov                   = 0.5 * (cov + cov.transpose()).eval();
+
+  cov = 0.5 * (cov + cov.transpose()).eval();
   cov += StateT::T::Mat_nn::Identity() * StateT::N_STATES;
 
   StateT::T::Gauss_n x_new = {mean, cov};
@@ -99,7 +100,7 @@ TEST(State, setCov)
   using namespace vortex;
 
   using S      = StateName;
-  using StateT = State<S::position, S::velocity, S::velocity, S::acceleration>;
+  using StateT = State<S, S::position, S::velocity, S::velocity, S::acceleration>;
 
   auto x = prob::Gauss4d::Standard();
   StateT state(x);

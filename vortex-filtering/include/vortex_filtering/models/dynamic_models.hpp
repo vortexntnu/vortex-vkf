@@ -59,7 +59,7 @@ public:
   using T = Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
 
   using S = StateName;
-  using StateT = State<S::position, S::position>;
+  using StateT = State<S, S::position, S::position>;
 
   /** Constant Position Model in 2D
    * x = [x, y]
@@ -119,7 +119,7 @@ public:
   using T = vortex::Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
 
   using S = StateName;
-  using StateT = State<S::position, S::position, S::velocity, S::velocity>;
+  using StateT = State<S, S::position, S::position, S::velocity, S::velocity>;
 
 
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
@@ -194,7 +194,7 @@ public:
   using T = vortex::Types_xv<N_STATES, N_DIM_v>;
 
   using S = StateName;
-  using StateT = State<S::position, S::position, S::velocity, S::velocity, S::acceleration, S::acceleration>;
+  using StateT = State<S, S::position, S::position, S::velocity, S::velocity, S::acceleration, S::acceleration>;
 
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
   using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
@@ -270,7 +270,7 @@ public:
   using T = vortex::Types_xv<N_DIM_x, N_DIM_v>;
 
   using S = StateName;
-  using StateT = State<S::position, S::position, S::velocity, S::velocity, S::turn_rate>;
+  using StateT = State<S, S::position, S::position, S::velocity, S::velocity, S::turn_rate>;
 
   /** (Nearly) Coordinated Turn Model in 2D. (Nearly constant speed, nearly constant turn rate)
    * State = [x, y, x_dot, y_dot, omega]
