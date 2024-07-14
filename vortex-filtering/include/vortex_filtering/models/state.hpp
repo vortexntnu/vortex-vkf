@@ -21,7 +21,9 @@ struct StateMinMax {
 
 template <typename StateName>
   requires std::is_integral_v<StateName> || std::is_enum_v<StateName>
-using StateMap = std::map<StateName, StateMinMax>;
+using StateMapT = std::map<StateName, StateMinMax>;
+
+using StateMap = StateMapT<StateName>;
 
 template <typename StateName>
   requires std::is_integral_v<StateName> || std::is_enum_v<StateName>
