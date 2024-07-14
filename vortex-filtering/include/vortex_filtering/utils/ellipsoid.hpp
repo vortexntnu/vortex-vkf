@@ -14,7 +14,7 @@ public:
 
   /** Construct a new Ellipsoid object
    * @param gauss n-dimensional Gaussian distribution
-   * @param scale_factor scale factor for the standard deviations
+   * @param scale_factor scale factor for the number of standard deviations (NB! This is slightly different from the ellipse scale factor)
    */
   Ellipsoid(T::Gauss_n gauss, double scale_factor = 1.0)
       : gauss_(gauss)
@@ -53,6 +53,9 @@ public:
     return eigen_vectors;
   }
 
+  /** Get the volume of the ellipsoid
+   * @return double
+   */
   double volume() const
   {
     constexpr double scaling  = std::pow(std::numbers::pi, n_dims / 2.0) / std::tgamma(n_dims / 2.0 + 1);
