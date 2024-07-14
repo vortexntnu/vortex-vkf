@@ -4,6 +4,7 @@
 #include <vortex_filtering/filters/pdaf.hpp>
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
+#include <vortex_filtering/utils/ellipsoid.hpp>
 
 namespace vortex::filter {
 
@@ -115,9 +116,7 @@ public:
     size_t m_k = num_measurements;
     double P_d = config.pdaf.prob_of_detection;
     double r_k = predicted_existence_probability;
-    // TODO: make this work for N_DIM_z /= 2
-    static_assert(N_DIM_z == 2);
-    double V_k = utils::Ellipse(z_pred, config.pdaf.mahalanobis_threshold).area(); // gate area
+    double V_k = utils::Ellipsoid<N_DIM_z>(z_pred, config.pdaf.mahalanobis_threshold).volume(); // gate area
 
     if (m_k == 0) {
       return 0.0;
