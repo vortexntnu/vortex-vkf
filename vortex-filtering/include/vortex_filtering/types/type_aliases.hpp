@@ -91,8 +91,6 @@
 namespace vortex {
 // Hover over the types in vscode to see the expanded types
 
-ONE_TYPE_STRUCT(n)
-
 ONE_TYPE_STRUCT(x)
 ONE_TYPE_STRUCT(z)
 ONE_TYPE_STRUCT(u)
