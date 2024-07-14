@@ -1,5 +1,6 @@
 #pragma once
 #include <Eigen/Dense>
+#include <numbers>
 #include <random>
 
 namespace vortex::prob {
@@ -40,7 +41,7 @@ public:
   {
     Vec_n diff      = x - mean();
     double exponent = -0.5 * diff.transpose() * cov_inv() * diff;
-    return std::exp(exponent) / std::sqrt(std::pow(2 * M_PI, size()) * cov().determinant());
+    return std::exp(exponent) / std::sqrt(std::pow(2 * std::numbers::pi, size()) * cov().determinant());
   }
 
   /** Calculate the log likelihood of x given the Gaussian.
@@ -52,7 +53,7 @@ public:
   {
     Vec_n diff      = x - mean();
     double exponent = -0.5 * diff.transpose() * cov_inv() * diff;
-    return exponent - 0.5 * std::log(std::pow(2 * M_PI, size()) * cov().determinant());
+    return exponent - 0.5 * std::log(std::pow(2 * std::numbers::pi, size()) * cov().determinant());
   }
 
   Vec_n mean() const { return mean_; }

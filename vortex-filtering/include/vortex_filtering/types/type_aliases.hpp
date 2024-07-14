@@ -4,7 +4,7 @@
 #include <vortex_filtering/probability/gaussian_mixture.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
-#define MATRIX_TYPES(t1, s1, t2, s2)                                                                                                                         \
+#define MATRIX_TYPES(t1, s1, t2, s2)                                                                                                                           \
   using Mat_##t1##t2 = Eigen::Matrix<double, s1, s2>;                                                                                                          \
   using Mat_##t2##t1 = Eigen::Matrix<double, s2, s1>;
 
@@ -16,17 +16,17 @@
   using Gauss_##t1    = vortex::prob::Gauss<s1>;                                                                                                               \
   using GaussMix_##t1 = vortex::prob::GaussMix<s1>;
 
-#define TWO_TYPES(t1, s1, t2, s2)                                                                                                                        \
-  ONE_TYPE(t1, s1)                                                                                                                                       \
-  ONE_TYPE(t2, s2)                                                                                                                                       \
+#define TWO_TYPES(t1, s1, t2, s2)                                                                                                                              \
+  ONE_TYPE(t1, s1)                                                                                                                                             \
+  ONE_TYPE(t2, s2)                                                                                                                                             \
   MATRIX_TYPES(t1, s1, t2, s2)
 
-#define THREE_TYPES(t1, s1, t2, s2, t3, s3)                                                                                                                 \
-  ONE_TYPE(t1, s1)                                                                                                                                       \
-  ONE_TYPE(t2, s2)                                                                                                                                       \
-  ONE_TYPE(t3, s3)                                                                                                                                       \
-  MATRIX_TYPES(t1, s1, t2, s2)                                                                                                                               \
-  MATRIX_TYPES(t1, s1, t3, s3)                                                                                                                               \
+#define THREE_TYPES(t1, s1, t2, s2, t3, s3)                                                                                                                    \
+  ONE_TYPE(t1, s1)                                                                                                                                             \
+  ONE_TYPE(t2, s2)                                                                                                                                             \
+  ONE_TYPE(t3, s3)                                                                                                                                             \
+  MATRIX_TYPES(t1, s1, t2, s2)                                                                                                                                 \
+  MATRIX_TYPES(t1, s1, t3, s3)                                                                                                                                 \
   MATRIX_TYPES(t2, s2, t3, s3)
 
 #define FOUR_TYPES(t1, s1, t2, s2, t3, s3, t4, s4)                                                                                                             \
@@ -41,21 +41,21 @@
   MATRIX_TYPES(t2, s2, t4, s4)                                                                                                                                 \
   MATRIX_TYPES(t3, s3, t4, s4)
 
-#define FIVE_TYPES(t1, s1, t2, s2, t3, s3, t4, s4, t5, s5)                                                                                                 \
-  ONE_TYPE(t1, s1)                                                                                                                                       \
-  ONE_TYPE(t2, s2)                                                                                                                                       \
-  ONE_TYPE(t3, s3)                                                                                                                                       \
-  ONE_TYPE(t4, s4)                                                                                                                                       \
-  ONE_TYPE(t5, s5)                                                                                                                                       \
-  MATRIX_TYPES(t1, s1, t2, s2)                                                                                                                               \
-  MATRIX_TYPES(t1, s1, t3, s3)                                                                                                                               \
-  MATRIX_TYPES(t1, s1, t4, s4)                                                                                                                               \
-  MATRIX_TYPES(t1, s1, t5, s5)                                                                                                                               \
-  MATRIX_TYPES(t2, s2, t3, s3)                                                                                                                               \
-  MATRIX_TYPES(t2, s2, t4, s4)                                                                                                                               \
-  MATRIX_TYPES(t2, s2, t5, s5)                                                                                                                               \
-  MATRIX_TYPES(t3, s3, t4, s4)                                                                                                                               \
-  MATRIX_TYPES(t3, s3, t5, s5)                                                                                                                               \
+#define FIVE_TYPES(t1, s1, t2, s2, t3, s3, t4, s4, t5, s5)                                                                                                     \
+  ONE_TYPE(t1, s1)                                                                                                                                             \
+  ONE_TYPE(t2, s2)                                                                                                                                             \
+  ONE_TYPE(t3, s3)                                                                                                                                             \
+  ONE_TYPE(t4, s4)                                                                                                                                             \
+  ONE_TYPE(t5, s5)                                                                                                                                             \
+  MATRIX_TYPES(t1, s1, t2, s2)                                                                                                                                 \
+  MATRIX_TYPES(t1, s1, t3, s3)                                                                                                                                 \
+  MATRIX_TYPES(t1, s1, t4, s4)                                                                                                                                 \
+  MATRIX_TYPES(t1, s1, t5, s5)                                                                                                                                 \
+  MATRIX_TYPES(t2, s2, t3, s3)                                                                                                                                 \
+  MATRIX_TYPES(t2, s2, t4, s4)                                                                                                                                 \
+  MATRIX_TYPES(t2, s2, t5, s5)                                                                                                                                 \
+  MATRIX_TYPES(t3, s3, t4, s4)                                                                                                                                 \
+  MATRIX_TYPES(t3, s3, t5, s5)                                                                                                                                 \
   MATRIX_TYPES(t4, s4, t5, s5)
 
 #define ONE_TYPE_STRUCT(t1)                                                                                                                                    \
@@ -96,6 +96,7 @@ ONE_TYPE_STRUCT(z)
 ONE_TYPE_STRUCT(u)
 ONE_TYPE_STRUCT(v)
 ONE_TYPE_STRUCT(w)
+ONE_TYPE_STRUCT(n)
 
 TWO_TYPES_STRUCT(x, z) // Sensor model without noise
 TWO_TYPES_STRUCT(x, v) // Dynamic model without input
