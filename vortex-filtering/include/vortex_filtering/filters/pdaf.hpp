@@ -166,7 +166,11 @@ public:
     Eigen::VectorXd weights(z_measurements.cols() + 1);
 
     // in case no measurement assosiates with the target
-    weights(0) = lambda * (1 - P_d);
+    if(lambda == 0.0 && z_measurements.cols() == 0) {
+      weights(0) = 1.0;
+    } else {
+      weights(0) = lambda * (1 - P_d);
+    }
 
     // measurements associating with the target
     for (size_t a_k = 1; const Vec_z &z_k : z_measurements.colwise()) {

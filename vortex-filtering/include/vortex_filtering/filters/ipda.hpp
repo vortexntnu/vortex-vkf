@@ -141,7 +141,7 @@ public:
     Arr_zXd z_meas_inside = PDAF::get_inside_measurements(z_measurements, gated_measurements);
 
     double existence_probability_upd = existence_prob_pred;
-    if (z_measurements.cols() == 0 && !config.ipda.update_existence_probability_on_no_detection) {
+    if (!(z_measurements.cols() == 0 && config.ipda.update_existence_probability_on_no_detection)) {
       existence_probability_upd = existence_prob_update(z_meas_inside, z_pred, existence_prob_pred, config);
     }
     // clang-format off
