@@ -85,6 +85,11 @@ public:
    */
   double angle_deg() const;
 
+  /** Get the area of the ellipse
+   * @return double
+   */
+  double area() const;
+
 private:
   Eigen::Vector2d center_;
   double a_;
