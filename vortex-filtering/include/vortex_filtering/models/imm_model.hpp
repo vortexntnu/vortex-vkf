@@ -31,13 +31,7 @@ template <typename T, size_t N, size_t M> constexpr std::array<bool, N> matching
   return matches;
 }
 
-// structs for the type of state
-enum class StateType { none, position, velocity, acceleration, turn_rate };
-struct StateMinMax {
-  double min;
-  double max;
-};
-using StateMap = std::map<StateType, StateMinMax>;
+
 
 /**
  * @brief Container class for interacting multiple models.
@@ -53,31 +47,20 @@ public:
   static constexpr bool MIN_DIM_x   = std::min(N_DIMS_x);
   static constexpr size_t N_MODELS = sizeof...(DynModels);
 
+  using StateNames   = std::tuple<std::array<StateName, DynModels::N_DIM_x>...>;
+
+  static constexpr StateNames ALL_STATE_NAMES = {{DynModels::StateT::STATE_NAMES}...};
+
   using DynModTuple  = std::tuple<DynModels...>;
   using GaussTuple_x = std::tuple<typename Types_x<DynModels::N_DIM_x>::Gauss_x...>;
-  using StateNames   = std::tuple<std::array<StateType, DynModels::N_DIM_x>...>;
   using Vec_n        = Eigen::Vector<double, N_MODELS>;
   using Mat_nn       = Eigen::Matrix<double, N_MODELS, N_MODELS>;
 
   template <size_t i> using DynModT = typename std::tuple_element<i, DynModTuple>::type;
 
-  template <size_t i> using T = Types_xuv<N_DIMS_x[i], N_DIMS_u[i], N_DIMS_v[i]>;
+  template <size_t i> using State = DynModT<i>::State;
 
-  /**
-   * @brief Construct a new ImmModel object
-   * @tparam DynModels Dynamic models to use.
-   * @param jump_matrix Markov jump chain matrix for the transition probabilities.
-   * I.e. the probability of switching from model i to model j is `jump_matrix(i,j)`. Diagonal should be 0.
-   * @param hold_times Expected holding time in seconds for each state. Parameter is the mean of an exponential distribution.
-   * @param models_and_state_names Tuple of dynamic models and an std::array of their state names. The state names is of the vortex::models::StateType enum.
-   * @note - The jump matrix specifies the probability of switching to a model WHEN a switch occurs.
-   * @note - The holding times specifies HOW LONG a state is expected to be held between switches.
-   * @note - In order to change the properties of a model, you must get the model using `get_model<i>()`
-   */
-  ImmModel(Mat_nn jump_matrix, Vec_n hold_times, std::tuple<DynModels, std::array<StateType, DynModels::N_DIM_x>>... models_and_state_names)
-      : ImmModel(jump_matrix, hold_times, std::get<0>(models_and_state_names)..., {std::get<1>(models_and_state_names)...})
-  {
-  }
+  template <size_t i> using T = Types_xuv<N_DIMS_x[i], N_DIMS_u[i], N_DIMS_v[i]>;
 
   /**
    * @brief Construct a new ImmModel object
@@ -91,11 +74,10 @@ public:
    * @note - The holding times specifies HOW LONG a state is expected to be held between switches.
    * @note - In order to change the properties of a model, you must get the model using `get_model<i>()`
    */
-  ImmModel(Mat_nn jump_matrix, Vec_n hold_times, DynModels... models, StateNames state_names)
+  ImmModel(Mat_nn jump_matrix, Vec_n hold_times, DynModels... models)
       : models_(models...)
       , jump_matrix_(jump_matrix)
       , hold_times_(hold_times)
-      , state_names_(state_names)
   {
     if (!jump_matrix_.diagonal().isZero()) {
       throw std::invalid_argument("Jump matrix diagonal should be zero");
@@ -194,26 +176,22 @@ public:
    */
   template <size_t i> T<i>::Mat_vv Q_d(double dt, const T<i>::Vec_x &x) const { return get_model<i>().Q_d(dt, x); }
 
+
   static constexpr int N_DIM_x(size_t model_index) { return N_DIMS_x.at(model_index); }
   static constexpr int N_DIM_u(size_t model_index) { return N_DIMS_u.at(model_index); }
   static constexpr int N_DIM_v(size_t model_index) { return N_DIMS_v.at(model_index); }
-
-  StateNames get_all_state_names() const { return state_names_; }
-
-  template <size_t model_index> std::array<StateType, N_DIM_x(model_index)> get_state_names() { return std::get<model_index>(state_names_); }
-
-  template <size_t model_index> StateType get_state_name(size_t i) { return get_state_names<model_index>().at(i); }
 
 private:
   DynModTuple models_;
   Mat_nn jump_matrix_;
   Vec_n hold_times_;
-  StateNames state_names_;
 };
 
 /**
  * @brief Class for resizing the state vector of a sensor model to fit with multiple dynamic models.
  *
+ * @tparam n_dim_a The dimension of the desired state vector.
+ * @tparam SensModT The sensor model to use.
  */
 template <size_t n_dim_a, vortex::concepts::SensorModelWithDefinedSizes SensModT> class ImmSensorModel {
 public:
@@ -224,6 +202,11 @@ public:
 
   using T = Types_xzwa<N_DIM_x, N_DIM_z, N_DIM_w, N_DIM_a>;
 
+  /**
+   * @brief Construct a new Imm Sensor Model object
+   *
+   * @param sensor_model The sensor model to use. Must have a copy constructor.
+   */
   ImmSensorModel(SensModT sensor_model)
       : sensor_model_(sensor_model)
   {
@@ -238,6 +221,12 @@ private:
   SensModT sensor_model_;
 };
 
+/**
+ * @brief Class for resizing the state vector of a sensor model to fit with multiple dynamic models.
+ * 
+ * @tparam n_dim_a The dimension of the desired state vector.
+ * @tparam SensModT The sensor model to use. 
+ */
 template <size_t n_dim_a, vortex::concepts::SensorModelLTVWithDefinedSizes SensModT> class ImmSensorModelLTV {
 public:
   static constexpr int N_DIM_x = SensModT::N_DIM_x;
@@ -247,6 +236,11 @@ public:
 
   using T = Types_xzwa<N_DIM_x, N_DIM_z, N_DIM_w, N_DIM_a>;
 
+  /**
+   * @brief Construct a new Imm Sensor Model LTV object
+   * 
+   * @param sensor_model The sensor model to use. Must have a copy constructor.
+   */
   ImmSensorModelLTV(SensModT sensor_model)
       : sensor_model_(sensor_model)
   {
@@ -270,7 +264,7 @@ public:
   {
     typename T::Vec_x mean = x_est.mean().template head<N_DIM_x>();
     typename T::Mat_xx cov = x_est.cov().template topLeftCorner<N_DIM_x, N_DIM_x>();
-    return sensor_model_.pred_from_est({mean, cov});
+    return sensor_model_.pred_from_est(typename T::Gauss_x{mean, cov});
   }
 
   T::Gauss_z pred_from_state(const T::Vec_a &x) const { return sensor_model_.pred_from_state(x.template head<N_DIM_x>()); }

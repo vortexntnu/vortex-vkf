@@ -14,6 +14,8 @@
 #include <random>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 #include <vortex_filtering/types/type_aliases.hpp>
+#include <vortex_filtering/models/state.hpp>
+#include <vortex_filtering/types/model_concepts.hpp>
 
 namespace vortex::models {
 namespace interface {
@@ -131,7 +133,8 @@ public:
    * @param x_est TVec_x estimate
    * @return prob::MultiVarGauss
    */
-  T::Gauss_z pred_from_est(const T::Gauss_x &x_est) const
+  T::Gauss_z pred_from_est(const auto &x_est) const
+  requires(vortex::concepts::MultiVarGaussLike<decltype(x_est), N_DIM_x>)
   {
     typename T::Mat_xx P = x_est.cov();
     typename T::Mat_zx C = this->C(x_est.mean());

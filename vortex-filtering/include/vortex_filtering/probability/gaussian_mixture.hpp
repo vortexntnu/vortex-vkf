@@ -30,10 +30,10 @@ concept is_container = requires(Container c) {
   {
     std::size(c)
   } -> std::convertible_to<std::size_t>;
-  // Accessing an element by index must return a reference to ValueType.
+  // Accessing an element by index must return a reference to ValueType or a type convertible to ValueType.
   {
     c[std::declval<std::size_t>()]
-  } -> std::same_as<ValueType &>;
+  } -> std::convertible_to<ValueType>;
 };
 
 } // namespace concepts
@@ -59,6 +59,9 @@ public:
       : weights_(Eigen::Map<const Eigen::VectorXd>(weights.data(), std::distance(std::begin(weights), std::end(weights)))),
         gaussians_(std::begin(gaussians), std::end(gaussians))
   {
+    if ((size_t)weights_.size() != gaussians_.size()) {
+      throw std::invalid_argument("The number of weights must match the number of Gaussians");
+    }
   }
 
   /** Default Constructor

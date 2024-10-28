@@ -14,6 +14,7 @@
 #include <vortex_filtering/numerical_integration/erk_methods.hpp>
 #include <vortex_filtering/probability/gaussian_mixture.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
+#include <vortex_filtering/types/model_concepts.hpp>
 #include <vortex_filtering/types/type_aliases.hpp>
 
 namespace vortex::models {
@@ -162,14 +163,14 @@ public:
    * @param x_est T::Vec_x estimate
    * @return T::Vec_x
    */
-  T::Gauss_x pred_from_est(double dt, const T::Gauss_x &x_est, const T::Vec_u &u = T::Vec_u::Zero()) const
+  auto pred_from_est(double dt, const auto &x_est, const T::Vec_u &u = T::Vec_u::Zero()) const -> std::remove_reference_t<decltype(x_est)>
+    requires(concepts::MultiVarGaussLike<decltype(x_est), N_DIM_x>)
   {
     typename T::Mat_xx P      = x_est.cov();
     typename T::Mat_xx A_d    = this->A_d(dt, x_est.mean());
     typename T::Mat_xx GQGT_d = this->GQGT_d(dt, x_est.mean());
 
-    typename T::Gauss_x x_est_pred(f_d(dt, x_est.mean(), u), A_d * P * A_d.transpose() + GQGT_d);
-    return x_est_pred;
+    return {f_d(dt, x_est.mean(), u), A_d * P * A_d.transpose() + GQGT_d};
   }
 
   /** Get the predicted state distribution given a state
@@ -179,7 +180,7 @@ public:
    */
   T::Gauss_x pred_from_state(double dt, const T::Vec_x &x, const T::Vec_u &u = T::Vec_u::Zero()) const
   {
-    typename T::Gauss_x x_est_pred(f_d(dt, x, u), GQGT_d(dt, x));
+    typename T::Gauss_x x_est_pred = {f_d(dt, x, u), GQGT_d(dt, x)};
     return x_est_pred;
   }
 

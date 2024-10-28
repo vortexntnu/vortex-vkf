@@ -2,6 +2,7 @@
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/imm_model.hpp>
 #include <vortex_filtering/types/type_aliases.hpp>
+#include <vortex_filtering/models/state.hpp>
 
 namespace vortex {
 namespace models {
@@ -45,8 +46,7 @@ private:
 };
 
 /** (Nearly) Constant Position Model
- * State x = [pos], where pos is a `n_spatial_dim`-dimensional vector
- * @tparam n_spatial_dim Number of spatial dimensions
+ * State x = [position, position]
  */
 class ConstantPosition : public interface::DynamicModelLTV<2, UNUSED, 2> {
   using Parent = interface::DynamicModelLTV<2, UNUSED, 2>;
@@ -56,10 +56,10 @@ public:
   static constexpr int N_DIM_u = Parent::N_DIM_u;
   static constexpr int N_DIM_v = Parent::N_DIM_v;
 
-  using T = vortex::Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
+  using T = Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
 
-  using ST = StateType;
-  static constexpr std::array StateNames{ST::position, ST::position};
+  using S = StateName;
+  using StateT = State<S, S::position, S::position>;
 
   /** Constant Position Model in 2D
    * x = [x, y]
@@ -103,8 +103,7 @@ private:
 };
 
 /** (Nearly) Constant Velocity Model.
- * State x = [pos, vel], where pos and vel are `n_spatial_dim`-dimensional vectors
- * @tparam n_spatial_dim Number of spatial dimensions
+ * State x = [position, position, velocity, velocity]
  */
 class ConstantVelocity : public interface::DynamicModelLTV<4, UNUSED, 2> {
   using Parent = interface::DynamicModelLTV<4, UNUSED, 2>;
@@ -119,12 +118,13 @@ public:
 
   using T = vortex::Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
 
+  using S = StateName;
+  using StateT = State<S, S::position, S::position, S::velocity, S::velocity>;
+
 
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
   using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
 
-  using ST = StateType;
-  static constexpr std::array<ST, N_STATES> StateNames{ST::position, ST::position, ST::velocity, ST::velocity};
 
   /**
    * @brief Constant Velocity Model in 2D
@@ -184,8 +184,7 @@ private:
 };
 
 /** (Nearly) Constant Acceleration Model.
- * State vector x = [pos, vel, acc], where pos, vel and acc are `n_spatial_dim`-dimensional vectors
- * @tparam n_spatial_dim Number of spatial dimensions
+ * State vector x = [position, position, velocity, velocity, acceleration, acceleration]
  */
 class ConstantAcceleration : public interface::DynamicModelLTV<3 * 2, UNUSED, 2 * 2> {
 public:
@@ -194,11 +193,13 @@ public:
 
   using T = vortex::Types_xv<N_STATES, N_DIM_v>;
 
+  using S = StateName;
+  using StateT = State<S, S::position, S::position, S::velocity, S::velocity, S::acceleration, S::acceleration>;
+
   using Vec_s  = Eigen::Matrix<double, N_SPATIAL_DIM, 1>;
   using Mat_ss = Eigen::Matrix<double, N_SPATIAL_DIM, N_SPATIAL_DIM>;
 
-  using ST = StateType;
-  static constexpr std::array<ST, N_STATES> StateNames{ST::position, ST::position, ST::velocity, ST::velocity, ST::acceleration, ST::acceleration};
+
   /** Constant Acceleration Model
    * @param std_vel Standard deviation of velocity
    * @param std_acc Standard deviation of acceleration
@@ -261,15 +262,16 @@ private:
 };
 
 /** Coordinated Turn Model in 2D.
- * x = [x_pos, y_pos, x_vel, y_vel, turn_rate]
+ * x = [position, position, velocity, velocity, turn_rate]
  */
 class CoordinatedTurn : public interface::DynamicModelCTLTV<5, UNUSED, 3> {
 public:
   static constexpr int N_STATES = 5;
   using T = vortex::Types_xv<N_DIM_x, N_DIM_v>;
 
-  using ST = StateType;
-  static constexpr std::array<ST, N_DIM_x> StateNames{ST::position, ST::position, ST::velocity, ST::velocity, ST::turn_rate};
+  using S = StateName;
+  using StateT = State<S, S::position, S::position, S::velocity, S::velocity, S::turn_rate>;
+
   /** (Nearly) Coordinated Turn Model in 2D. (Nearly constant speed, nearly constant turn rate)
    * State = [x, y, x_dot, y_dot, omega]
    * @param std_vel Standard deviation of velocity
