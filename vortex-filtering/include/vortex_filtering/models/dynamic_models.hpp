@@ -102,6 +102,65 @@ private:
   double std_pos_;
 };
 
+/** (Nearly) Constant Pose model.
+ * State x = [position, position, position, orientation, orientation, orientation]
+ */
+class ConstantPose : public interface::DynamicModelLTV<6, UNUSED, 6> {
+  using Parent = interface::DynamicModelLTV<6, UNUSED, 6>;
+
+public:
+  static constexpr int N_DIM_x = Parent::N_DIM_x;
+  static constexpr int N_DIM_u = Parent::N_DIM_u;
+  static constexpr int N_DIM_v = Parent::N_DIM_v;
+
+  using T = Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
+
+  /** Constant Pose Model
+   * x = [x, y, z, theta_x, theta_y, theta_z]
+   * @param std_pos Standard deviation of position
+   * @param std_orient Standard deviation of orientation
+   */
+  ConstantPose(double std_pos, double std_orient)
+      : std_pos_(std_pos), std_orient_(std_orient)
+  {
+  }
+
+  /** Get the Jacobian of the state transition model with respect to the state.
+   * @param dt Time step (unused)
+   * @param x State (unused)
+   * @return T::Mat_xx Identity matrix representing no change to the state.
+   */
+  T::Mat_xx A_d(double /*dt*/, const T::Vec_x& /*x*/ = T::Vec_x::Zero()) const override {
+    return T::Mat_xx::Identity();
+  }
+
+  /** Get the Jacobian of the state transition model with respect to the process noise.
+   * @param dt Time step
+   * @param x State (unused)
+   * @return T::Mat_xv Identity matrix scaled by dt.
+   */
+  T::Mat_xv G_d(double dt, const T::Vec_x& /*x*/ = T::Vec_x::Zero()) const override {
+    // For a constant pose model, we assume that the noise affects the position and orientation directly.
+    return T::Mat_xv::Identity() * dt;
+  }
+
+  /** Get the discrete-time process noise covariance matrix.
+   * @param dt Time step (unused)
+   * @param x State (unused)
+   * @return T::Mat_vv Process noise covariance matrix.
+   */
+  T::Mat_vv Q_d(double /*dt*/, const T::Vec_x& /*x*/ = T::Vec_x::Zero()) const override {
+    T::Mat_vv Q = T::Mat_vv::Zero();
+    Q.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity() * std_pos_ * std_pos_;
+    Q.block<3, 3>(3, 3) = Eigen::Matrix3d::Identity() * std_orient_ * std_orient_;
+    return Q;
+  }
+
+private:
+  double std_pos_;
+  double std_orient_;
+};
+
 /** (Nearly) Constant Velocity Model.
  * State x = [position, position, velocity, velocity]
  */
