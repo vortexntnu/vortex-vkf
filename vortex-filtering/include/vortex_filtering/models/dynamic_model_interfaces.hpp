@@ -9,10 +9,13 @@
 #include <Eigen/Dense>
 #include <eigen3/unsupported/Eigen/MatrixFunctions> // For exp
 #include <functional>
+#include <manif/manif.h>
 #include <memory>
 #include <random>
+#include <tl/optional.hpp>
 #include <vortex_filtering/numerical_integration/erk_methods.hpp>
 #include <vortex_filtering/probability/gaussian_mixture.hpp>
+#include <vortex_filtering/probability/lie_group_gauss.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 #include <vortex_filtering/types/model_concepts.hpp>
 #include <vortex_filtering/types/type_aliases.hpp>
@@ -20,6 +23,7 @@
 namespace vortex::models {
 namespace interface {
 
+using std::size_t;
 /**
  * @brief Interface for dynamic models
  *
@@ -353,6 +357,116 @@ public:
     typename T::Mat_xx A_d_inv_GQGT_d = van_loan.template block<N_DIM_x, N_DIM_x>(0, N_DIM_x); // A_d^(-1) * G * Q * G^T
     typename T::Mat_xx GQGT_d         = A_d * A_d_inv_GQGT_d;                                  // G * Q * G^T
     return GQGT_d;
+  }
+};
+
+/**
+ * @brief Interface for dynamic models on Lie groups
+ *
+ * @tparam Derived The Lie group type from manif (e.g., SE3d, SO3d)
+ * @tparam n_dim_u  Input dimension
+ * @tparam n_dim_v  Process noise dimension
+ * @note To derive from this class, you must override the following virtual functions:
+ * @note - f_d
+ * @note - Q_d
+ */
+template <typename Type_x, typename Type_u, typename Type_v> class LieGroupDynamicModel {
+public:
+  using Mx = Type_x; // Lie group of the state
+  using Mu = Type_u; // Lie group of the input
+  using Mv = Type_v; // Lie group of the process noise
+
+  static constexpr int N_DIM_x = Mx::DoF;
+  static constexpr int N_DIM_u = Mu::DoF;
+  static constexpr int N_DIM_v = Mv::DoF;
+
+  using T = Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
+
+  using Tx = typename Mx::Tangent; // Tangent space of the Lie group of the state
+  using Tu = typename Mu::Tangent; // Tangent space of the Lie group of the input
+  using Tv = typename Mv::Tangent; // Tangent space of the Lie group of the process noise
+
+  LieGroupDynamicModel()          = default;
+  virtual ~LieGroupDynamicModel() = default;
+
+  /** Discrete time dynamics on the Lie group
+   * @param dt Time step
+   * @param x State (Lie group element)
+   * @param u Input vector
+   * @param v Process noise in the tangent space
+   * @return Next state on the Lie group
+   */
+  virtual Mx f_d(double dt, const Mx &x, const Mu &u, const Mv &v) const = 0;
+
+  /** Discrete time process noise covariance matrix in the tangent space
+   * @param dt Time step
+   * @param x Mx (Lie group element)
+   * @return Covariance matrix in tangent space of the process noise
+   */
+  virtual T::Mat_vv Q_d(double dt, const Mx &x) const = 0;
+
+  /** Sample from the discrete time dynamics on the Lie group
+   * @param dt Time step
+   * @param x State (Lie group element)
+   * @param u Input vector
+   * @param gen Random number generator
+   * @return Sampled next state on the Lie group
+   */
+  Mx sample_f_d(double dt, const Mx &x, const Mu &u, std::mt19937 &gen) const
+  {
+    prob::LieGroupGauss<Mv> noise_model(Mv::Identity(), Q_d(dt, x));
+    Mv sampled_noise = noise_model.sample(gen);
+    return f_d(dt, x, u, sampled_noise);
+  }
+};
+
+template <typename Type_x, typename Type_u, typename Type_v>
+class LieGroupDynamicModelLTV : public LieGroupDynamicModel<Type_x, Type_u, Type_v> {
+public:
+  using Mx = Type_x;
+  using Mu = Type_u;
+  using Mv = Type_v;
+
+  using Tx = typename Mx::Tangent;
+
+  using T = Types_xuv<Mx::DoF, Mu::DoF, Mv::DoF>;
+
+  using Gauss_x = vortex::prob::LieGroupGauss<Mx>;
+
+  /**
+   * @brief
+   *
+   * @param dt Time step
+   * @param x State (Lie group element)
+   * @param tau_x Perturbation in the tangent space of the state
+   * @param u Input vector
+   * @param v Process noise in the tangent space
+   * @return Mx Next state on the Lie group
+   */
+  Mx f_d(double dt, const Mx &x, const Mu &u, const Mv &v) const = 0;
+
+  virtual T::Mat_xx J_f_x(double dt, const Mx &x) const = 0;
+
+  virtual T::Mat_xu J_f_u(double /*dt*/, const Mx & /*x*/) const { return T::Mat_xu::Zero(); }
+
+  virtual T::Mat_xv J_f_v(double /*dt*/, const Mx & /*x*/) const { return T::Mat_xv::Identity(); }
+
+  Gauss_x pred_from_est(double dt, const Gauss_x &x_est, const Mu &u) const
+  {
+    auto mean            = x_est.mean();
+    typename T::Mat_xx P = x_est.cov();
+    typename T::Mat_xx A = J_f_x(dt, mean);
+    typename T::Mat_xv G = J_f_v(dt, mean);
+    typename T::Mat_xx Q = G * this->Q_d(dt, mean) * G.transpose();
+    return {f_d(dt, mean, u, Mv::Identity()), A * P * A.transpose() + Q};
+  }
+
+  Gauss_x pred_from_state(double dt, const Mx &x, const Mu &u) const
+  {
+    typename T::Mat_xx Q_v = this->Q_d(dt, x);
+    typename T::Mat_xv G   = J_f_v(dt, x);
+    typename T::Mat_xx Q_x = G * Q_v * G.transpose();
+    return {f_d(dt, x, u, Mv::Identity()), Q_x};
   }
 };
 

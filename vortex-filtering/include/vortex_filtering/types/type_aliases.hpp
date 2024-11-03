@@ -4,6 +4,8 @@
 #include <vortex_filtering/probability/gaussian_mixture.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
 
+using std::size_t;
+
 #define MATRIX_TYPES(t1, s1, t2, s2)                                                                                                                           \
   using Mat_##t1##t2 = Eigen::Matrix<double, s1, s2>;                                                                                                          \
   using Mat_##t2##t1 = Eigen::Matrix<double, s2, s1>;

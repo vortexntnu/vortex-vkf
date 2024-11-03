@@ -26,6 +26,7 @@ find_package(geometry_msgs  REQUIRED)
 find_package(Eigen3 3.4.0   REQUIRED)
 find_package(eigen3_cmake_module REQUIRED)
 find_package(OpenMP         REQUIRED) # For parallel processing with Eigen
+find_package(manif          REQUIRED)
 
 find_package(Gnuplot REQUIRED)
 find_package(Boost REQUIRED 
@@ -43,6 +44,7 @@ include_directories(include)
 set(lib_deps
   Eigen3
   OpenMP
+  manif
 )
 set(lib_src
   src/utils/plotting.cpp

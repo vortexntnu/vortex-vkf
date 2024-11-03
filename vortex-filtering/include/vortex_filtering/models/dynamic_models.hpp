@@ -12,7 +12,7 @@ constexpr int UNUSED = 1; // For when a template parameter is required but not u
 /** Identity Dynamic Model
  * @tparam n_dim_x Number of dimensions in state vector
  */
-template <size_t n_dim_x> class IdentityDynamicModel : public interface::DynamicModelLTV<n_dim_x> {
+template <std::size_t n_dim_x> class IdentityDynamicModel : public interface::DynamicModelLTV<n_dim_x> {
   using Parent = interface::DynamicModelLTV<n_dim_x>;
 
 public:

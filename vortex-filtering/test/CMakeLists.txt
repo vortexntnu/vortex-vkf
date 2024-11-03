@@ -11,6 +11,7 @@ ament_add_gtest(${PROJECT_NAME}_test
   imm_test.cpp
   immipda_test.cpp
   ipda_test.cpp
+  lie_test.cpp
   numerical_integration_test.cpp
   pdaf_test.cpp
   probability_test.cpp
