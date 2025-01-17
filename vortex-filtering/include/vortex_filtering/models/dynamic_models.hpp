@@ -103,10 +103,10 @@ private:
 };
 
 /** (Nearly) Constant Pose model.
- * State x = [position, position, position]
+ * State x = [position, position, position, orientaiton]
  */
-class ConstantPose : public interface::DynamicModelLTV<3, UNUSED, 3> {
-  using Parent = interface::DynamicModelLTV<3, UNUSED, 3>;
+class ConstantPose : public interface::DynamicModelLTV<4, UNUSED, 4> {
+  using Parent = interface::DynamicModelLTV<4, UNUSED, 4>;
 
 public:
   static constexpr int N_DIM_x = Parent::N_DIM_x;
@@ -116,11 +116,12 @@ public:
   using T = Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
 
   /** Constant Pose Model
-   * x = [x, y, z]
+   * x = [x, y, z, orientation]
    * @param std_pos Standard deviation of position
+   * @param std_orient Standard deviation of orientation
    */
-  ConstantPose(double std_pos)
-      : std_pos_(std_pos)
+    ConstantPose(double std_pos, double std_orient)
+      : std_pos_(std_pos), std_orient_(std_orient)
   {
   }
 
@@ -151,11 +152,13 @@ public:
   T::Mat_vv Q_d(double /*dt*/, const T::Vec_x& /*x*/ = T::Vec_x::Zero()) const override {
     T::Mat_vv Q = T::Mat_vv::Zero();
     Q.block<3, 3>(0, 0) = Eigen::Matrix3d::Identity() * std_pos_ * std_pos_;
+    Q(3, 3) = std_orient_ * std_orient_;
     return Q;
   }
 
 private:
   double std_pos_;
+  double std_orient_;
 };
 
 /** (Nearly) Constant Velocity Model.
