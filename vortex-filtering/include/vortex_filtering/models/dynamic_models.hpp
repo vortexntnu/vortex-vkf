@@ -45,6 +45,56 @@ private:
   T::Mat_vv Q_;
 };
 
+/** Constant Dynamic Model
+ * @tparam n_dim_x Number of dimensions in state vector
+ */
+template <size_t n_dim_x> class ConstantDynamicModel : public interface::DynamicModelLTV<n_dim_x> {
+  using Parent = interface::DynamicModelLTV<n_dim_x>;
+
+public:
+  static constexpr int N_DIM_x = Parent::N_DIM_x;
+  static constexpr int N_DIM_u = Parent::N_DIM_u;
+  static constexpr int N_DIM_v = Parent::N_DIM_v;
+
+  using T = vortex::Types_xuv<N_DIM_x, N_DIM_u, N_DIM_v>;
+
+  /** Identity Dynamic Model
+   * @param std_dev Standard deviation of process noise
+   */
+  explicit ConstantDynamicModel(double std_dev)
+      : std_dev_(std_dev) {}
+
+  /** Get the Jacobian of the continuous state transition model with respect to the state.
+   * @param dt Time step
+   * @param x State (unused)
+   * @return T::Mat_xx
+   * @note Overriding DynamicModelLTV::A_d
+   */
+   T::Mat_xx A_d(double /*dt*/, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override { return T::Mat_xx::Identity(); }
+
+   /** Get the Jacobian of the continuous state transition model with respect to the process noise.
+    * @param dt Time step
+    * @param x State (unused)
+    * @return T::Mat_xv
+    * @note Overriding DynamicModelLTV::G_d
+    */
+   T::Mat_xv G_d(double dt, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override
+   {
+     return 0.5 * dt * T::Mat_xx::Identity();
+   }
+ 
+   /** Get the continuous time process noise covariance matrix.
+    * @param dt Time step (unused)
+    * @param x State (unused)
+    * @return T::Mat_xx Process noise covariance
+    * @note Overriding DynamicModelLTV::Q_d
+    */
+   T::Mat_vv Q_d(double /*dt*/ = 0.0, const T::Vec_x /*x*/ & = T::Vec_x::Zero()) const override { return T::Mat_vv::Identity() * std_dev_ * std_dev_; }
+
+private:
+  double std_dev_;
+};
+
 /** (Nearly) Constant Position Model
  * State x = [position, position]
  */

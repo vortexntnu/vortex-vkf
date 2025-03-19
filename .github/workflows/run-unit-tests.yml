@@ -92,6 +92,3 @@ jobs:
           name: Colcon-logs
           path: ${{ steps.action_ros_ci_step.outputs.ros-workspace-directory-name }}/log
         if: always() # upload the logs even when the build fails
-
-
-          
