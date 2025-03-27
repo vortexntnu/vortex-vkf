@@ -53,7 +53,7 @@ classDiagram
     }
 
     class DynamicModelLTV {
-        +overide f_d() Vec_x
+        +override f_d() Vec_x
         +virtual A_d() Mat_xx
         +virtual Q_d() Mat_vv
         +vurtual G_d() Mat_xv

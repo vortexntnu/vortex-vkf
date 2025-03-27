@@ -62,7 +62,7 @@ auto [x_est_upd, x_est_pred, z_est_pred] = EKF::step(dynamic_model, sensor_model
 The UKF can take any model derived from `vortex::models::DynamicModel` and `vortex::models::SensorModel`. All methods are static, so there is no need to create an instance of this class.
 
 #### Usage
-The EKF and UKF share mostly the same interface and so it can be used for everything the EKF can. The main purpose of it is that it works with nonlinear models. 
+The EKF and UKF share mostly the same interface and so it can be used for everything the EKF can. The main purpose of it is that it works with nonlinear models.
 
 The UKF parameters $\alpha$, $\beta$ and $\kappa$ are set to 1.0, 2.0 and 0.0 by default. These can be changed by passing them as template arguments after the models. I don't know a reason for why you would want to change these, but the option is there anyways.
 
@@ -77,7 +77,7 @@ This class represents an [Interacting Multiple Model Filter](https://github.com/
 The IMM filter supports both linear and nonlinear models, using EKF for linear and UKF for nonlinear models derived from `vortex::models::DynamicModel` and `vortex::models::SensorModel`.
 
 #### Theory
-The IMM filter is a filter that can switch between different models based on the probability of each model being the correct one. It does this by running multiple models in parallel and mixing the estimates from each model together. 
+The IMM filter is a filter that can switch between different models based on the probability of each model being the correct one. It does this by running multiple models in parallel and mixing the estimates from each model together.
 
 The workings of the IMM filter can be summarized in the following four steps:
 1. Calculate Mixing Probabilities
@@ -145,13 +145,13 @@ $$
 \end{align*}
 $$
 
-then the IMM filter needs to know that the states $p_x$ and $p_y$ are comparable between all models, but the states $\theta$ and $a_x$ aren't. This is done by specifying the names of the states in the [IMM model](../models/README.md#imm-model). The similar states are mixed as normal as specified in Edmund Brekkes sensor fusion book, but the states that are not comparable are mixed using the method outlined in [this paper](https://www.researchgate.net/publication/289707032_Systematic_approach_to_IMM_mixing_for_unequal_dimension_states). 
+then the IMM filter needs to know that the states $p_x$ and $p_y$ are comparable between all models, but the states $\theta$ and $a_x$ aren't. This is done by specifying the names of the states in the [IMM model](../models/README.md#imm-model). The similar states are mixed as normal as specified in Edmund Brekkes sensor fusion book, but the states that are not comparable are mixed using the method outlined in [this paper](https://www.researchgate.net/publication/289707032_Systematic_approach_to_IMM_mixing_for_unequal_dimension_states).
 
 The method in the paper works as long as the minimum and maximum value a state can take is fed to the mixing function. Essentially a uniform distribution is created for the states that are not comparable and the mixing is done using the mean and variance of this distribution as state estimates for the missing states.
 
 For example when mixing the states of model A into model B, the states $v_x$ and $v_y$ are missing. The mixing function then creates a uniform distribution for these states from the minimum and maximum values of the $v_x$ and $v_y$ states. The mean and variance of this distribution is then used as the state estimates for the missing states before the mixing is done. If the min and max isn't provided however, the mixing function will copy the state estimates from the other model as is.
 
-> This feature is the main reason the implementation is so much more complex than for the EKF and UKF. 
+> This feature is the main reason the implementation is so much more complex than for the EKF and UKF.
 
 ##### 3 - Mode Matching
 The mode matching step is where the Kalman filter is run for each model. This is done in the same way as for the EKF and UKF, but for each model separately.
@@ -197,9 +197,9 @@ But for custom models, you will have to define the state names yourself.
 */
 
 // Create the IMM model and sensor model
-IMM imm_model(hold_times, switch_probs, 
-              {CP(std_pos), cp_names}, 
-              {CV(std_vel), cv_names}, 
+IMM imm_model(hold_times, switch_probs,
+              {CP(std_pos), cp_names},
+              {CV(std_vel), cv_names},
               {CT(std_vel, std_turn), ct_names});
 
 using SensModT = vortex::models::IdentitySensorModel;
@@ -226,7 +226,7 @@ Vec2d z_meas{48, 65};
 
 // Estimate the next state
 using ImmFilter = vortex::filters::IMMFilter<SensModT, IMM>;
-auto [weights_upd, x_est_upds, x_est_preds, z_est_preds] = 
+auto [weights_upd, x_est_upds, x_est_preds, z_est_preds] =
     IMM::step(imm_model, sensor_model, dt, x_est_prevs, z_meas, model_weights, states_min_max);
 ```
 
@@ -258,13 +258,13 @@ We want to measure the temperature inside a rocket drive. We know in theory, how
 // example how to define models using vortex::models
 using DynMod = vortex::models::ConstantVelocity;
 using SensorMod = vortex::models::IdentitySensorModel<4, 2>;
-// example how to use PDAF in pratice
+// example how to use PDAF in practice
 using PDAF = vortex::filter::PDAF<DynMod, SensorMod>;
 auto [x_final, inside, outside, x_pred, z_pred, x_updated] = PDAF::step(parameters...)
 ```
 
 #### Previous State Estimate
-The step function needs to know what the previous state was. Based on this state, the dynamic model will be used. The model will give us a predicted new state. This state will be compared to the actual measurements. The previous state must be a Gaussian distribution. 
+The step function needs to know what the previous state was. Based on this state, the dynamic model will be used. The model will give us a predicted new state. This state will be compared to the actual measurements. The previous state must be a Gaussian distribution.
 
 #### Measurements
 The perceived measurements. This parameter consists of an `Eigen::Vector`. It should hold all perceived measurements. (The dimension must be the same as defined in the models.)
@@ -281,7 +281,7 @@ It is highly recommended to look into "Fundamentals of Sensor Fusion" (Chapter 7
 In order for the test to work with visualization you have to uncomment following statement in the CMakeLists.txt of *vortex-filtering*.
 ```
 if(BUILD_TESTING)
-  # add_compile_definitions(GNUPLOT_ENABLE=1) <- uncomment this 
+  # add_compile_definitions(GNUPLOT_ENABLE=1) <- uncomment this
   add_subdirectory(test)
 endif()
 ```
@@ -298,7 +298,7 @@ The step()-function will return return the new estimated state and all outputs o
 
 ### IPDA
 
-IPDA stand for **I**ntegrated **P**robabilistic **D**ata **A**ssociation. It uses extra steps in addition to the regular PDAF. The PDAF is extended to also include a probability value which describes the target's existence. The main reason for this is to evaluate not only the state of the target but also the probability of existence dependent on the previous states.
+IPDA stand for **I**integrated **P**robabilistic **D**ata **A**ssociation. It uses extra steps in addition to the regular PDAF. The PDAF is extended to also include a probability value which describes the target's existence. The main reason for this is to evaluate not only the state of the target but also the probability of existence dependent on the previous states.
 IPDA works in terms of usage the same way the PDAF works. The class provides a static function (also called *step*). You can use this function by referencing the namespace.
 
 ```c++
@@ -315,4 +315,4 @@ The parameters of the step() function are mainly the same as those of the PDAF. 
 * Probability of survival: This is a general hyperparameter that defines how likely a target is to survive. This parameter shouldn't be confused with the probability of detection. If no measurement is considered to correspond to the target, we consider the dynamic model. The track still *survives*. If a target *dies*, it can't come back, and the track will be deleted.
 
 #### Returns
-In addition to all the return parameters of the PDAF the IPDA will return the estimated existence prediction for the current state (corresponding to x_final). 
+In addition to all the return parameters of the PDAF the IPDA will return the estimated existence prediction for the current state (corresponding to x_final).
