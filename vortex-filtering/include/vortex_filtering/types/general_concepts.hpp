@@ -8,9 +8,13 @@ namespace vortex::concepts {
 
 template <typename From, typename To>
 concept mat_convertible_to =
-    std::convertible_to<std::decay_t<From>, std::decay_t<To>> && std::is_base_of_v<Eigen::MatrixBase<std::decay_t<From>>, std::decay_t<From>> &&
+    std::convertible_to<std::decay_t<From>, std::decay_t<To>> &&
+    std::is_base_of_v<Eigen::MatrixBase<std::decay_t<From>>,
+                      std::decay_t<From>> &&
     std::is_base_of_v<Eigen::MatrixBase<std::decay_t<To>>, std::decay_t<To>> &&
-    (std::decay_t<From>::RowsAtCompileTime == std::decay_t<To>::RowsAtCompileTime) &&
-    (std::decay_t<From>::ColsAtCompileTime == std::decay_t<To>::ColsAtCompileTime);
+    (std::decay_t<From>::RowsAtCompileTime ==
+     std::decay_t<To>::RowsAtCompileTime) &&
+    (std::decay_t<From>::ColsAtCompileTime ==
+     std::decay_t<To>::ColsAtCompileTime);
 
-} // namespace vortex::concepts
+}  // namespace vortex::concepts
