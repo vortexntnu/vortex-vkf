@@ -1,4 +1,8 @@
 # vortex-filtering
+[![Industrial CI](https://github.com/vortexntnu/vortex-vkf/actions/workflows/industrial-ci.yml/badge.svg)](https://github.com/vortexntnu/vortex-vkf/actions/workflows/industrial-ci.yml)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/vortexntnu/vortex-vkf/main.svg)](https://results.pre-commit.ci/latest/github/vortexntnu/vortex-vkf/main)
+[![codecov](https://codecov.io/github/vortexntnu/vortex-vkf/graph/badge.svg?token=93HEN6W2PM)](https://codecov.io/github/vortexntnu/vortex-vkf)
+
 ## Models
 Contains the models used in the filters. The models are implemented as classes that inherit from the `DynamicModelBase` class or `SensorModelBase` class. The models are implemented in the `models` namespace. [More info](include/vortex_filtering/models/README.md)
 
@@ -53,7 +57,7 @@ classDiagram
     }
 
     class DynamicModelLTV {
-        +overide f_d() Vec_x
+        +override f_d() Vec_x
         +virtual A_d() Mat_xx
         +virtual Q_d() Mat_vv
         +vurtual G_d() Mat_xv

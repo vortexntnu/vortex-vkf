@@ -5,5 +5,3 @@ This is a C++ library for state estimation. VKF stands for Visual Kalman Filter 
 ## Packages
 
 - [vortex-filtering](vortex-filtering/README.md)
-
-

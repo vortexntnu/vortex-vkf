@@ -11,7 +11,7 @@ if(NOT CMAKE_CXX_STANDARD)
 # === Compiler flags ===
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(
-    -Wall -Wextra -Wpedantic 
+    -Wall -Wextra -Wpedantic
     -fopenmp # For parallel processing with Eigen
     -fconcepts-diagnostics-depth=3 # For better concepts error messages
     -Warray-bounds # For better array bounds error messages
@@ -28,10 +28,10 @@ find_package(eigen3_cmake_module REQUIRED)
 find_package(OpenMP         REQUIRED) # For parallel processing with Eigen
 
 find_package(Gnuplot REQUIRED)
-find_package(Boost REQUIRED 
-  COMPONENTS 
-    iostreams 
-    system 
+find_package(Boost REQUIRED
+  COMPONENTS
+    iostreams
+    system
     filesystem
 ) # for gnuplot
 
