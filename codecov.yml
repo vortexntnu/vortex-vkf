@@ -1,19 +1,20 @@
-coverage:
-  precision: 2
-  round: down
-  status:
-    project:
-      default:
-        informational: true
-        flags:
-          - unittests
-    patch: off
 fixes:
-  - "ros_ws/src/vortex_vkf/::"
+  - "ros_ws/src/*/vortex-vkf/::"
+
 comment:
-  layout: "diff, flags, files"
-  behavior: default
-flags:
-  unittests:
-    paths:
-      - "**"
+  layout: "header, diff, flags, components"
+ 
+coverage:
+  status:
+    project: off
+    patch: off
+
+flag_management:
+  individual_flags:
+     - name: vortex-filtering
+       paths:
+        - vortex-filtering/include/vortex_filtering/
+       statuses:
+        - type: project
+          target: auto
+          threshold: 1% 

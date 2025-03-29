@@ -1,5 +1,5 @@
 # Models
-This folder contains the models used in the Vortex-VKF project. The models are derived from either DynamicModelI or the SensorModelI interface.
+This folder contains the models used in the Vortex-VKF project. The models are derived from either DynamicModelI or the SensorModelI interface. 
 They define the dynamics of the system and the sensor models used in the project.
 
 All classes and functions are under the namespace `vortex::models`.
@@ -15,10 +15,10 @@ The interfaces that the different models are derived from are definged under the
 
 
 ## Dynamic Models
-Models for describing the dynamics of the system.
+Models for describing the dynamics of the system. 
 
 ### Dynamic Model Interfaces
-The dynamic model interfaces are virtual template classes that makes it convenient to define your own dynamic models.
+The dynamic model interfaces are virtual template classes that makes it convenient to define your own dynamic models. 
 
 
 #### DynamicModel
@@ -33,7 +33,7 @@ Dynamic model interface for other classes to derive from. The [UKF](../filters/R
 #### DynamicModelLTV
 Dynamic model interface for other classes to derive from. The [EKF](../filters/README.md#ekf) (and UKF) works on models derived from this class.
 
-This interface inherits from the `DynamicModel` interface and defines the dynamics of the system as a linear time varying system. The virtual method `f_d` from the `DynamicModel` interface is implemented as a linear time varying system on the form
+This interface inherits from the `DynamicModel` interface and defines the dynamics of the system as a linear time varying system. The virtual method `f_d` from the `DynamicModel` interface is implemented as a linear time varying system on the form 
 
 $$
 f_d(dt, x_k, u_k, v_k) = x_{k+1} = A_d(dt, x_k) x_k + B_d(dt, x_k) u_k + G_d(dt, x_k)v_k
@@ -72,7 +72,7 @@ This class implements the `DynamicModelLTV` interface and defines the dynamics o
 
 ### IMM Model
 __Interacting Multiple Models__
-This class can store multiple `DynamicModel` objects and defines functions to calculate the probability of switching between the models.
+This class can store multiple `DynamicModel` objects and defines functions to calculate the probability of switching between the models. 
 
 #### Usage
 To instantiate a **Interacting Multiple Models (IMM) object**, you must provide four parameters:
@@ -119,25 +119,25 @@ But for custom models, you will have to define the state names yourself.
 */
 
 // initialize IMM with the hold times, switching probabilities, dynamic models and state names
-IMM imm_model(hold_times, switch_probs,
-              {CP(std_pos), cp_names},
-              {CV(std_vel), cv_names},
+IMM imm_model(hold_times, switch_probs, 
+              {CP(std_pos), cp_names}, 
+              {CV(std_vel), cv_names}, 
               {CT(std_vel, std_turn), ct_names});
 
 // Enjoy your very own IMM model! :)
 ```
 
 #### Theory
-It's important to note that the actual probability of switching from one model to another is determined through the `hold_times` vector. By treating the system as a **Continuous Time Markov Chain (CTMC)**, as detailed on [Wikipedia](https://en.wikipedia.org/wiki/Continuous-time_Markov_chain), the model calculates the switching probabilities based on the specified hold times and the switching probabilities matrix.
+It's important to note that the actual probability of switching from one model to another is determined through the `hold_times` vector. By treating the system as a **Continuous Time Markov Chain (CTMC)**, as detailed on [Wikipedia](https://en.wikipedia.org/wiki/Continuous-time_Markov_chain), the model calculates the switching probabilities based on the specified hold times and the switching probabilities matrix. 
 
 
 
 ### Dynamic Models
-`dynamic_models.hpp`
+`dynamic_models.hpp` 
 This file contains some movement models that are commonly used in an IMM.
 - `ConstantVelocity`: Has states for position and velocity. The template parameter `n_spatial_dims` specifies the number of spatial dimensions. So if the model is used in 2D, `n_spatial_dims` should be set to 2 and the model will have 4 states. `x`, `y`, `v_x` and `v_y`.
-- `ConstantAcceleration`: Has states for position, velocity and acceleration. The template parameter `n_spatial_dims` specifies the number of spatial dimensions. So if the model is used in 2D, `n_spatial_dims` should be set to 2 and the model will have 6 states. `x`, `y`, `v_x`, `v_y`, `a_x` and `a_y`.
-- `CoordinatedTurn`: Has states for 2D position, 2D velocity and turn rate.
+- `ConstantAcceleration`: Has states for position, velocity and acceleration. The template parameter `n_spatial_dims` specifies the number of spatial dimensions. So if the model is used in 2D, `n_spatial_dims` should be set to 2 and the model will have 6 states. `x`, `y`, `v_x`, `v_y`, `a_x` and `a_y`. 
+- `CoordinatedTurn`: Has states for 2D position, 2D velocity and turn rate. 
 
 
 ## Sensor Models
@@ -150,3 +150,5 @@ This interface defines the sensor models. The methods `h` `H` and `R` define the
 In order to define a new sensor model, the user must create a new class that inherits from the SensorModelI interface. The user must then implement the methods `h`, `H` and `R` as they are pure virtual.
 
 The interface is a template class with parameter `N_DIM_x` and `N_DIM_z`. `N_DIM_x` is the dimension of the state vector and `N_DIM_z` is the dimension of the measurement vector. The user must specify these when creating a new class, or derive a template class from the SensorModelI interface.
+
+

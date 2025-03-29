@@ -1,5 +1,5 @@
 find_package(ament_cmake_gtest REQUIRED)
-ament_add_gtest(${PROJECT_NAME}_test
+ament_add_gtest(${PROJECT_NAME}_test 
   gtest_main.cpp
   gtest_assertions.cpp
   ../src/utils/plotting.cpp
@@ -28,7 +28,7 @@ ament_target_dependencies(${PROJECT_NAME}_test
   Gnuplot
   Boost
 )
-target_link_libraries(${PROJECT_NAME}_test
+target_link_libraries(${PROJECT_NAME}_test 
   Eigen3::Eigen # Makes us able to use #include <Eigen/Dense> instead of #include <eigen3/Eigen/Dense>
   OpenMP::OpenMP_CXX
 )

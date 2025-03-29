@@ -1,10 +1,10 @@
 # Probability
-This folder contains the probability distributions used.
+This folder contains the probability distributions used. 
 
 All classes and functions are under the namespace `vortex::prob`.
 
 ## MultiVarGauss
-This class represents a multivariate Gaussian distribution. It is a template class with parameter `N_DIM`. This is the dimension of the distribution.
+This class represents a multivariate Gaussian distribution. It is a template class with parameter `N_DIM`. This is the dimension of the distribution. 
 
 ### Usage
 The class contains methods for getting the mean and covariance, sampling from the distribution, calculating the probability density function and the log probability density function. It works with both static and dynamic dimensions.
