@@ -166,10 +166,10 @@ class ConstantPosition : public interface::DynamicModelLTV<2, UNUSED, 2> {
 };
 
 /** (Nearly) Constant Pose model.
- * State x = [position, position, position, orientaiton]
+ * State x = [x, y, z, roll, pitch, yaw]
  */
-class ConstantPose : public interface::DynamicModelLTV<4, UNUSED, 4> {
-    using Parent = interface::DynamicModelLTV<4, UNUSED, 4>;
+class ConstantPose : public interface::DynamicModelLTV<6, UNUSED, 6> {
+    using Parent = interface::DynamicModelLTV<6, UNUSED, 6>;
 
    public:
     static constexpr int N_DIM_x = Parent::N_DIM_x;

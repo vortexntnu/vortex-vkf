@@ -6,6 +6,7 @@
 #include <memory>
 #include <ranges>
 #include <string>
+#include <type_traits>
 #include <vector>
 #include <vortex_filtering/vortex_filtering.hpp>
 
@@ -18,6 +19,7 @@ struct PDAF {
     double max_gate_threshold = std::numeric_limits<double>::max();
     double prob_of_detection = 1.0;
     double clutter_intensity = 1.0;
+    double max_angle_gate_threshold = 0.785398;  // 45 degrees in radians
 };
 }  // namespace config
 
@@ -30,6 +32,9 @@ class PDAF {
     static constexpr int N_DIM_u = DynModT::N_DIM_u;
     static constexpr int N_DIM_v = DynModT::N_DIM_v;
     static constexpr int N_DIM_w = SensModT::N_DIM_w;
+    static constexpr bool estimate_orientation = std::is_same<
+        SensModT,
+        vortex::models::IdentityPoseSensor<N_DIM_x, N_DIM_z>>::value;
 
     using T = Types_xzuvw<N_DIM_x, N_DIM_z, N_DIM_u, N_DIM_v, N_DIM_w>;
 
@@ -78,7 +83,15 @@ class PDAF {
                        const Config& config) {
         auto [x_pred, z_pred] =
             EKF::predict(dyn_model, sen_model, timestep, x_est);
-        auto gated_measurements = apply_gate(z_measurements, z_pred, config);
+
+        Arr_1Xb gated_measurements(1, z_measurements.cols());
+        if constexpr (std::is_same<SensModT, vortex::models::IdentityPoseSensor<
+                                                 N_DIM_x, N_DIM_z>>::value) {
+            gated_measurements =
+                apply_gate_ori(z_measurements, z_pred, sen_model, config);
+        } else {
+            gated_measurements = apply_gate(z_measurements, z_pred, config);
+        }
         auto inside_meas =
             get_inside_measurements(z_measurements, gated_measurements);
 
@@ -117,6 +130,67 @@ class PDAF {
                 (mahalanobis_distance <= mahalanobis_threshold ||
                  regular_distance <= min_gate_threshold) &&
                 regular_distance <= max_gate_threshold;
+        }
+        return gated_measurements;
+    }
+
+    /**
+     * @brief Apply gate to the measurements gating both position and
+     * orientation
+     *
+     * @param z_measurements Array of measurements
+     * @param z_pred Predicted measurement
+     * @param config Configuration for the PDAF
+     * @return `Arr_1Xb` Indices of the measurements that are inside the gate
+     */
+    static Arr_1Xb apply_gate_ori(const Arr_zXd& z_measurements,
+                                  const Gauss_z& z_pred,
+                                  const SensModT& sen_model,
+                                  Config config) {
+        double mahalanobis_threshold = config.pdaf.mahalanobis_threshold;
+        double min_gate_threshold = config.pdaf.min_gate_threshold;
+        double max_gate_threshold = config.pdaf.max_gate_threshold;
+
+        Arr_1Xb gated_measurements(1, z_measurements.cols());
+
+        if constexpr (estimate_orientation) {
+            double max_angle_gate_threshold =
+                config.pdaf.max_angle_gate_threshold;
+            constexpr int num_orientation_states = N_DIM_x - 3;
+            using Vec_ori = Eigen::Matrix<double, num_orientation_states, 1>;
+            using Gauss_pos = vortex::prob::MultiVarGauss<3>;
+
+            Eigen::Vector3d mu_pos = z_pred.mean().template topRows<3>();
+            Eigen::Matrix3d cov_pos =
+                z_pred.cov().template topLeftCorner<3, 3>();
+
+            Gauss_pos z_pred_pos(mu_pos, cov_pos);
+            Vec_ori z_pred_ori =
+                z_pred.mean().bottomRows(num_orientation_states);
+
+            for (size_t a_k = 0; const Vec_z& z_k : z_measurements.colwise()) {
+                Eigen::Vector3d z_k_pos = z_k.template topRows<3>();
+                Vec_ori z_k_ori = z_k.bottomRows(num_orientation_states);
+
+                double mahalanobis_distance =
+                    z_pred_pos.mahalanobis_distance(z_k_pos);
+                double regular_distance = (z_pred_pos.mean() - z_k_pos).norm();
+
+                Vec_ori innovation_ori = z_k_ori - z_pred_ori;
+                // If the sensor model supports angular wrapping, apply it
+                if constexpr (requires {
+                                  sen_model.wrap_residual(innovation_ori);
+                              }) {
+                    innovation_ori = sen_model.wrap_residual(innovation_ori);
+                }
+
+                gated_measurements(a_k++) =
+                    (innovation_ori.array().abs() < max_angle_gate_threshold)
+                        .all() &&
+                    (mahalanobis_distance <= mahalanobis_threshold ||
+                     regular_distance <= min_gate_threshold) &&
+                    regular_distance <= max_gate_threshold;
+            }
         }
         return gated_measurements;
     }

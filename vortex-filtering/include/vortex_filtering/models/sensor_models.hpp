@@ -144,5 +144,87 @@ class RangeBearingSensor : public interface::SensorModelLTV<2, 2, 2> {
     double std_bearing_;
 };
 
+/**
+ * @brief 6-DOF Identity Sensor Model.
+ *
+ * Measurement model:
+ *      z = x + w
+ * where x = [x, y, z, roll, pitch, yaw]. Number of orientation components is
+ * dynamic.
+ *
+ * The measurement covariance is diagonal with separate noise levels for
+ * position and orientation components.
+ */
+template <int n_dim_x, int n_dim_z>
+class IdentityPoseSensor
+    : public interface::SensorModelLTV<n_dim_x, n_dim_z, n_dim_z> {
+    using Parent = interface::SensorModelLTV<n_dim_x, n_dim_z, n_dim_z>;
+
+   public:
+    static constexpr int N_DIM_x = Parent::N_DIM_x;
+    static constexpr int N_DIM_z = Parent::N_DIM_z;
+    static constexpr int N_DIM_w = Parent::N_DIM_w;
+
+    using T = vortex::Types_xzw<N_DIM_x, N_DIM_z, N_DIM_w>;
+
+    /**
+     * @param std_pos     Standard deviation of position measurement [m]
+     * @param std_orient  Standard deviation of orientation measurement [rad]
+     */
+    IdentityPoseSensor(double std_pos, double std_orient) {
+        R_ = T::Mat_ww::Zero();
+        // position variances
+        for (int i = 0; i < 3; ++i)
+            R_(i, i) = std_pos * std_pos;
+        // orientation variances
+        for (int i = 3; i < N_DIM_x; ++i)
+            R_(i, i) = std_orient * std_orient;
+    }
+
+    /**
+     * Measurement model: identity.
+     */
+    T::Vec_z h(const T::Vec_x& x,
+               const T::Vec_w& w = T::Vec_w::Zero()) const override {
+        return x + w;
+    }
+
+    /**
+     * Measurement Jacobian w.r.t. state: identity.
+     */
+    T::Mat_zx C(const T::Vec_x& /*x*/ = T::Vec_x::Zero()) const override {
+        return T::Mat_zx::Identity();
+    }
+
+    /**
+     * Measurement covariance.
+     */
+    T::Mat_zz R(const T::Vec_x& /*x*/ = T::Vec_x::Zero()) const override {
+        return R_;
+    }
+
+    /**
+     * Measurement Jacobian w.r.t. measurement noise: identity.
+     */
+    T::Mat_zw H(const T::Vec_x& /*x*/ = T::Vec_x::Zero()) const override {
+        return T::Mat_zw::Identity();
+    }
+
+    /**
+     * Optional: wrap angular residuals to (-pi, pi].
+     * This makes sure the innovation for roll/pitch/yaw stays continuous.
+     */
+    T::Vec_z wrap_residual(const T::Vec_z& residual) const {
+        typename T::Vec_z wrapped = residual;
+        for (int i = 3; i < N_DIM_x; ++i) {
+            wrapped(i) = std::atan2(std::sin(wrapped(i)), std::cos(wrapped(i)));
+        }
+        return wrapped;
+    }
+
+   private:
+    T::Mat_ww R_;
+};
+
 }  // namespace models
 }  // namespace vortex

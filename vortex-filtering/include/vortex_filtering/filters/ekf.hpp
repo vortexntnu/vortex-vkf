@@ -10,6 +10,7 @@
 
 #pragma once
 #include <tuple>
+#include <type_traits>
 #include <vortex_filtering/models/dynamic_model_interfaces.hpp>
 #include <vortex_filtering/models/sensor_model_interfaces.hpp>
 #include <vortex_filtering/probability/multi_var_gauss.hpp>
@@ -108,6 +109,11 @@ class EKF_t {
 
         typename T::Mat_xz W = P * C.transpose() * S_inv;  // Kalman gain
         typename T::Vec_z innovation = z_meas - z_est_pred.mean();
+
+        // If the sensor model supports angular wrapping, apply it
+        if constexpr (requires { sens_mod.wrap_residual(innovation); }) {
+            innovation = sens_mod.wrap_residual(innovation);
+        }
 
         typename T::Vec_x state_upd_mean = x_est_pred.mean() + W * innovation;
         // Use the Joseph form of the covariance update to ensure positive
