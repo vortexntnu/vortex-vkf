@@ -19,7 +19,6 @@ struct PDAF {
     double max_gate_threshold = std::numeric_limits<double>::max();
     double prob_of_detection = 1.0;
     double clutter_intensity = 1.0;
-    double max_angle_gate_threshold = 0.785398;  // 45 degrees in radians
 };
 }  // namespace config
 
@@ -155,7 +154,7 @@ class PDAF {
 
         if constexpr (estimate_orientation) {
             double max_angle_gate_threshold =
-                config.pdaf.max_angle_gate_threshold;
+                sen_model.max_angle_gate_threshold_;
             constexpr int num_orientation_states = N_DIM_x - 3;
             using Vec_ori = Eigen::Matrix<double, num_orientation_states, 1>;
             using Gauss_pos = vortex::prob::MultiVarGauss<3>;

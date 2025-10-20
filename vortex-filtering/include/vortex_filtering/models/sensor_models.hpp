@@ -171,8 +171,9 @@ class IdentityPoseSensor
      * @param std_pos     Standard deviation of position measurement [m]
      * @param std_orient  Standard deviation of orientation measurement [rad]
      */
-    IdentityPoseSensor(double std_pos, double std_orient) {
+    IdentityPoseSensor(double std_pos, double std_orient, double max_angle_gate_threshold = 0.785398) {
         R_ = T::Mat_ww::Zero();
+        max_angle_gate_threshold_ = max_angle_gate_threshold;
         // position variances
         for (int i = 0; i < 3; ++i)
             R_(i, i) = std_pos * std_pos;
@@ -221,6 +222,8 @@ class IdentityPoseSensor
         }
         return wrapped;
     }
+
+    double max_angle_gate_threshold_;
 
    private:
     T::Mat_ww R_;
