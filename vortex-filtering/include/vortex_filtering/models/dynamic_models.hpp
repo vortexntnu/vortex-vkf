@@ -207,6 +207,13 @@ class ConstantPose : public interface::DynamicModelLTV<6, UNUSED, 6> {
                   const T::Vec_x& /*x*/ = T::Vec_x::Zero()) const override {
         // For a constant pose model, we assume that the noise affects the
         // position and orientation directly.
+        
+        // if dt is negative convert to positive
+        // This is a whack solution to handle measurements that arrive late
+        // Should be fine for stationary objects.
+        if (dt < 0.0) {
+            dt = -dt;
+        }
         return T::Mat_xv::Identity() * dt;
     }
 
