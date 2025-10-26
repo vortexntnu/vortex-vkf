@@ -217,8 +217,10 @@ class IdentityPoseSensor
      */
     T::Vec_z wrap_residual(const T::Vec_z& residual) const {
         typename T::Vec_z wrapped = residual;
-        for (int i = 3; i < N_DIM_x; ++i) {
-            wrapped(i) = std::atan2(std::sin(wrapped(i)), std::cos(wrapped(i)));
+        constexpr int num_ori = N_DIM_x - 3;
+        for (int i = 0; i < num_ori; ++i) {
+            int idx = 3 + i;
+            wrapped(idx) = std::atan2(std::sin(wrapped(idx)), std::cos(wrapped(idx)));
         }
         return wrapped;
     }

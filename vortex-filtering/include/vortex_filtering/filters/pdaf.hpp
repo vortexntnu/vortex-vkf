@@ -177,10 +177,13 @@ class PDAF {
 
                 Vec_ori innovation_ori = z_k_ori - z_pred_ori;
                 // If the sensor model supports angular wrapping, apply it
-                if constexpr (requires {
-                                  sen_model.wrap_residual(innovation_ori);
-                              }) {
-                    innovation_ori = sen_model.wrap_residual(innovation_ori);
+                if constexpr (requires (const SensModT& s, const typename T::Vec_z& v) { s.wrap_residual(v); }) {
+                    typename T::Vec_z residual_full = T::Vec_z::Zero();
+                    residual_full.template bottomRows<num_orientation_states>() = innovation_ori;
+
+                    residual_full = sen_model.wrap_residual(residual_full);
+
+                    innovation_ori = residual_full.template bottomRows<num_orientation_states>();
                 }
 
                 gated_measurements(a_k++) =
