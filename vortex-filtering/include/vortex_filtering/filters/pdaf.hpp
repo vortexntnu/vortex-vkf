@@ -59,38 +59,81 @@ class PDAF {
     PDAF() = delete;
 
     /**
+     * @brief Perform one PDAF prediction step
+     *
+     * @param dyn_mod The dynamic model
+     * @param sens_mod The sensor model
+     * @param dt Time step in seconds
+     * @param x_est The estimated state
+     * @return `std::pair<Gauss_x, Gauss_z>` The predicted state and predicted
+     * measurement
+     */
+    static std::pair<Gauss_x, Gauss_z> predict(const DynModT& dyn_mod,
+                                               const SensModT& sens_mod,
+                                               double dt,
+                                               const Gauss_x& x_est) {
+        auto [x_pred, z_pred] = EKF::predict(dyn_mod, sens_mod, dt, x_est);
+
+        return {x_pred, z_pred};
+    }
+
+    /**
+     * @brief Perform one PDAF update step
+     *
+     * @param sens_mod The sensor model
+     * @param x_pred The predicted state
+     * @param z_pred The predicted measurement
+     * @param z_measurements Array of measurements
+     * @param config Configuration for the PDAF
+     * @return `std::tuple<Gauss_x, Gauss_xX, Arr_1Xb>` The updated state, all
+     * updated states for each measurement, and the indices of the measurements
+     * that are inside the gate
+     */
+    static std::tuple<Gauss_x, Gauss_xX, Arr_1Xb, Arr_zXd> update(
+        const SensModT& sens_mod,
+        const Gauss_x& x_pred,
+        const Gauss_z& z_pred,
+        const Arr_zXd& z_measurements,
+        const Config& config) {
+        auto gated_measurements = apply_gate(z_measurements, z_pred, config);
+        auto z_inside_meas =
+            get_inside_measurements(z_measurements, gated_measurements);
+
+        Gauss_xX x_updates;
+        for (const auto& z_k : z_inside_meas.colwise()) {
+            x_updates.push_back(EKF::update(sens_mod, x_pred, z_pred, z_k));
+        }
+
+        Gauss_x x_post = get_weighted_average(
+            z_inside_meas, x_updates, z_pred, x_pred,
+            config.pdaf.prob_of_detection, config.pdaf.clutter_intensity);
+
+        return {x_post, x_updates, gated_measurements, z_inside_meas};
+    }
+
+    /**
      * @brief Perform one step of the Probabilistic Data Association Filter
      *
-     * @param dyn_model The dynamic model
-     * @param sen_model The sensor model
-     * @param timestep Time step in seconds
+     * @param dyn_mod The dynamic model
+     * @param sens_mod The sensor model
+     * @param dt Time step in seconds
      * @param x_est The estimated state
      * @param z_measurements Array of measurements
      * @param config Configuration for the PDAF
      * @return `Output` The result of the PDAF step and some intermediate
      * results
      */
-    static Output step(const DynModT& dyn_model,
-                       const SensModT& sen_model,
-                       double timestep,
+    static Output step(const DynModT& dyn_mod,
+                       const SensModT& sens_mod,
+                       double dt,
                        const Gauss_x& x_est,
                        const Arr_zXd& z_measurements,
                        const Config& config) {
-        auto [x_pred, z_pred] =
-            EKF::predict(dyn_model, sen_model, timestep, x_est);
-        auto gated_measurements = apply_gate(z_measurements, z_pred, config);
-        auto inside_meas =
-            get_inside_measurements(z_measurements, gated_measurements);
+        auto [x_pred, z_pred] = predict(dyn_mod, sens_mod, dt, x_est);
 
-        Gauss_xX x_updated;
-        for (const auto& z_k : inside_meas.colwise()) {
-            x_updated.push_back(EKF::update(sen_model, x_pred, z_pred, z_k));
-        }
-
-        Gauss_x x_final = get_weighted_average(
-            inside_meas, x_updated, z_pred, x_pred,
-            config.pdaf.prob_of_detection, config.pdaf.clutter_intensity);
-        return {x_final, x_pred, z_pred, x_updated, gated_measurements};
+        auto [x_final, x_updates, gated_measurements, z_inside_meas] =
+            update(sens_mod, x_pred, z_pred, z_measurements, config);
+        return {x_final, x_pred, z_pred, x_updates, gated_measurements};
     }
 
     /**
@@ -131,14 +174,14 @@ class PDAF {
      */
     static Arr_zXd get_inside_measurements(const Arr_zXd& z_measurements,
                                            const Arr_1Xb& gated_measurements) {
-        Arr_zXd inside_meas(N_DIM_z, gated_measurements.count());
+        Arr_zXd z_inside_meas(N_DIM_z, gated_measurements.count());
         for (size_t i = 0, j = 0; bool gated : gated_measurements) {
             if (gated) {
-                inside_meas.col(j++) = z_measurements.col(i);
+                z_inside_meas.col(j++) = z_measurements.col(i);
             }
             i++;
         }
-        return inside_meas;
+        return z_inside_meas;
     }
 
     /**
