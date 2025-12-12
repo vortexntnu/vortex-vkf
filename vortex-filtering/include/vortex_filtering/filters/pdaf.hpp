@@ -185,6 +185,28 @@ class PDAF {
     }
 
     /**
+     * @brief Get the measurement likelihoods
+     *
+     * @param z_pred The predicted measurement
+     * @param z_measurements The measurements
+     *
+     * @return `Eigen::ArrayXd` The measurement likelihoods
+     */
+    static Eigen::ArrayXd get_measurement_likelihoods(
+        const Gauss_z& z_pred,
+        const Arr_zXd& z_measurements) {
+        const int m = z_measurements.cols();
+        Eigen::ArrayXd meas_likelihoods(m);
+
+        int i = 0;
+        for (const Vec_z& z_k : z_measurements.colwise()) {
+            meas_likelihoods(i++) = z_pred.pdf(z_k);
+        }
+
+        return meas_likelihoods;
+    }
+
+    /**
      * @brief Get the weighted average of the states
      *
      * @param z_measurements Array of measurements
