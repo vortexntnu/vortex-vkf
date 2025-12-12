@@ -182,36 +182,6 @@ class IPDA {
     }
 
     /**
-     * @brief Calculates the existence probability given the measurements
-     * and the previous existence probability.
-     * @param z_measurements The measurements to iterate over.
-     * @param z_pred The predicted measurement.
-     * @param existence_prob_est (r_{k-1}) The previous existence
-     * probability.
-     * @param config The configuration for the IPDA.
-     * @return The existence probability.
-     */
-    static double existence_prob_update(const Arr_zXd& z_measurements,
-                                        const Gauss_z& z_pred,
-                                        double existence_prob_pred,
-                                        Config config) {
-        double r_kgkm1 = existence_prob_pred;
-        double P_d = config.pdaf.prob_of_detection;
-        double lambda = config.pdaf.clutter_intensity;
-
-        // predicted measurement likelihood sum
-        double z_pred_prob = 0.0;
-        for (const typename T::Vec_z& z_k : z_measurements.colwise()) {
-            z_pred_prob += z_pred.pdf(z_k);
-        }
-
-        // posterior existence probability r_k
-        double L_k = 1 - P_d + P_d / lambda * z_pred_prob;         // (7.33)
-        double r_k = (L_k * r_kgkm1) / (1 - (1 - L_k) * r_kgkm1);  // (7.32)
-        return r_k;
-    }
-
-    /**
      * @brief Calculates the existence probability given the likelihood of the
      * measurements and the previous existence probability.
      * @param z_likelyhoods (l_a_k) The likelihood of the measurements
