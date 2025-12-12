@@ -112,14 +112,15 @@ class IPDA {
         double existence_prob_pred,
         const Config& config) {
         typename PDAF::Config pdaf_cfg{.pdaf = config.pdaf};
-        auto [x_post, x_updates, gated_measurements, z_inside_meas] =
+        auto [x_post, x_updates, gated_measurements, z_inside_meas,
+              z_likelihoods] =
             PDAF::update(sens_mod, x_pred, z_pred, z_measurements, pdaf_cfg);
 
         double existence_prob_upd = existence_prob_pred;
         if (z_measurements.cols() > 0 ||
             config.ipda.update_existence_probability_on_no_detection) {
             existence_prob_upd = existence_prob_update(
-                z_inside_meas, z_pred, existence_prob_pred, config);
+                z_likelihoods, existence_prob_pred, config);
         }
 
         return std::make_tuple(x_post, x_updates, gated_measurements,
