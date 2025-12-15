@@ -57,16 +57,16 @@ class IPDA {
      * predicted target existence probability.
      *
      * @note
-     * Corresponds to quantities at time step \f$k|k-1\f$.
+     * Corresponds to quantities at time step k|k-1.
      */
     struct PredictionResult {
-        /// Predicted state estimate \f$x_{k|k-1}\f$
+        /// Predicted state estimate x_{k|k-1}
         Gauss_x x_pred;
 
-        /// Predicted measurement distribution \f$z_{k|k-1}\f$
+        /// Predicted measurement distribution z_{k|k-1}
         Gauss_z z_pred;
 
-        /// Predicted target existence probability \f$r_{k|k-1}\f$
+        /// Predicted target existence probability r_{k|k-1}
         double existence_prob_pred;
     };
 
@@ -83,7 +83,7 @@ class IPDA {
      * configuration
      */
     struct UpdateResult {
-        /// Posterior state estimate after IPDA update \f$x_{k|k}\f$
+        /// Posterior state estimate after IPDA update x_{k|k}
         Gauss_x x_post;
 
         /// State updates conditioned on each gated measurement
@@ -96,7 +96,7 @@ class IPDA {
         /// Measurements inside the validation gate
         Arr_zXd z_inside_meas;
 
-        /// Updated target existence probability \f$r_k\f$
+        /// Updated target existence probability r_k
         double existence_prob_upd;
 
         /// Clutter intensity used during the update
@@ -110,18 +110,18 @@ class IPDA {
      * suitable for external use, logging, or higher-level filters (e.g. IMM).
      *
      * @note
-     * - `state.x_estimate` corresponds to \f$x_{k|k}\f$
-     * - `x_pred` corresponds to \f$x_{k|k-1}\f$
+     * - `state.x_estimate` corresponds to x_{k|k}
+     * - `x_pred` corresponds to x_{k|k-1}
      * - `clutter_intensity` is the value actually used in the PDAF update
      */
     struct StepResult {
         /// Updated target state and existence probability
         State state;
 
-        /// Predicted state estimate \f$x_{k|k-1}\f$
+        /// Predicted state estimate x_{k|k-1}
         Gauss_x x_pred;
 
-        /// Predicted measurement distribution \f$z_{k|k-1}\f$
+        /// Predicted measurement distribution z_{k|k-1}
         Gauss_z z_pred;
 
         /// State updates conditioned on each gated measurement
