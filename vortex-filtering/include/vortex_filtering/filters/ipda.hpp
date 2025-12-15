@@ -50,12 +50,89 @@ class IPDA {
         double existence_probability;
     };
 
-    struct Output {
-        State state;
-        Gauss_x x_prediction;
-        Gauss_z z_prediction;
+    /**
+     * @brief Result of the IPDA prediction step.
+     *
+     * Contains the predicted kinematic state, predicted measurement, and
+     * predicted target existence probability.
+     *
+     * @note
+     * Corresponds to quantities at time step \f$k|k-1\f$.
+     */
+    struct PredictionResult {
+        /// Predicted state estimate \f$x_{k|k-1}\f$
+        Gauss_x x_pred;
+
+        /// Predicted measurement distribution \f$z_{k|k-1}\f$
+        Gauss_z z_pred;
+
+        /// Predicted target existence probability \f$r_{k|k-1}\f$
+        double existence_prob_pred;
+    };
+
+    /**
+     * @brief Result of the IPDA update step.
+     *
+     * Contains the posterior state estimate after data association, the
+     * individual measurement-conditioned updates, gating results, and the
+     * updated target existence probability.
+     *
+     * @note
+     * - `x_updates[i]` corresponds to `z_inside_meas.col(i)`
+     * - `clutter_intensity` may be estimated or fixed depending on
+     * configuration
+     */
+    struct UpdateResult {
+        /// Posterior state estimate after IPDA update \f$x_{k|k}\f$
+        Gauss_x x_post;
+
+        /// State updates conditioned on each gated measurement
         Gauss_xX x_updates;
+
+        /// Boolean mask indicating which measurements passed the validation
+        /// gate
         Arr_1Xb gated_measurements;
+
+        /// Measurements inside the validation gate
+        Arr_zXd z_inside_meas;
+
+        /// Updated target existence probability \f$r_k\f$
+        double existence_prob_upd;
+
+        /// Clutter intensity used during the update
+        double clutter_intensity;
+    };
+
+    /**
+     * @brief Result of a complete IPDA filter step.
+     *
+     * Aggregates prediction and update results into a single output structure,
+     * suitable for external use, logging, or higher-level filters (e.g. IMM).
+     *
+     * @note
+     * - `state.x_estimate` corresponds to \f$x_{k|k}\f$
+     * - `x_pred` corresponds to \f$x_{k|k-1}\f$
+     * - `clutter_intensity` is the value actually used in the PDAF update
+     */
+    struct StepResult {
+        /// Updated target state and existence probability
+        State state;
+
+        /// Predicted state estimate \f$x_{k|k-1}\f$
+        Gauss_x x_pred;
+
+        /// Predicted measurement distribution \f$z_{k|k-1}\f$
+        Gauss_z z_pred;
+
+        /// State updates conditioned on each gated measurement
+        Gauss_xX x_updates;
+
+        /// Boolean mask indicating which measurements passed the validation
+        /// gate
+        Arr_1Xb gated_measurements;
+
+        /// Clutter intensity used during the update step
+        double clutter_intensity;
     };
 
     /**
@@ -65,30 +142,23 @@ class IPDA {
      * @param sens_mod The sensor model
      * @param dt Time step in seconds
      * @param state_est_prev The previous estimated state
-     * @param z_measurements Array of measurements
      * @param config Configuration for the IPDA
-     * @return `std::tuple<Gauss_x, Gauss_z, double>` The predicted state,
-     * predicted measurement, and predicted existence probability
+     * @return `PredictionResult`
      */
-    static std::tuple<Gauss_x, Gauss_z, double> predict(
-        const DynModT dyn_mod,
-        const SensModT& sens_mod,
-        double dt,
-        const State& state_est_prev,
-        const Arr_zXd& z_measurements,
-        Config& config) {
+    static PredictionResult predict(const DynModT& dyn_mod,
+                                    const SensModT& sens_mod,
+                                    double dt,
+                                    const State& state_est_prev,
+                                    const Config& config) {
         double existence_prob_pred = existence_prediction(
             state_est_prev.existence_probability, config.ipda.prob_of_survival);
 
         auto [x_pred, z_pred] =
             EKF::predict(dyn_mod, sens_mod, dt, state_est_prev.x_estimate);
 
-        if (config.ipda.estimate_clutter) {
-            config.pdaf.clutter_intensity = estimate_clutter_intensity(
-                z_pred, existence_prob_pred, z_measurements.cols(), config);
-        }
-
-        return {x_pred, z_pred, existence_prob_pred};
+        return PredictionResult{.x_pred = x_pred,
+                                .z_pred = z_pred,
+                                .existence_prob_pred = existence_prob_pred};
     }
 
     /**
@@ -99,19 +169,25 @@ class IPDA {
      * @param z_measurements Array of measurements
      * @param existence_prob_pred The predicted existence probability
      * @param config Configuration for the IPDA
-     * @return `std::tuple<Gauss_x, Gauss_xX, Arr_1Xb, Arr_zXd, double>` The
-     * updated state, all updated states for each measurement, the indices of
-     * the measurements that are inside the gate, the measurements that are
-     * inside the gate and the updated existence probability
+     * @return `UpdateResult`
      */
-    static std::tuple<Gauss_x, Gauss_xX, Arr_1Xb, Arr_zXd, double> update(
-        const SensModT& sens_mod,
-        const Gauss_x& x_pred,
-        const Gauss_z& z_pred,
-        const Arr_zXd& z_measurements,
-        double existence_prob_pred,
-        const Config& config) {
+    static UpdateResult update(const SensModT& sens_mod,
+                               const Gauss_x& x_pred,
+                               const Gauss_z& z_pred,
+                               const Arr_zXd& z_measurements,
+                               double existence_prob_pred,
+                               const Config& config) {
+        double clutter_intensity = config.pdaf.clutter_intensity;
+
+        if (config.ipda.estimate_clutter) {
+            clutter_intensity =
+                estimate_clutter_intensity(z_pred, existence_prob_pred,
+                                           z_measurements.cols(), config.pdaf);
+        }
+
         typename PDAF::Config pdaf_cfg{.pdaf = config.pdaf};
+        pdaf_cfg.pdaf.clutter_intensity = clutter_intensity;
+
         auto [x_post, x_updates, gated_measurements, z_inside_meas,
               z_likelihoods] =
             PDAF::update(sens_mod, x_pred, z_pred, z_measurements, pdaf_cfg);
@@ -120,11 +196,15 @@ class IPDA {
         if (z_measurements.cols() > 0 ||
             config.ipda.update_existence_probability_on_no_detection) {
             existence_prob_upd = existence_prob_update(
-                z_likelihoods, existence_prob_pred, config);
+                z_likelihoods, existence_prob_pred, pdaf_cfg.pdaf);
         }
 
-        return std::make_tuple(x_post, x_updates, gated_measurements,
-                               z_inside_meas, existence_prob_upd);
+        return UpdateResult{.x_post = x_post,
+                            .x_updates = x_updates,
+                            .gated_measurements = gated_measurements,
+                            .z_inside_meas = z_inside_meas,
+                            .existence_prob_upd = existence_prob_upd,
+                            .clutter_intensity = clutter_intensity};
     }
 
     /**
@@ -137,20 +217,20 @@ class IPDA {
      * @param state_est_prev The previous estimated state
      * @param z_measurements Array of measurements
      * @param config Configuration for the IPDA
-     * @return `Output` The result of the IPDA step and some intermediate
+     * @return `StepResult` The result of the IPDA step and some intermediate
      * results
      */
-    static Output step(const DynModT& dyn_mod,
-                       const SensModT& sens_mod,
-                       double dt,
-                       const State& state_est_prev,
-                       const Arr_zXd& z_measurements,
-                       Config& config) {
-        auto [x_pred, z_pred, existence_prob_pred] = predict(
-            dyn_mod, sens_mod, dt, state_est_prev, z_measurements, config);
+    static StepResult step(const DynModT& dyn_mod,
+                           const SensModT& sens_mod,
+                           double dt,
+                           const State& state_est_prev,
+                           const Arr_zXd& z_measurements,
+                           const Config& config) {
+        auto [x_pred, z_pred, existence_prob_pred] =
+            predict(dyn_mod, sens_mod, dt, state_est_prev, config);
 
         auto [x_post, x_updates, gated_measurements, z_inside_meas,
-              existence_prob_upd] =
+              existence_prob_upd, clutter_intensity] =
             update(sens_mod, x_pred, z_pred, z_measurements,
                    existence_prob_pred, config);
 
@@ -160,10 +240,11 @@ class IPDA {
                 .x_estimate            = x_post,
                 .existence_probability = existence_prob_upd,
             },
-            .x_prediction       = x_pred,
-            .z_prediction       = z_pred,
+            .x_pred       = x_pred,
+            .z_pred       = z_pred,
             .x_updates          = x_updates,
-            .gated_measurements = gated_measurements
+            .gated_measurements = gated_measurements,
+            .clutter_intensity = clutter_intensity,
         };
         // clang-format on
     }
@@ -186,15 +267,15 @@ class IPDA {
      * measurements and the previous existence probability.
      * @param z_likelyhoods (l_a_k) The likelihood of the measurements
      * @param existence_prob_est (r_{k-1}) The previous existence probability.
-     * @param config The configuration for the IPDA.
+     * @param config The configuration for the PDAF.
      * @return The existence probability (r_k).
      */
-    static double existence_prob_update(const Eigen::ArrayXd z_likelyhoods,
+    static double existence_prob_update(const Eigen::ArrayXd& z_likelyhoods,
                                         double existence_prob_pred,
-                                        Config config) {
+                                        const config::PDAF& config) {
         double r_kgkm1 = existence_prob_pred;  // r_k given k minus 1
-        double P_d = config.pdaf.prob_of_detection;
-        double lambda = config.pdaf.clutter_intensity;
+        double P_d = config.prob_of_detection;
+        double lambda = config.clutter_intensity;
 
         // posterior existence probability r_k
         double L_k = 1 - P_d + P_d / lambda * z_likelyhoods.sum();  // (7.33)
@@ -208,18 +289,18 @@ class IPDA {
      * @param existence_prob_pred (r_{k|k-1})  The predicted
      * existence probability.
      * @param num_measurements (m_k) The number of z_measurements.
-     * @param config The configuration for the IPDA.
+     * @param config The configuration for the PDAF.
      * @return The clutter intensity.
      */
     static double estimate_clutter_intensity(const Gauss_z& z_pred,
                                              double existence_prob_pred,
                                              double num_measurements,
-                                             Config config) {
+                                             const config::PDAF& config) {
         size_t m_k = num_measurements;
-        double P_d = config.pdaf.prob_of_detection;
+        double P_d = config.prob_of_detection;
         double r_k = existence_prob_pred;
         double V_k =
-            utils::Ellipsoid<N_DIM_z>(z_pred, config.pdaf.mahalanobis_threshold)
+            utils::Ellipsoid<N_DIM_z>(z_pred, config.mahalanobis_threshold)
                 .volume();  // gate area
 
         if (m_k == 0) {

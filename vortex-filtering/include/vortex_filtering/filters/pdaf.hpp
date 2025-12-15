@@ -48,11 +48,65 @@ class PDAF {
         config::PDAF pdaf;
     };
 
-    struct Output {
-        Gauss_x x_;
-        Gauss_x x_prediction;
-        Gauss_z z_prediction;
+    /**
+     * @brief Result of the PDAF prediction step.
+     *
+     * Contains the predicted state and the corresponding predicted measurement
+     * prior to processing any measurements at the current time step.
+     */
+    struct PredictionResult {
+        /// Predicted state distribution x_{k|k-1}
+        Gauss_x x_pred;
+
+        /// Predicted measurement distribution z_{k|k-1}
+        Gauss_z z_pred;
+    };
+
+    /**
+     * @brief Result of the PDAF update step.
+     *
+     * Contains the posterior state estimate after probabilistic data
+     * association, as well as intermediate results used during the update.
+     */
+    struct UpdateResult {
+        /// Posterior state estimate x_{k|k}
+        Gauss_x x_post;
+
+        /// State updates corresponding to each gated measurement
         Gauss_xX x_updates;
+
+        /// Boolean mask indicating which measurements passed the validation
+        /// gate
+        Arr_1Xb gated_measurements;
+
+        /// Measurements that passed the validation gate
+        Arr_zXd z_inside_meas;
+
+        /// Likelihood of each gated measurement p(z_k | x_{k|k-1})
+        Eigen::ArrayXd z_likelihoods;
+    };
+
+    /**
+     * @brief Result of a complete PDAF cycle (prediction + update).
+     *
+     * Combines the final posterior estimate with selected intermediate results
+     * from the prediction and update steps.
+     */
+    struct StepResult {
+        /// Posterior state estimate after the update x_{k|k}
+        Gauss_x x_post;
+
+        /// Predicted state prior to update x_{k|k-1}
+        Gauss_x x_pred;
+
+        /// Predicted measurement prior to update z_{k|k-1}
+        Gauss_z z_pred;
+
+        /// State updates corresponding to each gated measurement
+        Gauss_xX x_updates;
+
+        /// Boolean mask indicating which measurements passed the validation
+        /// gate
         Arr_1Xb gated_measurements;
     };
 
@@ -65,16 +119,18 @@ class PDAF {
      * @param sens_mod The sensor model
      * @param dt Time step in seconds
      * @param x_est The estimated state
-     * @return `std::pair<Gauss_x, Gauss_z>` The predicted state and predicted
-     * measurement
+     * @return `PredictionResult`
      */
-    static std::pair<Gauss_x, Gauss_z> predict(const DynModT& dyn_mod,
-                                               const SensModT& sens_mod,
-                                               double dt,
-                                               const Gauss_x& x_est) {
+    static PredictionResult predict(const DynModT& dyn_mod,
+                                    const SensModT& sens_mod,
+                                    double dt,
+                                    const Gauss_x& x_est) {
         auto [x_pred, z_pred] = EKF::predict(dyn_mod, sens_mod, dt, x_est);
 
-        return {x_pred, z_pred};
+        return PredictionResult{
+            .x_pred = x_pred,
+            .z_pred = z_pred,
+        };
     }
 
     /**
@@ -85,16 +141,13 @@ class PDAF {
      * @param z_pred The predicted measurement
      * @param z_measurements Array of measurements
      * @param config Configuration for the PDAF
-     * @return `std::tuple<Gauss_x, Gauss_xX, Arr_1Xb, Eigen::ArrayXd>` The
-     * updated state, all updated states for each measurement, the indices of
-     * the measurements that are inside the gate and the measurement likelihoods
+     * @return `UpdateResult`
      */
-    static std::tuple<Gauss_x, Gauss_xX, Arr_1Xb, Arr_zXd, Eigen::ArrayXd>
-    update(const SensModT& sens_mod,
-           const Gauss_x& x_pred,
-           const Gauss_z& z_pred,
-           const Arr_zXd& z_measurements,
-           const Config& config) {
+    static UpdateResult update(const SensModT& sens_mod,
+                               const Gauss_x& x_pred,
+                               const Gauss_z& z_pred,
+                               const Arr_zXd& z_measurements,
+                               const Config& config) {
         auto gated_measurements = apply_gate(z_measurements, z_pred, config);
         auto z_inside_meas =
             get_inside_measurements(z_measurements, gated_measurements);
@@ -111,8 +164,13 @@ class PDAF {
                                               config.pdaf.prob_of_detection,
                                               config.pdaf.clutter_intensity);
 
-        return {x_post, x_updates, gated_measurements, z_inside_meas,
-                z_likelihoods};
+        return UpdateResult{
+            .x_post = x_post,
+            .x_updates = x_updates,
+            .gated_measurements = gated_measurements,
+            .z_inside_meas = z_inside_meas,
+            .z_likelihoods = z_likelihoods,
+        };
     }
 
     /**
@@ -124,21 +182,27 @@ class PDAF {
      * @param x_est The estimated state
      * @param z_measurements Array of measurements
      * @param config Configuration for the PDAF
-     * @return `Output` The result of the PDAF step and some intermediate
+     * @return `StepResult` The result of the PDAF step and some intermediate
      * results
      */
-    static Output step(const DynModT& dyn_mod,
-                       const SensModT& sens_mod,
-                       double dt,
-                       const Gauss_x& x_est,
-                       const Arr_zXd& z_measurements,
-                       const Config& config) {
+    static StepResult step(const DynModT& dyn_mod,
+                           const SensModT& sens_mod,
+                           double dt,
+                           const Gauss_x& x_est,
+                           const Arr_zXd& z_measurements,
+                           const Config& config) {
         auto [x_pred, z_pred] = predict(dyn_mod, sens_mod, dt, x_est);
 
-        auto [x_final, x_updates, gated_measurements, z_inside_meas,
+        auto [x_post, x_updates, gated_measurements, z_inside_meas,
               z_likelihoods] =
             update(sens_mod, x_pred, z_pred, z_measurements, config);
-        return {x_final, x_pred, z_pred, x_updates, gated_measurements};
+        return StepResult{
+            .x_post = x_post,
+            .x_pred = x_pred,
+            .z_pred = z_pred,
+            .x_updates = x_updates,
+            .gated_measurements = gated_measurements,
+        };
     }
 
     /**
