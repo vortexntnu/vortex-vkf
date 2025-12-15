@@ -17,8 +17,11 @@ TEST(PDAF, get_weights_is_calculating) {
                                  Eigen::Matrix2d::Identity());
     Eigen::Array2Xd meas = {{0.0, 2.0}, {0.0, 1.0}};
 
+    Eigen::ArrayXd z_likelihoods =
+        PDAF::get_measurement_likelihoods(z_pred, meas);
+
     Eigen::VectorXd weights =
-        PDAF::get_weights(meas, z_pred, prob_of_detection, clutter_intensity);
+        PDAF::get_weights(z_likelihoods, prob_of_detection, clutter_intensity);
 
     std::cout << "weights: " << weights << std::endl;
 
@@ -33,8 +36,11 @@ TEST(PDAF, if_no_clutter_first_weight_is_zero) {
                                  Eigen::Matrix2d::Identity());
     Eigen::Array2Xd meas = {{0.0, 2.0}, {0.0, 1.0}};
 
+    Eigen::ArrayXd z_likelihoods =
+        PDAF::get_measurement_likelihoods(z_pred, meas);
+
     Eigen::VectorXd weights =
-        PDAF::get_weights(meas, z_pred, prob_of_detection, clutter_intensity);
+        PDAF::get_weights(z_likelihoods, prob_of_detection, clutter_intensity);
 
     std::cout << "weights: " << weights << std::endl;
 
@@ -49,8 +55,11 @@ TEST(PDAF, weights_are_decreasing_with_distance) {
                                  Eigen::Matrix2d::Identity());
     Eigen::Array2Xd meas = {{2.0, 3.0, 4.0}, {1.0, 1.0, 1.0}};
 
+    Eigen::ArrayXd z_likelihoods =
+        PDAF::get_measurement_likelihoods(z_pred, meas);
+
     Eigen::VectorXd weights =
-        PDAF::get_weights(meas, z_pred, prob_of_detection, clutter_intensity);
+        PDAF::get_weights(z_likelihoods, prob_of_detection, clutter_intensity);
 
     std::cout << "weights: " << weights << std::endl;
 
@@ -74,8 +83,11 @@ TEST(PDAF, get_weighted_average_is_calculating) {
         vortex::prob::Gauss4d(Eigen::Vector4d(1.0, 1.0, 1.0, 1.0),
                               Eigen::Matrix4d::Identity())};
 
+    Eigen::ArrayXd z_likelihoods =
+        PDAF::get_measurement_likelihoods(z_pred, meas);
+
     vortex::prob::Gauss4d weighted_average =
-        PDAF::get_weighted_average(meas, updated_states, z_pred, x_pred,
+        PDAF::get_weighted_average(z_likelihoods, updated_states, x_pred,
                                    prob_of_detection, clutter_intensity);
 
     std::cout << "weighted average: " << weighted_average.mean() << std::endl;
@@ -94,8 +106,11 @@ TEST(PDAF, average_state_is_in_between_prediction_and_measurement_y_axis) {
     std::vector<vortex::prob::Gauss4d> updated_states = {vortex::prob::Gauss4d(
         Eigen::Vector4d(1.0, 1.5, 0.0, 0.0), Eigen::Matrix4d::Identity())};
 
+    Eigen::ArrayXd z_likelihoods =
+        PDAF::get_measurement_likelihoods(z_pred, meas);
+
     vortex::prob::Gauss4d weighted_average =
-        PDAF::get_weighted_average(meas, updated_states, z_pred, x_pred,
+        PDAF::get_weighted_average(z_likelihoods, updated_states, x_pred,
                                    prob_of_detection, clutter_intensity);
 
     EXPECT_GT(weighted_average.mean()(1), x_pred.mean()(1));
@@ -119,8 +134,11 @@ TEST(PDAF, average_state_is_in_between_prediction_and_measurement_x_axis) {
     std::vector<vortex::prob::Gauss4d> updated_states = {vortex::prob::Gauss4d(
         Eigen::Vector4d(1.5, 1.0, 0.0, 0.0), Eigen::Matrix4d::Identity())};
 
+    Eigen::ArrayXd z_likelihoods =
+        PDAF::get_measurement_likelihoods(z_pred, meas);
+
     vortex::prob::Gauss4d weighted_average =
-        PDAF::get_weighted_average(meas, updated_states, z_pred, x_pred,
+        PDAF::get_weighted_average(z_likelihoods, updated_states, x_pred,
                                    prob_of_detection, clutter_intensity);
 
     EXPECT_GT(weighted_average.mean()(0), x_pred.mean()(0));
@@ -144,8 +162,11 @@ TEST(PDAF, average_state_is_in_between_prediction_and_measurement_both_axes) {
     std::vector<vortex::prob::Gauss4d> updated_states = {vortex::prob::Gauss4d(
         Eigen::Vector4d(1.5, 1.5, 0.0, 0.0), Eigen::Matrix4d::Identity())};
 
+    Eigen::ArrayXd z_likelihoods =
+        PDAF::get_measurement_likelihoods(z_pred, meas);
+
     vortex::prob::Gauss4d weighted_average =
-        PDAF::get_weighted_average(meas, updated_states, z_pred, x_pred,
+        PDAF::get_weighted_average(z_likelihoods, updated_states, x_pred,
                                    prob_of_detection, clutter_intensity);
 
     EXPECT_GT(weighted_average.mean()(0), x_pred.mean()(0));

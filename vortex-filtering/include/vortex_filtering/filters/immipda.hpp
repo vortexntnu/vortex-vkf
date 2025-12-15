@@ -218,8 +218,7 @@ class IMMIPDA {
 
         // Calculate existence probability (7.32-7.33)
         double existence_prob_upd = IPDA_<0>::existence_prob_update(
-            hypothesis_likelihoods, existence_prob_est,
-            {config.pdaf, config.ipda});
+            hypothesis_likelihoods, existence_prob_est, config.pdaf);
 
         return {
             .state =

@@ -48,49 +48,161 @@ class PDAF {
         config::PDAF pdaf;
     };
 
-    struct Output {
-        Gauss_x x_;
-        Gauss_x x_prediction;
-        Gauss_z z_prediction;
+    /**
+     * @brief Result of the PDAF prediction step.
+     *
+     * Contains the predicted state and the corresponding predicted measurement
+     * prior to processing any measurements at the current time step.
+     */
+    struct PredictionResult {
+        /// Predicted state distribution x_{k|k-1}
+        Gauss_x x_pred;
+
+        /// Predicted measurement distribution z_{k|k-1}
+        Gauss_z z_pred;
+    };
+
+    /**
+     * @brief Result of the PDAF update step.
+     *
+     * Contains the posterior state estimate after probabilistic data
+     * association, as well as intermediate results used during the update.
+     */
+    struct UpdateResult {
+        /// Posterior state estimate x_{k|k}
+        Gauss_x x_post;
+
+        /// State updates corresponding to each gated measurement
         Gauss_xX x_updates;
+
+        /// Boolean mask indicating which measurements passed the validation
+        /// gate
+        Arr_1Xb gated_measurements;
+
+        /// Measurements that passed the validation gate
+        Arr_zXd z_inside_meas;
+
+        /// Likelihood of each gated measurement p(z_k | x_{k|k-1})
+        Eigen::ArrayXd z_likelihoods;
+    };
+
+    /**
+     * @brief Result of a complete PDAF cycle (prediction + update).
+     *
+     * Combines the final posterior estimate with selected intermediate results
+     * from the prediction and update steps.
+     */
+    struct StepResult {
+        /// Posterior state estimate after the update x_{k|k}
+        Gauss_x x_post;
+
+        /// Predicted state prior to update x_{k|k-1}
+        Gauss_x x_pred;
+
+        /// Predicted measurement prior to update z_{k|k-1}
+        Gauss_z z_pred;
+
+        /// State updates corresponding to each gated measurement
+        Gauss_xX x_updates;
+
+        /// Boolean mask indicating which measurements passed the validation
+        /// gate
         Arr_1Xb gated_measurements;
     };
 
     PDAF() = delete;
 
     /**
+     * @brief Perform one PDAF prediction step
+     *
+     * @param dyn_mod The dynamic model
+     * @param sens_mod The sensor model
+     * @param dt Time step in seconds
+     * @param x_est The estimated state
+     * @return `PredictionResult`
+     */
+    static PredictionResult predict(const DynModT& dyn_mod,
+                                    const SensModT& sens_mod,
+                                    double dt,
+                                    const Gauss_x& x_est) {
+        auto [x_pred, z_pred] = EKF::predict(dyn_mod, sens_mod, dt, x_est);
+
+        return PredictionResult{
+            .x_pred = x_pred,
+            .z_pred = z_pred,
+        };
+    }
+
+    /**
+     * @brief Perform one PDAF update step
+     *
+     * @param sens_mod The sensor model
+     * @param x_pred The predicted state
+     * @param z_pred The predicted measurement
+     * @param z_measurements Array of measurements
+     * @param config Configuration for the PDAF
+     * @return `UpdateResult`
+     */
+    static UpdateResult update(const SensModT& sens_mod,
+                               const Gauss_x& x_pred,
+                               const Gauss_z& z_pred,
+                               const Arr_zXd& z_measurements,
+                               const Config& config) {
+        auto gated_measurements = apply_gate(z_measurements, z_pred, config);
+        auto z_inside_meas =
+            get_inside_measurements(z_measurements, gated_measurements);
+
+        Gauss_xX x_updates;
+        for (const auto& z_k : z_inside_meas.colwise()) {
+            x_updates.push_back(EKF::update(sens_mod, x_pred, z_pred, z_k));
+        }
+
+        Eigen::ArrayXd z_likelihoods =
+            get_measurement_likelihoods(z_pred, z_inside_meas);
+
+        Gauss_x x_post = get_weighted_average(z_likelihoods, x_updates, x_pred,
+                                              config.pdaf.prob_of_detection,
+                                              config.pdaf.clutter_intensity);
+
+        return UpdateResult{
+            .x_post = x_post,
+            .x_updates = x_updates,
+            .gated_measurements = gated_measurements,
+            .z_inside_meas = z_inside_meas,
+            .z_likelihoods = z_likelihoods,
+        };
+    }
+
+    /**
      * @brief Perform one step of the Probabilistic Data Association Filter
      *
-     * @param dyn_model The dynamic model
-     * @param sen_model The sensor model
-     * @param timestep Time step in seconds
+     * @param dyn_mod The dynamic model
+     * @param sens_mod The sensor model
+     * @param dt Time step in seconds
      * @param x_est The estimated state
      * @param z_measurements Array of measurements
      * @param config Configuration for the PDAF
-     * @return `Output` The result of the PDAF step and some intermediate
+     * @return `StepResult` The result of the PDAF step and some intermediate
      * results
      */
-    static Output step(const DynModT& dyn_model,
-                       const SensModT& sen_model,
-                       double timestep,
-                       const Gauss_x& x_est,
-                       const Arr_zXd& z_measurements,
-                       const Config& config) {
-        auto [x_pred, z_pred] =
-            EKF::predict(dyn_model, sen_model, timestep, x_est);
-        auto gated_measurements = apply_gate(z_measurements, z_pred, config);
-        auto inside_meas =
-            get_inside_measurements(z_measurements, gated_measurements);
+    static StepResult step(const DynModT& dyn_mod,
+                           const SensModT& sens_mod,
+                           double dt,
+                           const Gauss_x& x_est,
+                           const Arr_zXd& z_measurements,
+                           const Config& config) {
+        auto [x_pred, z_pred] = predict(dyn_mod, sens_mod, dt, x_est);
 
-        Gauss_xX x_updated;
-        for (const auto& z_k : inside_meas.colwise()) {
-            x_updated.push_back(EKF::update(sen_model, x_pred, z_pred, z_k));
-        }
-
-        Gauss_x x_final = get_weighted_average(
-            inside_meas, x_updated, z_pred, x_pred,
-            config.pdaf.prob_of_detection, config.pdaf.clutter_intensity);
-        return {x_final, x_pred, z_pred, x_updated, gated_measurements};
+        auto [x_post, x_updates, gated_measurements, z_inside_meas,
+              z_likelihoods] =
+            update(sens_mod, x_pred, z_pred, z_measurements, config);
+        return StepResult{
+            .x_post = x_post,
+            .x_pred = x_pred,
+            .z_pred = z_pred,
+            .x_updates = x_updates,
+            .gated_measurements = gated_measurements,
+        };
     }
 
     /**
@@ -131,30 +243,50 @@ class PDAF {
      */
     static Arr_zXd get_inside_measurements(const Arr_zXd& z_measurements,
                                            const Arr_1Xb& gated_measurements) {
-        Arr_zXd inside_meas(N_DIM_z, gated_measurements.count());
+        Arr_zXd z_inside_meas(N_DIM_z, gated_measurements.count());
         for (size_t i = 0, j = 0; bool gated : gated_measurements) {
             if (gated) {
-                inside_meas.col(j++) = z_measurements.col(i);
+                z_inside_meas.col(j++) = z_measurements.col(i);
             }
             i++;
         }
-        return inside_meas;
+        return z_inside_meas;
+    }
+
+    /**
+     * @brief Get the measurement likelihoods
+     *
+     * @param z_pred The predicted measurement
+     * @param z_measurements The measurements
+     *
+     * @return `Eigen::ArrayXd` The measurement likelihoods
+     */
+    static Eigen::ArrayXd get_measurement_likelihoods(
+        const Gauss_z& z_pred,
+        const Arr_zXd& z_measurements) {
+        const int m = z_measurements.cols();
+        Eigen::ArrayXd meas_likelihoods(m);
+
+        int i = 0;
+        for (const Vec_z& z_k : z_measurements.colwise()) {
+            meas_likelihoods(i++) = z_pred.pdf(z_k);
+        }
+
+        return meas_likelihoods;
     }
 
     /**
      * @brief Get the weighted average of the states
      *
-     * @param z_measurements Array of measurements
+     * @param z_likelihoods Array of measurement likelihoods
      * @param updated_states Array of updated states
-     * @param z_pred Predicted measurement
      * @param x_pred Predicted state
      * @param prob_of_detection Probability of detection
      * @param clutter_intensity Clutter intensity
      * @return `Gauss_x` The weighted average of the states
      */
-    static Gauss_x get_weighted_average(const Arr_zXd& z_measurements,
+    static Gauss_x get_weighted_average(const Eigen::ArrayXd& z_likelihoods,
                                         const Gauss_xX& updated_states,
-                                        const Gauss_z& z_pred,
                                         const Gauss_x& x_pred,
                                         double prob_of_detection,
                                         double clutter_intensity) {
@@ -163,8 +295,8 @@ class PDAF {
         states.insert(states.end(), updated_states.begin(),
                       updated_states.end());
 
-        Eigen::VectorXd weights = get_weights(
-            z_measurements, z_pred, prob_of_detection, clutter_intensity);
+        Eigen::VectorXd weights =
+            get_weights(z_likelihoods, prob_of_detection, clutter_intensity);
 
         return GaussMix_x{weights, states}.reduce();
     }
@@ -172,32 +304,24 @@ class PDAF {
     /**
      * @brief Get the weights for the measurements
      *
-     * @param z_measurements Array of measurements
-     * @param z_pred Predicted measurement
+     * @param z_likelihoods Array of measurements
      * @param prob_of_detection Probability of detection
      * @param clutter_intensity Clutter intensity
      * @return `Eigen::VectorXd` The weights for the measurements
      */
-    static Eigen::VectorXd get_weights(const Arr_zXd& z_measurements,
-                                       const Gauss_z& z_pred,
+    static Eigen::VectorXd get_weights(const Eigen::ArrayXd& z_likelihoods,
                                        double prob_of_detection,
                                        double clutter_intensity) {
-        double lambda = clutter_intensity;
-        double P_d = prob_of_detection;
+        const int m = z_likelihoods.size();
+        const double lambda = clutter_intensity;
+        const double P_d = prob_of_detection;
 
-        Eigen::VectorXd weights(z_measurements.cols() + 1);
+        Eigen::VectorXd weights(m + 1);
 
-        // in case no measurement associates with the target
-        if (lambda == 0.0 && z_measurements.cols() == 0) {
-            weights(0) = 1.0;
-        } else {
-            weights(0) = lambda * (1 - P_d);
-        }
+        // Weight for "no measurement associated"
+        weights(0) = (lambda == 0.0 && m == 0) ? 1.0 : lambda * (1.0 - P_d);
 
-        // measurements associating with the target
-        for (size_t a_k = 1; const Vec_z& z_k : z_measurements.colwise()) {
-            weights(a_k++) = P_d * z_pred.pdf(z_k);
-        }
+        weights.tail(m) = P_d * z_likelihoods;
 
         // normalize weights
         weights /= weights.sum();

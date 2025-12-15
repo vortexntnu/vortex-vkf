@@ -2,11 +2,13 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include <vortex_filtering/filters/ipda.hpp>
+#include <vortex_filtering/filters/pdaf.hpp>
 #include <vortex_filtering/utils/plotting.hpp>
 
 using ConstantVelocity = vortex::models::ConstantVelocity;
 using IdentitySensorModel = vortex::models::IdentitySensorModel<4, 2>;
 using IPDA = vortex::filter::IPDA<ConstantVelocity, IdentitySensorModel>;
+using PDAF = vortex::filter::PDAF<ConstantVelocity, IdentitySensorModel>;
 
 TEST(IPDA, ipda_runs) {
     IPDA::Config config = {
@@ -36,7 +38,8 @@ TEST(IPDA, ipda_runs) {
     ConstantVelocity dyn_model{1.0};
     IdentitySensorModel sen_model{1.0};
 
-    auto [state_post, x_pred, z_pred, x_updated, gated_measurements] =
+    auto [state_post, x_pred, z_pred, x_updated, gated_measurements,
+          clutter_intensity] =
         IPDA::step(dyn_model, sen_model, 1.0,
                    {x_est, last_detection_probability}, z_meas, config);
 
@@ -65,8 +68,11 @@ TEST(IPDA, get_existence_probability_is_calculating) {
     vortex::prob::Gauss2d z_pred = {{1.0, 1.0},
                                     Eigen::Matrix2d::Identity() * 0.1};
 
+    Eigen::ArrayXd z_likelihoods =
+        PDAF::get_measurement_likelihoods(z_pred, meas);
+
     double existence_probability = IPDA::existence_prob_update(
-        meas, z_pred, last_detection_probability, config);
+        z_likelihoods, last_detection_probability, config.pdaf);
 
     std::cout << "Existence probability: " << existence_probability
               << std::endl;
