@@ -179,7 +179,7 @@ class IPDA {
                                const Config& config) {
         double clutter_intensity = config.pdaf.clutter_intensity;
 
-        if (config.ipda.estimate_clutter) {
+        if (config.ipda.estimate_clutter && z_measurements.cols() > 0) {
             clutter_intensity =
                 estimate_clutter_intensity(z_pred, existence_prob_pred,
                                            z_measurements.cols(), config.pdaf);
@@ -278,8 +278,8 @@ class IPDA {
         double lambda = config.clutter_intensity;
 
         // posterior existence probability r_k
-        double L_k = 1 - P_d + P_d / lambda * z_likelyhoods.sum();  // (7.33)
-        double r_k = (L_k * r_kgkm1) / (1 - (1 - L_k) * r_kgkm1);   // (7.32)
+        double L_k = 1 - P_d + (P_d / lambda) * z_likelyhoods.sum();  // (7.33)
+        double r_k = (L_k * r_kgkm1) / (1 - (1 - L_k) * r_kgkm1);     // (7.32)
         return r_k;
     }
 
