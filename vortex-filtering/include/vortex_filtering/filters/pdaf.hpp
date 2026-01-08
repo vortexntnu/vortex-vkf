@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <concepts>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -14,12 +15,16 @@ namespace vortex::filter {
 namespace config {
 struct PDAF {
     double mahalanobis_threshold = 1.0;
-    double min_gate_threshold = 0.0;
-    double max_gate_threshold = std::numeric_limits<double>::max();
     double prob_of_detection = 1.0;
     double clutter_intensity = 1.0;
 };
 }  // namespace config
+
+/**
+ * @brief Concept for gating functions used in PDAF
+ */
+template <typename GateFn, typename Vec_z, typename Gauss_z>
+concept Gate = std::predicate<GateFn, const Vec_z&, const Gauss_z&>;
 
 template <concepts::DynamicModelLTVWithDefinedSizes DynModT,
           concepts::SensorModelLTVWithDefinedSizes SensModT>
@@ -110,6 +115,19 @@ class PDAF {
         Arr_1Xb gated_measurements;
     };
 
+    /**
+     * @brief Default gating function based on Mahalanobis distance
+     */
+    struct MahalanobisGate {
+        double threshold;
+
+        bool operator()(const Vec_z& z, const Gauss_z& z_pred) const {
+            double mahal = z_pred.mahalanobis_distance(z);
+
+            return mahal <= threshold;
+        }
+    };
+
     PDAF() = delete;
 
     /**
@@ -141,14 +159,19 @@ class PDAF {
      * @param z_pred The predicted measurement
      * @param z_measurements Array of measurements
      * @param config Configuration for the PDAF
+     * @param gate_fn Function to apply the gate
      * @return `UpdateResult`
      */
+    template <typename GateFn>
+        requires Gate<GateFn, Vec_z, Gauss_z>
     static UpdateResult update(const SensModT& sens_mod,
                                const Gauss_x& x_pred,
                                const Gauss_z& z_pred,
                                const Arr_zXd& z_measurements,
-                               const Config& config) {
-        auto gated_measurements = apply_gate(z_measurements, z_pred, config);
+                               const Config& config,
+                               GateFn&& gate_fn) {
+        auto gated_measurements =
+            apply_gate(z_measurements, z_pred, std::forward<GateFn>(gate_fn));
         auto z_inside_meas =
             get_inside_measurements(z_measurements, gated_measurements);
 
@@ -174,6 +197,61 @@ class PDAF {
     }
 
     /**
+     * @brief Perform one PDAF update step
+     *
+     * @param sens_mod The sensor model
+     * @param x_pred The predicted state
+     * @param z_pred The predicted measurement
+     * @param z_measurements Array of measurements
+     * @param config Configuration for the PDAF
+     * @return `UpdateResult`
+     */
+    static UpdateResult update(const SensModT& sens_mod,
+                               const Gauss_x& x_pred,
+                               const Gauss_z& z_pred,
+                               const Arr_zXd& z_measurements,
+                               const Config& config) {
+        return update(sens_mod, x_pred, z_pred, z_measurements, config,
+                      MahalanobisGate{config.pdaf.mahalanobis_threshold});
+    }
+
+    /**
+     * @brief Perform one step of the Probabilistic Data Association Filter
+     *
+     * @param dyn_mod The dynamic model
+     * @param sens_mod The sensor model
+     * @param dt Time step in seconds
+     * @param x_est The estimated state
+     * @param z_measurements Array of measurements
+     * @param config Configuration for the PDAF
+     * @param gate_fn Function to apply the gate
+     * @return `StepResult` The result of the PDAF step and some intermediate
+     * results
+     */
+    template <typename GateFn>
+        requires Gate<GateFn, Vec_z, Gauss_z>
+    static StepResult step(const DynModT& dyn_mod,
+                           const SensModT& sens_mod,
+                           double dt,
+                           const Gauss_x& x_est,
+                           const Arr_zXd& z_measurements,
+                           const Config& config,
+                           GateFn&& gate_fn) {
+        auto [x_pred, z_pred] = predict(dyn_mod, sens_mod, dt, x_est);
+
+        auto [x_post, x_updates, gated_measurements, z_inside_meas,
+              z_likelihoods] = update(sens_mod, x_pred, z_pred, z_measurements,
+                                      config, std::forward<GateFn>(gate_fn));
+        return StepResult{
+            .x_post = x_post,
+            .x_pred = x_pred,
+            .z_pred = z_pred,
+            .x_updates = x_updates,
+            .gated_measurements = gated_measurements,
+        };
+    }
+
+    /**
      * @brief Perform one step of the Probabilistic Data Association Filter
      *
      * @param dyn_mod The dynamic model
@@ -191,18 +269,29 @@ class PDAF {
                            const Gauss_x& x_est,
                            const Arr_zXd& z_measurements,
                            const Config& config) {
-        auto [x_pred, z_pred] = predict(dyn_mod, sens_mod, dt, x_est);
+        return step(dyn_mod, sens_mod, dt, x_est, z_measurements, config,
+                    MahalanobisGate{config.pdaf.mahalanobis_threshold});
+    }
 
-        auto [x_post, x_updates, gated_measurements, z_inside_meas,
-              z_likelihoods] =
-            update(sens_mod, x_pred, z_pred, z_measurements, config);
-        return StepResult{
-            .x_post = x_post,
-            .x_pred = x_pred,
-            .z_pred = z_pred,
-            .x_updates = x_updates,
-            .gated_measurements = gated_measurements,
-        };
+    /**
+     * @brief Apply gate to the measurements
+     *
+     * @param z_measurements Array of measurements
+     * @param z_pred Predicted measurement
+     * @param gate_fn Function to apply the gate
+     * @return `Arr_1Xb` Indices of the measurements that are inside the gate
+     */
+    template <typename GateFn>
+        requires Gate<GateFn, Vec_z, Gauss_z>
+    static Arr_1Xb apply_gate(const Arr_zXd& z_measurements,
+                              const Gauss_z& z_pred,
+                              GateFn&& gate_fn) {
+        Arr_1Xb gated_measurements(1, z_measurements.cols());
+
+        for (size_t a_k = 0; const Vec_z& z_k : z_measurements.colwise()) {
+            gated_measurements(a_k++) = gate_fn(z_k, z_pred);
+        }
+        return gated_measurements;
     }
 
     /**
@@ -215,22 +304,8 @@ class PDAF {
      */
     static Arr_1Xb apply_gate(const Arr_zXd& z_measurements,
                               const Gauss_z& z_pred,
-                              Config config) {
-        double mahalanobis_threshold = config.pdaf.mahalanobis_threshold;
-        double min_gate_threshold = config.pdaf.min_gate_threshold;
-        double max_gate_threshold = config.pdaf.max_gate_threshold;
-
-        Arr_1Xb gated_measurements(1, z_measurements.cols());
-
-        for (size_t a_k = 0; const Vec_z& z_k : z_measurements.colwise()) {
-            double mahalanobis_distance = z_pred.mahalanobis_distance(z_k);
-            double regular_distance = (z_pred.mean() - z_k).norm();
-            gated_measurements(a_k++) =
-                (mahalanobis_distance <= mahalanobis_threshold ||
-                 regular_distance <= min_gate_threshold) &&
-                regular_distance <= max_gate_threshold;
-        }
-        return gated_measurements;
+                              double threshold) {
+        return apply_gate(z_measurements, z_pred, MahalanobisGate{threshold});
     }
 
     /**

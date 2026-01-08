@@ -195,7 +195,8 @@ TEST(PDAF, apply_gate_is_calculating) {
                           {1.0, 0.0, 1.0, 2.0, 0.0, 2.0}};
     // clang-format on
 
-    auto gated = PDAF::apply_gate(meas, z_pred, config);
+    auto gated =
+        PDAF::apply_gate(meas, z_pred, config.pdaf.mahalanobis_threshold);
 }
 
 TEST(PDAF, apply_gate_is_separating_correctly) {
@@ -211,7 +212,8 @@ TEST(PDAF, apply_gate_is_separating_correctly) {
                           {4.0, 0.0}};
     // clang-format on
 
-    auto gated = PDAF::apply_gate(meas, z_pred, config);
+    auto gated =
+        PDAF::apply_gate(meas, z_pred, config.pdaf.mahalanobis_threshold);
 
     EXPECT_TRUE(gated(0));
     EXPECT_FALSE(gated(1));
@@ -260,7 +262,8 @@ TEST(PDAF, apply_gate_is_separating_correctly_2) {
                           {1.0, 0.0, 1.0, 2.0, 0.0, 2.0}};
     // clang-format on
 
-    auto gated = PDAF::apply_gate(meas, z_pred, config);
+    auto gated =
+        PDAF::apply_gate(meas, z_pred, config.pdaf.mahalanobis_threshold);
 
     EXPECT_EQ(gated.count(), 5u);
 

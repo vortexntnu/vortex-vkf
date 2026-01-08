@@ -32,6 +32,7 @@ class IPDA {
     using Gauss_x = typename T::Gauss_x;
     using Gauss_xX = std::vector<Gauss_x>;
 
+    using Vec_z = typename T::Vec_z;
     using Arr_zXd = Eigen::Array<double, N_DIM_z, Eigen::Dynamic>;
     using Arr_1Xb = Eigen::Array<bool, 1, Eigen::Dynamic>;
     using EKF =
@@ -169,14 +170,18 @@ class IPDA {
      * @param z_measurements Array of measurements
      * @param existence_prob_pred The predicted existence probability
      * @param config Configuration for the IPDA
+     * @param gate_fn Function to apply the gate
      * @return `UpdateResult`
      */
+    template <typename GateFn>
+        requires Gate<GateFn, Vec_z, Gauss_z>
     static UpdateResult update(const SensModT& sens_mod,
                                const Gauss_x& x_pred,
                                const Gauss_z& z_pred,
                                const Arr_zXd& z_measurements,
                                double existence_prob_pred,
-                               const Config& config) {
+                               const Config& config,
+                               GateFn&& gate_fn) {
         double clutter_intensity = config.pdaf.clutter_intensity;
 
         if (config.ipda.estimate_clutter) {
@@ -190,7 +195,8 @@ class IPDA {
 
         auto [x_post, x_updates, gated_measurements, z_inside_meas,
               z_likelihoods] =
-            PDAF::update(sens_mod, x_pred, z_pred, z_measurements, pdaf_cfg);
+            PDAF::update(sens_mod, x_pred, z_pred, z_measurements, pdaf_cfg,
+                         std::forward<GateFn>(gate_fn));
 
         double existence_prob_upd = existence_prob_pred;
         if (z_measurements.cols() > 0 ||
@@ -199,12 +205,81 @@ class IPDA {
                 z_likelihoods, existence_prob_pred, pdaf_cfg.pdaf);
         }
 
-        return UpdateResult{.x_post = x_post,
-                            .x_updates = x_updates,
-                            .gated_measurements = gated_measurements,
-                            .z_inside_meas = z_inside_meas,
-                            .existence_prob_upd = existence_prob_upd,
-                            .clutter_intensity = clutter_intensity};
+        return {.x_post = x_post,
+                .x_updates = x_updates,
+                .gated_measurements = gated_measurements,
+                .z_inside_meas = z_inside_meas,
+                .existence_prob_upd = existence_prob_upd,
+                .clutter_intensity = clutter_intensity};
+    }
+
+    /**
+     * @brief Performs one IPDA update step
+     * @param sens_mod The sensor model
+     * @param x_pred The predicted state
+     * @param z_pred The predicted measurement
+     * @param z_measurements Array of measurements
+     * @param existence_prob_pred The predicted existence probability
+     * @param config Configuration for the IPDA
+     * @param gate_fn Function to apply the gate
+     * @return `UpdateResult`
+     */
+    static UpdateResult update(const SensModT& sens_mod,
+                               const Gauss_x& x_pred,
+                               const Gauss_z& z_pred,
+                               const Arr_zXd& z_measurements,
+                               double existence_prob_pred,
+                               const Config& config) {
+        return update(
+            sens_mod, x_pred, z_pred, z_measurements, existence_prob_pred,
+            config,
+            typename PDAF::MahalanobisGate{config.pdaf.mahalanobis_threshold});
+    }
+
+    /**
+     * @brief Perform one step of the Integrated Probabilistic Data Association
+     * Filter
+     *
+     * @param dyn_mod The dynamic model
+     * @param sens_mod The sensor model
+     * @param dt Time step in seconds
+     * @param state_est_prev The previous estimated state
+     * @param z_measurements Array of measurements
+     * @param config Configuration for the IPDA
+     * @param gate_fn Function to apply the gate
+     * @return `StepResult` The result of the IPDA step and some intermediate
+     * results
+     */
+    template <typename GateFn>
+        requires Gate<GateFn, Vec_z, Gauss_z>
+    static StepResult step(const DynModT& dyn_mod,
+                           const SensModT& sens_mod,
+                           double dt,
+                           const State& state_est_prev,
+                           const Arr_zXd& z_measurements,
+                           const Config& config,
+                           GateFn&& gate_fn) {
+        auto [x_pred, z_pred, existence_prob_pred] =
+            predict(dyn_mod, sens_mod, dt, state_est_prev, config);
+
+        auto [x_post, x_updates, gated_measurements, z_inside_meas,
+              existence_prob_upd, clutter_intensity] =
+            update(sens_mod, x_pred, z_pred, z_measurements,
+                   existence_prob_pred, config, std::forward<GateFn>(gate_fn));
+
+        // clang-format off
+        return {
+            .state = {
+                .x_estimate            = x_post,
+                .existence_probability = existence_prob_upd,
+            },
+            .x_pred       = x_pred,
+            .z_pred       = z_pred,
+            .x_updates          = x_updates,
+            .gated_measurements = gated_measurements,
+            .clutter_intensity = clutter_intensity,
+        };
+        // clang-format on
     }
 
     /**
@@ -226,27 +301,9 @@ class IPDA {
                            const State& state_est_prev,
                            const Arr_zXd& z_measurements,
                            const Config& config) {
-        auto [x_pred, z_pred, existence_prob_pred] =
-            predict(dyn_mod, sens_mod, dt, state_est_prev, config);
-
-        auto [x_post, x_updates, gated_measurements, z_inside_meas,
-              existence_prob_upd, clutter_intensity] =
-            update(sens_mod, x_pred, z_pred, z_measurements,
-                   existence_prob_pred, config);
-
-        // clang-format off
-        return {
-            .state = {
-                .x_estimate            = x_post,
-                .existence_probability = existence_prob_upd,
-            },
-            .x_pred       = x_pred,
-            .z_pred       = z_pred,
-            .x_updates          = x_updates,
-            .gated_measurements = gated_measurements,
-            .clutter_intensity = clutter_intensity,
-        };
-        // clang-format on
+        return step(
+            dyn_mod, sens_mod, dt, state_est_prev, z_measurements, config,
+            typename PDAF::MahalanobisGate{config.pdaf.mahalanobis_threshold});
     }
 
     /**
