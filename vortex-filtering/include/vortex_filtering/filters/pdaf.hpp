@@ -119,7 +119,7 @@ class PDAF {
      * @brief Default gating function based on Mahalanobis distance
      */
     struct MahalanobisGate {
-        double threshold;
+        double threshold{1.0};
 
         bool operator()(const Vec_z& z, const Gauss_z& z_pred) const {
             double mahal = z_pred.mahalanobis_distance(z);
