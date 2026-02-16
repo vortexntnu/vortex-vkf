@@ -103,8 +103,9 @@ class IMMIPDA {
         // Gate measurements
         Arr_nXb gated_measurements(ImmModelT::N_MODELS, m_k);
         [&]<size_t... s_k>(std::index_sequence<s_k...>) {
-            ((gated_measurements.row(s_k) = PDAF_<s_k>::apply_gate(
-                  z_measurements, z_est_preds.at(s_k), {config.pdaf})),
+            ((gated_measurements.row(s_k) =
+                  PDAF_<s_k>::apply_gate(z_measurements, z_est_preds.at(s_k),
+                                         config.pdaf.mahalanobis_threshold)),
              ...);
         }(std::make_index_sequence<ImmModelT::N_MODELS>{});
 

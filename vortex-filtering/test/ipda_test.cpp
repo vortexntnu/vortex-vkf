@@ -15,8 +15,6 @@ TEST(IPDA, ipda_runs) {
         .pdaf =
             {
                 .mahalanobis_threshold = 1.0,
-                .min_gate_threshold = 0.0,
-                .max_gate_threshold = 100.0,
                 .prob_of_detection = 0.8,
                 .clutter_intensity = 1.0,
             },

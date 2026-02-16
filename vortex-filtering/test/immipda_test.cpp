@@ -16,25 +16,22 @@ class IMMIPDA : public ::testing::Test {
     IMMIPDA()
         : imm_model_(jump_matrix, hold_times, DynMod1_(0.5), DynMod2_(0.5)),
           sensor_model_(2),
-          config_{
-              .pdaf =
-                  {
-                      .mahalanobis_threshold = 1.0,
-                      .min_gate_threshold = 0.0,
-                      .max_gate_threshold = std::numeric_limits<double>::max(),
-                      .prob_of_detection = 0.9,
-                      .clutter_intensity = 1.0,
-                  },
-              .ipda =
-                  {
-                      .prob_of_survival = 0.9,
-                      .estimate_clutter = true,
-                      .update_existence_probability_on_no_detection = true,
-                  },
-              .immipda = {
-                  .states_min_max = {{S::position, {-100.0, 100.0}},
-                                     {S::velocity, {-10.0, 10.0}}},
-              }} {};
+          config_{.pdaf =
+                      {
+                          .mahalanobis_threshold = 1.0,
+                          .prob_of_detection = 0.9,
+                          .clutter_intensity = 1.0,
+                      },
+                  .ipda =
+                      {
+                          .prob_of_survival = 0.9,
+                          .estimate_clutter = true,
+                          .update_existence_probability_on_no_detection = true,
+                      },
+                  .immipda = {
+                      .states_min_max = {{S::position, {-100.0, 100.0}},
+                                         {S::velocity, {-10.0, 10.0}}},
+                  }} {};
 
     double dt_ = 1;
     Eigen::Matrix2d jump_matrix{{0.0, 1.0}, {1.0, 0.0}};
